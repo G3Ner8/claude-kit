@@ -5,7 +5,7 @@ Three ways to consume claude-kit, in order of recommendation.
 ## A — Plugin marketplace (recommended)
 
 ```
-/plugin marketplace add <github-owner>/claude-kit
+/plugin marketplace add G3Ner8/claude-kit
 /plugin install react-core@claude-kit
 /plugin install react-agents@claude-kit
 /plugin install pps-web-profile@claude-kit   # optional reference profile

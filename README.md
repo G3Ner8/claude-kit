@@ -12,7 +12,7 @@ A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace 
 
 ```
 # In any Claude Code session
-/plugin marketplace add chettawat-p/claude-kit
+/plugin marketplace add G3Ner8/claude-kit
 /plugin install react-core@claude-kit
 /plugin install react-agents@claude-kit
 
@@ -27,8 +27,6 @@ For your own project, after installing `react-agents`:
 ```
 
 → Claude asks ~22 questions in 4 short rounds, then writes a filled-in profile (3 agents + plugin manifest + README) to a folder you pick. Ready to symlink into `.claude/agents/` or push as its own plugin.
-
-Replace `chettawat-p` with the actual GitHub owner once the repo is pushed.
 
 Update later with `/plugin marketplace update`.
 
