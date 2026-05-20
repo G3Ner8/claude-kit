@@ -1,0 +1,19 @@
+{
+  "name": "react-core",
+  "version": "0.1.0",
+  "description": "Six curated Claude Code skills for React 19 / Vite SPAs: performance, composition patterns, audit, revamp, UX review, and DRY/style consolidation.",
+  "author": {
+    "name": "Chettawat Phosri"
+  },
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "react-19",
+    "vite",
+    "tanstack-query",
+    "typescript",
+    "spa",
+    "claude-code",
+    "claude-skill"
+  ]
+}

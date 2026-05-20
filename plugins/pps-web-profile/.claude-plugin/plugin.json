@@ -1,0 +1,16 @@
+{
+  "name": "pps-web-profile",
+  "version": "0.1.0",
+  "description": "Aware pps-web project profile: build/polish/pre-commit subagents wired to MC-1..MC-7, plus pps-ui primitive inventory. Pairs with react-core.",
+  "author": {
+    "name": "Chettawat Phosri"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "claude-agent",
+    "pps-web",
+    "aware",
+    "internal"
+  ]
+}

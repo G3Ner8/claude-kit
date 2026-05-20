@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "claude-kit",
+  "description": "Claude Code skills + agents for React 19 / Vite SPA work. Two plugins: react-core (portable) and pps-web-profile (Aware-specific).",
+  "owner": {
+    "name": "Chettawat Phosri"
+  },
+  "plugins": [
+    {
+      "name": "react-core",
+      "source": "./plugins/react-core",
+      "description": "React 19 / Vite SPA skills: perf, composition, audit, revamp, ux-review, dry. Stack-agnostic across any web-React project.",
+      "version": "0.1.0"
+    },
+    {
+      "name": "pps-web-profile",
+      "source": "./plugins/pps-web-profile",
+      "description": "Aware pps-web project profile: build/polish/pre-commit agents + UI primitive inventory. Depends on react-core.",
+      "version": "0.1.0"
+    }
+  ]
+}
