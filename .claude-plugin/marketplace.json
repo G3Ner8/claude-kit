@@ -13,6 +13,12 @@
       "version": "0.1.0"
     },
     {
+      "name": "react-agents",
+      "source": "./plugins/react-agents",
+      "description": "Templates for the build/polish/pre-commit subagent trio + a profile-generator skill that scaffolds a project-specific profile interactively.",
+      "version": "0.1.0"
+    },
+    {
       "name": "pps-web-profile",
       "source": "./plugins/pps-web-profile",
       "description": "Aware pps-web project profile: build/polish/pre-commit agents + UI primitive inventory. Depends on react-core.",

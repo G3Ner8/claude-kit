@@ -1,11 +1,12 @@
 # claude-kit
 
-A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace for React 19 SPA work. Ships two installable plugins:
+A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace for React 19 SPA work. Ships three installable plugins:
 
 | Plugin | What | Portable? |
 | --- | --- | --- |
 | [`react-core`](./plugins/react-core/) | 6 skills — perf, composition, audit, revamp, ux-review, dry | ✅ Any React 19 / Vite project |
-| [`pps-web-profile`](./plugins/pps-web-profile/) | 1 skill + 3 agents — `pps-ui` inventory + build/polish/pre-commit agents | ❌ Aware `pps-web` only (fork as template) |
+| [`react-agents`](./plugins/react-agents/) | Templates + `/profile-generator` skill that scaffolds the build/polish/pre-commit trio for your project | ✅ Any React 19 / Vite project |
+| [`pps-web-profile`](./plugins/pps-web-profile/) | Worked example: 1 skill + 3 agents filled in for Aware `pps-web` | ❌ Reference only — fork via `react-agents` for your own project |
 
 ## Install
 
@@ -13,33 +14,55 @@ A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace 
 # In any Claude Code session
 /plugin marketplace add chettawat-p/claude-kit
 /plugin install react-core@claude-kit
-/plugin install pps-web-profile@claude-kit   # only if you work on pps-web
+/plugin install react-agents@claude-kit
+
+# Optional: install the pps-web reference profile as a working example
+/plugin install pps-web-profile@claude-kit
 ```
+
+For your own project, after installing `react-agents`:
+
+```
+/profile-generator
+```
+
+→ Claude asks ~22 questions in 4 short rounds, then writes a filled-in profile (3 agents + plugin manifest + README) to a folder you pick. Ready to symlink into `.claude/agents/` or push as its own plugin.
 
 Replace `chettawat-p` with the actual GitHub owner once the repo is pushed.
 
 Update later with `/plugin marketplace update`.
 
-## Why two plugins?
+## Why three plugins?
 
-`react-core` is stack-knowledge that travels across projects. `pps-web-profile` is the lived-in working reference — agents wired to specific baselines, Swagger URLs, MC-1..MC-7 conventions. Splitting them means:
+| Plugin | Role | Couples to |
+|---|---|---|
+| `react-core` | Stack-knowledge skills | React 19 / Vite (no project) |
+| `react-agents` | Agent pattern + generator | Same — fully parameterized |
+| `pps-web-profile` | Aware-specific working example | `pps-web` repo |
 
-- Outside contributors install only what's portable.
-- The profile stays free to embed project-specific paths without polluting the portable core.
-- New projects can copy `pps-web-profile/` as a template, replace bindings, and publish their own profile plugin against the same `react-core`.
+Splitting them means:
+
+- Portable knowledge stays decoupled from any one repo.
+- The agent **pattern** (build → polish → pre-commit trio) is reusable across projects via templates; the **content** (paths, conventions, Swagger URL) is per-project.
+- `pps-web-profile` becomes a worked example that shows what a filled-in profile looks like — newcomers can read it as documentation.
 
 ## Plugin layout
 
 ```
 claude-kit/
-├── .claude-plugin/marketplace.json     # catalog (2 plugins)
+├── .claude-plugin/marketplace.json     # catalog (3 plugins)
 ├── plugins/
-│   ├── react-core/                     # portable
+│   ├── react-core/                     # 6 portable skills
 │   │   ├── .claude-plugin/plugin.json
 │   │   ├── skills/{react-perf,react-composition,react-audit,
 │   │   │           react-revamp,react-ux-review,react-dry}/
 │   │   └── docs/CONVENTIONS.template.md
-│   └── pps-web-profile/                # project-bound
+│   ├── react-agents/                   # templates + generator
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── skills/profile-generator/SKILL.md
+│   │   ├── templates/agents/{implement,polish,pre-commit}.template.md
+│   │   └── docs/{PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md}
+│   └── pps-web-profile/                # Aware reference profile
 │       ├── .claude-plugin/plugin.json
 │       ├── skills/pps-ui/
 │       └── agents/{web-implement,web-polish,web-pre-commit}.md

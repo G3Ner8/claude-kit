@@ -7,8 +7,11 @@ Three ways to consume claude-kit, in order of recommendation.
 ```
 /plugin marketplace add <github-owner>/claude-kit
 /plugin install react-core@claude-kit
-/plugin install pps-web-profile@claude-kit
+/plugin install react-agents@claude-kit
+/plugin install pps-web-profile@claude-kit   # optional reference profile
 ```
+
+For your own project, after `react-agents` is installed, run `/profile-generator` and answer ~22 questions to scaffold a filled-in agent trio.
 
 Updates: `/plugin marketplace update` then re-install if a plugin's `version` field bumped.
 

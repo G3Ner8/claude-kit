@@ -6,6 +6,15 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `react-agents` 0.1.0
+- New plugin shipping three agent templates (`implement` / `polish` / `pre-commit`) with `{{PLACEHOLDER}}` substitution points for project-specific content.
+- New `profile-generator` skill (`/profile-generator`) — interactive 4-round AskUserQuestion flow that gathers project facts, substitutes placeholders, and writes a complete filled-in profile (agents + plugin.json + README + optional UI inventory stub) to a user-chosen folder.
+- Ships `docs/PLACEHOLDER-REFERENCE.md` (all 22 placeholders documented with example values from `pps-web`) and `docs/FORK-GUIDE.md` (manual fork procedure).
+
+### Marketplace
+- Added `react-agents` to `marketplace.json`.
+- Reframed `pps-web-profile` as a worked example rather than primary distribution.
+
 ## [0.1.0] — 2026-05-20
 
 Initial extraction from the in-tree `Aware Payroll/claude-kit/` into a standalone plugin marketplace.

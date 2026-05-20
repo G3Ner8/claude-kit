@@ -1,0 +1,17 @@
+{
+  "name": "react-agents",
+  "version": "0.1.0",
+  "description": "Templates for the build/polish/pre-commit subagent trio + a profile-generator skill that interactively scaffolds a project-specific profile (filled-in agents + plugin.json) for any React 19 / Vite SPA.",
+  "author": {
+    "name": "Chettawat Phosri"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "claude-agent",
+    "react",
+    "scaffold",
+    "template",
+    "generator"
+  ]
+}
