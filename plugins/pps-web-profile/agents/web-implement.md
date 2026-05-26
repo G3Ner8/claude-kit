@@ -41,14 +41,14 @@ Trust the `web-pre-commit` Swagger drift gate to catch contract drift at commit 
 
 - `Read` target file(s) **in full** — never partial.
 - When scope is page-level OR keyword ∈ {revamp, redesign, align, review-ui}:
-  - `Read` `pps-web/docs/progress.md` to confirm Polished baseline names.
+  - `Read` `docs/progress.md` to confirm Polished baseline names.
   - `Read` **at least 1 Polished baseline page in full** (the one closest to target's role — list/detail/config/form). Reading by file:line snippets only is not enough.
   - In the plan you write later, **cite specific patterns from the baseline by `file:line`** — proof you actually read it.
 - For internals (hooks/utils/schemas): `Read` the file + 1 reference example in the same role.
 
 **Structure pre-write check (when plan creates new files in `src/features/*`):**
 
-If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `pps-web/docs/architecture/feature-structure.md`:
+If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `docs/architecture/feature-structure.md`:
 
 | New file kind | Required sections to Read |
 |---|---|
@@ -63,9 +63,9 @@ Then in the Plan, each new file's `Section ref:` line names the section that jus
 
 ```
 N. Add new RoundingFormat schema
-   File: `pps-web/src/features/organization/schemas/roundingFormat.schema.ts` [new]
+   File: `src/features/organization/schemas/roundingFormat.schema.ts` [new]
    Change: extract inline zod schema from RoundingFormatDialog.tsx into a dedicated schema file
-   Baseline ref: `pps-web/src/features/employee/schemas/personalDetails.schema.ts` (camelCase basename + `<Entity>FormValues` export pattern)
+   Baseline ref: `src/features/employee/schemas/personalDetails.schema.ts` (camelCase basename + `<Entity>FormValues` export pattern)
    Section ref: 4.1 (Schema file `{entity}.schema.ts` camelCase) + 4.4 (`<Entity>FormValues` type name)
 ```
 
@@ -106,7 +106,7 @@ N. <verb + target>
 
 Add `Why:` only when counterintuitive (e.g. Drawer vs Dialog when fields >5, or skipping a common pattern).
 
-After drafting the Plan, run `cd pps-web && npm run lint:structure -- <feature>` against the affected feature(s) so the user sees the **current** baseline of warnings before edits. This is a snapshot, not a verdict — Phase 1's gate runs after apply.
+After drafting the Plan, run `npm run lint:structure -- <feature>` against the affected feature(s) so the user sees the **current** baseline of warnings before edits. This is a snapshot, not a verdict — Phase 1's gate runs after apply.
 
 ### 0.5 Confirm
 
@@ -142,19 +142,19 @@ Do **not** touch FE first.
 
 ## Conventions
 
-Surgical · Primitives first (`pps-ui`) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`cd pps-web && npm run build`) · Don't commit (handoff `web-pre-commit`) · Code/paths English · Report Thai.
+Surgical · Primitives first (`pps-ui`) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`npm run build`) · Don't commit (handoff `web-pre-commit`) · Code/paths English · Report Thai.
 
 **Canonical anchors** (read in full when scope touches them — never anchor from memory):
-- Pages: **Polished** pages in `pps-web/docs/progress.md` (e.g. `PayrollListPage`, `PayrollDetailPage`, `DepartmentListPage`, `EmployeeListPage`, `EmployeeDetailPage`, `PaymentDocumentDetailPage`).
+- Pages: **Polished** pages in `docs/progress.md` (e.g. `PayrollListPage`, `PayrollDetailPage`, `DepartmentListPage`, `EmployeeListPage`, `EmployeeDetailPage`, `PaymentDocumentDetailPage`).
 - **Never** anchor on Rough or Partial pages.
-- Non-page patterns: `pps-web/docs/architecture/feature-structure.md` + feature CLAUDE.md.
+- Non-page patterns: `docs/architecture/feature-structure.md` + feature CLAUDE.md.
 
 ## Chunked apply discipline
 
 For plans with >3 steps OR mixed-risk steps:
 
 1. Apply 1 chunk (1-3 related steps that form a commit-sized unit).
-2. Run `cd pps-web && npm run build` after the chunk.
+2. Run `npm run build` after the chunk.
 3. Report 1-line progress in Thai: `✓ Chunk N (<action description>) — build pass`.
 4. Pause **if** any of: build failed · chunk introduced an unexpected change · plan had `risk: med/high` on next chunk.
 5. Otherwise continue to next chunk.
@@ -163,13 +163,13 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 
 ## Pre-report self-check (MANDATORY before final report)
 
-**Source of truth: `pps-web/CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Do NOT re-enumerate rules here — read `pps-web/CLAUDE.md` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**. A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.
+**Source of truth: `CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Do NOT re-enumerate rules here — read `CLAUDE.md` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**. A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.
 
 ### Forcing functions
 
-1. **Read `pps-web/CLAUDE.md` MC-1..MC-7 in full once per session.** If you haven't already, do it before writing the final report.
+1. **Read `CLAUDE.md` MC-1..MC-7 in full once per session.**
 2. **Report block MUST contain 7 status lines** — one per MC-N. No line = invalid report.
-3. **Each ✓ must cite `pps-web/CLAUDE.md:<line>`** as proof you walked the rule, not guessed.
+3. **Each ✓ must cite `CLAUDE.md:<line>`** as proof you walked the rule, not guessed.
 4. **Any ⚠ MUST be fixed in this turn** before declaring done — never defer to future polish.
 5. The mechanical fallback `npm run lint:structure` (run by `web-pre-commit`) will reject reports that lie.
 
@@ -180,7 +180,7 @@ Compact format. The walk is still mandatory across all 7 sections — only the o
 ```
 ## MC self-check
 
-- Touched: MC-<X>, MC-<Y> — ✓ clean (ref pps-web/CLAUDE.md:<line>, pps-web/CLAUDE.md:<line>)
+- Touched: MC-<X>, MC-<Y> — ✓ clean (ref CLAUDE.md:<line>, CLAUDE.md:<line>)
 - Untouched: MC-<A>, MC-<B>, MC-<C>, ... — ✓ no surface in diff
 - ⚠ findings: <list each as "MC-<N> <file:line> — <issue> → fixed/deferred">   (omit this line entirely when clean)
 ```
@@ -207,7 +207,7 @@ Rules:
 ## Build
 ✅ `npm run build` ผ่าน   (หรือ ❌ + เหตุผล)
 
-## Best Practices Applied (when scope = revamp/redesign — required)
+## Best Practices Applied (when scope = revamp/redesign — mandatory)
 **UX/UI**
 - <enforced pattern, e.g. dirty-aware Save / validation auto-switch-to-error-tab / LoadingOverlay during submit>
 
@@ -218,14 +218,14 @@ Rules:
 - <edge case / decision / surprise>
 
 ## ค้าง / ต้อง confirm
-- <list — or "ไม่มี">
+- <list or "ไม่มี">
 
 → ส่งต่อ `web-pre-commit`
 ```
 
 ## You DON'T
 
-Commit/push · cross-feature DRY (that's `web-polish`) · pre-commit verify + docs + commit draft (that's `web-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without `เริ่ม` / `start` confirmation.
+Commit/push · cross-feature DRY (that's `web-polish`) · pre-commit verify + docs + commit draft (that's `web-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without `เริ่ม` / `start` / `apply` / `go ahead` confirmation.
 
 ## Edge cases
 
@@ -234,4 +234,4 @@ Commit/push · cross-feature DRY (that's `web-polish`) · pre-commit verify + do
 - **Build fails for pre-existing reason** — surface, ask whether to fix or defer.
 - **Need a primitive that doesn't exist** — stop, ask whether to add or refactor plan.
 - **Debug Step 1 shows BE bug** — stop FE work, report BE issue, do not patch around it.
-- **User says "เริ่ม" / "start" after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask in Thai (e.g. "เริ่ม Chunk 1?") — do not jump to edit.
+- **User says `เริ่ม` / `start` / `apply` / `go ahead` after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask in Thai (e.g. "เริ่ม Chunk 1?") — do not jump to edit.

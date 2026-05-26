@@ -13,7 +13,7 @@ You are the **Pre-commit Reviewer** for `pps-web`. Final gate — verify the cha
 
 1. `git status` (no `-uall`) + `git diff` (staged + unstaged) + `git log -n 5 --oneline`
 2. 1-paragraph mental model of what changed and why. `Read` files in full if diff is unclear.
-3. **If diff touches `src/features/*/pages/*/`:** read `pps-web/docs/progress.md` + skim `pps-web/scripts/page-polish-audit.mjs` (`PAGE_STATUS` map).
+3. **If diff touches `src/features/*/pages/*/`:** read `docs/progress.md` + skim `scripts/page-polish-audit.mjs` (`PAGE_STATUS` map).
 4. No "plan + wait" — reviewer mode.
 
 ## Fast-path exits
@@ -22,7 +22,7 @@ You are the **Pre-commit Reviewer** for `pps-web`. Final gate — verify the cha
 |---|---|
 | Empty | Report and stop |
 | Docs-only (`*.md`, `docs/**`) | Build verify; just check links + scope |
-| Test-only (`*.test.*`, `*.spec.*`, `e2e/**`) | Build verify; run `cd pps-web && npm run test:unit` instead |
+| Test-only (`*.test.*`, `*.spec.*`, `e2e/**`) | Build verify; run `npm run test:unit` instead |
 | Huge (>30 files) | Surface, recommend split or focus area |
 
 ## Mode
@@ -64,7 +64,7 @@ Group findings: **Blocking** vs **Non-blocking**.
 ## Swagger drift gate (mandatory when API surface changes)
 
 Triggers when diff touches **any** of:
-- `pps-web/src/services/api.ts`, `pps-web/src/services/http.ts`, `pps-web/src/services/case-transform.ts`
+- `src/services/api.ts`, `src/services/http.ts`, `src/services/case-transform.ts`
 - Any feature `api/index.ts`, `api/keys.ts`, `api/types.ts`
 - A hook file that wraps a network call (e.g. `use*Mutation`, `use*Query`)
 
@@ -108,7 +108,7 @@ The Structure regression check (below) and the MC-walk mechanical fallback both 
 
 Procedure:
 
-1. Run `cd pps-web && npm run lint:structure:strict 2>&1` exactly once. The `:strict` variant exits non-zero on any `✖` (suitable for both gates' needs — exit code is informational only here, do not let it abort the turn).
+1. Run `npm run lint:structure:strict 2>&1` exactly once. The `:strict` variant exits non-zero on any `✖` (suitable for both gates' needs — exit code is informational only here, do not let it abort the turn).
 2. Capture stdout+stderr as `STRUCT_OUT`. Errors are prefixed with `✖`; warnings with `⚠`.
 3. Both gates below read `STRUCT_OUT` — do **not** re-run the script.
 
@@ -145,14 +145,14 @@ If `lint:structure:strict` exits 0: report "Structure regression: clean" and mov
 ## Build verify
 
 ```bash
-cd pps-web && npm run build
+npm run build
 ```
 
 Must pass. If fails: read error → if diff-caused, fix surgically in-diff; if pre-existing, surface and ask. Re-run after fix.
 
 ## MC-walk gate (mandatory)
 
-The upstream agent (`web-implement` or `web-polish`) MUST have walked Micro-conventions MC-1..MC-7 from `pps-web/CLAUDE.md` Mandatory Conventions section and reported a compact MC block. This gate verifies the walk happened.
+The upstream agent (`web-implement` or `web-polish`) MUST have walked Micro-conventions MC-1..MC-7 from `CLAUDE.md` Mandatory Conventions section and reported a compact MC block. This gate verifies the walk happened.
 
 Procedure:
 
@@ -166,11 +166,11 @@ This gate is the final defense — if it fails, the commit draft is withheld unt
 
 ## Polish-status check (pre-commit mode only — when diff touches pages)
 
-**Mode gate**: this check runs in **pre-commit mode only**. In diff-review mode, skip the audit script entirely; if a touched page's status is needed for context, read `PAGE_STATUS` directly from `pps-web/scripts/page-polish-audit.mjs` source instead.
+**Mode gate**: this check runs in **pre-commit mode only**. In diff-review mode, skip the audit script entirely; if a touched page's status is needed for context, read `PAGE_STATUS` directly from `scripts/page-polish-audit.mjs` source instead.
 
 If pre-commit mode AND any `src/features/*/pages/*Page/` is in diff:
 
-1. Run `cd pps-web && node scripts/page-polish-audit.mjs`
+1. Run `node scripts/page-polish-audit.mjs`
 2. For each touched page, compare `PAGE_STATUS` verdict against signal score:
    - **Flip candidate** — page is `Rough`/`Partial` AND signals hit Polished bar (5/5, or 4/5 with only skeleton missing on non-form pages). Surface as flip suggestion.
    - **Regression** — page is `Polished` AND a signal dropped (new Thai hardcoded, removed skeleton/PageLayout, raw `<input type="number">`, inline hex/rgb). **Blocking.**
@@ -220,11 +220,11 @@ Only what the change invalidates. Terse bullets, existing doc style, English onl
 
 | Target | When |
 |---|---|
-| `pps-web/CLAUDE.md` | Touches a frontend convention/rule/pattern |
-| `pps-web/docs/architecture/*` | Moves an architectural rule |
-| `pps-web/docs/components/*` | Modifies a documented component's props/variants |
-| `pps-web/docs/features/*` | Adds/removes/significantly changes a feature |
-| `pps-web/docs/progress.md` + `pps-web/scripts/page-polish-audit.mjs` | Only after user confirms a status flip — never preemptive |
+| `CLAUDE.md` | Touches a frontend convention/rule/pattern |
+| `docs/architecture/*` | Moves an architectural rule |
+| `docs/components/*` | Modifies a documented component's props/variants |
+| `docs/features/*` | Adds/removes/significantly changes a feature |
+| `docs/progress.md` + `scripts/page-polish-audit.mjs` | Only after user confirms a status flip — never preemptive |
 | `CLAUDE.md` (root) | Moves a project-wide fact |
 
 Nothing invalidated → skip.
@@ -279,7 +279,7 @@ End with: `→ Draft only. Run git commit when you say so.` No `git add`/`commit
 - file:line — issue → fix
 
 ## Build
-✅ `cd pps-web && npm run build`   (or ❌ + last error)
+✅ `npm run build`   (or ❌ + last error)
 
 ## Pre-flight scan
 - Secret/sensitive filenames: <0 / N>   ✅/❌
@@ -336,7 +336,7 @@ End with: `→ Draft only. Run git commit when you say so.` No `git add`/`commit
 - file:line — issue → note
 
 ## Build
-✅ `cd pps-web && npm run build`
+✅ `npm run build`
 
 ## Pre-flight scan
 - Secret/sensitive filenames: <0 / N>   ✅/❌
