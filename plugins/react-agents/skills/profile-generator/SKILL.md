@@ -42,9 +42,32 @@ Before any `AskUserQuestion`, scan the project to pre-fill ~25 placeholders. Eac
 ### Phase 1 ground rules
 
 1. **Locate `package.json` first.** Search in this order: cwd → `*/package.json` (one-level subdirs) → `*/*/package.json` (two-level, for monorepo submodules). Set `PROJECT_ROOT` = directory containing the chosen `package.json`. If multiple found, **AskUserQuestion** with the candidates (list each with its `name` field for context). Do NOT silently pick.
-2. **Compute `PROJECT_RELPATH`** = relative path from cwd → PROJECT_ROOT. If empty (cwd == PROJECT_ROOT), set `CMD_PREFIX = ""`. Otherwise set `CMD_PREFIX = "cd <PROJECT_RELPATH> && "` and prepend to every shell command placeholder (BUILD_CMD, DEV_CMD, TEST_CMD, TEST_COV_CMD, LINT_STRUCTURE_CMD, LINT_STRUCTURE_CMD_STRICT). Surface this in the summary as `Project root: <PROJECT_RELPATH>/  (cmd prefix: cd <PROJECT_RELPATH> && )`.
+
+2. **Path/command style — ask user when subdir is detected.** Compute `PROJECT_RELPATH` = relative path from cwd → PROJECT_ROOT.
+   - If empty (cwd == PROJECT_ROOT): set `USE_PROJECT_PREFIX = false`, `CMD_PREFIX = ""`, `PATH_PREFIX = ""`. No question needed — bare style is the only sensible choice.
+   - If non-empty: surface **AskUserQuestion** to pick path/command style BEFORE running Scan A/B:
+     - **(a) Prefixed monorepo style (Recommended)** — paths get `<PROJECT_RELPATH>/` prefix, commands get `cd <PROJECT_RELPATH> && ` prefix. Agent invokable from any cwd. Best for monorepos / cross-project sessions.
+     - **(b) Bare style** — paths and commands relative to PROJECT_ROOT (no prefix). User must `cd <PROJECT_RELPATH>` before invoking the agent. Best when user always works inside PROJECT_ROOT.
+   - Set `USE_PROJECT_PREFIX = true` for (a), `false` for (b).
+   - If `USE_PROJECT_PREFIX = true`: `CMD_PREFIX = "cd <PROJECT_RELPATH> && "`, `PATH_PREFIX = "<PROJECT_RELPATH>/"`.
+   - If `USE_PROJECT_PREFIX = false`: `CMD_PREFIX = ""`, `PATH_PREFIX = ""`.
+   - Surface in scan summary as `Path/command style: <a-monorepo | b-bare>` followed by example: `e.g. BUILD_CMD = <build-cmd>`.
+
 3. **Multi-candidate disambiguation.** If any glob in Scan B returns >1 match (e.g. `CLAUDE.md` exists at both cwd and `<subdir>/CLAUDE.md`), surface as AskUserQuestion. Default to the one closer to PROJECT_ROOT.
-4. **Curated lists, not auto-trim.** Scans that produce ranked candidates (POLISHED_PAGE_EXAMPLES, TEST_CANONICAL_FILES) must surface as `multiSelect` AskUserQuestion in Phase 2 with sensible pre-selections — do not silently pick first-N.
+
+4. **Curated lists, not auto-trim.** Scans that produce ranked candidates (POLISHED_PAGE_EXAMPLES, TEST_CANONICAL_FILES) must surface as preset-template AskUserQuestion in Phase 2 — do not silently pick first-N. See "Curated-list questions" below for the 3-preset mechanism.
+
+### AskUserQuestion mechanics (important constraint)
+
+The `AskUserQuestion` tool has hard limits:
+- **Max 4 options per question** — cannot list 12+ candidates directly.
+- **Max 4 questions per call** — but can batch independent questions in one call.
+- `multiSelect: true` is supported but still subject to the 4-option limit.
+
+Workarounds:
+- For long candidate lists (>4): present **3 preset templates** as options, with "Customize" as the 3rd allowing free-form text input from the user.
+- For dense Round 5 richness menu (12+ items): batch into 3 separate questions (4 items each) within a single `AskUserQuestion` call.
+- Never include a "Crib sheet" preset in real-flow questions — that pattern is test-only (used by maintainer for Layer B validation against pps-web reference). End users have no crib sheet.
 
 ### Scan A — `package.json` (read from PROJECT_ROOT)
 
@@ -64,30 +87,32 @@ Before any `AskUserQuestion`, scan the project to pre-fill ~25 placeholders. Eac
 
 ### Scan B — Filesystem (Glob + `ls`, from PROJECT_ROOT and cwd)
 
-| Placeholder | Check / glob | Multi-match handling |
-|---|---|---|
-| `{{CONVENTIONS_DOC}}` | `<PROJECT_RELPATH>/CLAUDE.md` ∪ `CLAUDE.md` | If both found → AskUserQuestion to pick |
-| `{{STRUCTURE_DOC}}` | `<PROJECT_RELPATH>/docs/architecture/feature-structure.md` ∪ `docs/structure.md` | First match wins (rare conflict) |
-| `{{PROGRESS_DOC}}` | `<PROJECT_RELPATH>/docs/progress.md` ∪ `progress.md` ∪ `STATUS.md` | First match wins |
-| `{{FEATURES_ROOT}}` | `<PROJECT_RELPATH>/src/features/` ∪ `<PROJECT_RELPATH>/src/modules/` (default `src/features`) | First match |
-| `{{TEST_INFRA_ROOT}}` | `<PROJECT_RELPATH>/src/test/` ∪ `<PROJECT_RELPATH>/test/` (default `src/test`) | First match |
-| `{{POLISH_AUDIT_SOURCE}}` | glob `<PROJECT_RELPATH>/scripts/*polish*audit*.{mjs,js}` | First match (rare to have >1) |
-| `{{ARCHITECTURE_DOCS_GLOB}}` | `<PROJECT_RELPATH>/docs/architecture/*` if exists | — |
-| `{{COMPONENT_DOCS_GLOB}}` | `<PROJECT_RELPATH>/docs/components/*` if exists | — |
-| `{{FEATURE_DOCS_GLOB}}` | `<PROJECT_RELPATH>/docs/features/*` if exists | — |
-| `{{API_SERVICES_PATHS}}` | glob `<PROJECT_RELPATH>/src/services/{api,http,case-transform}.ts` | List all found |
-| `{{TEST_UTILS_IMPORT}}` | if `<PROJECT_RELPATH>/src/test/test-utils.tsx` exists → `@/test/test-utils` | — |
-| `{{I18N_LOCALES_PATH}}` | glob `<PROJECT_RELPATH>/src/i18n/locales/en/*.json` → render `src/i18n/locales/en/<feature>.json` | — |
-| `{{TEST_CANONICAL_BASELINE}}` | scan `<FEATURES_ROOT>/*/` → folder with most `*.test.*` files | — |
-| `{{TEST_CANONICAL_FILES}}` | list `*.test.*` in baseline folder | **Surface as multi-select** in Phase 2 with one-per-layer pre-selected (schema, api, hook, component, integration) — see "Curated-list questions" below |
-| `{{BACKEND_NAME}}` | sibling dirs at cwd matching `<PROJECT_NAME>-{api,be,backend,server}` (default `backend`) | First match |
+> Always **search** at `<PROJECT_ROOT>/...` (e.g. read `<PROJECT_ROOT>/CLAUDE.md`). The **rendered placeholder value** then prepends `PATH_PREFIX` (empty for bare style, `<PROJECT_RELPATH>/` for prefixed style). So for pps-web in a monorepo with prefixed style, `{{CONVENTIONS_DOC}}` becomes `pps-web/CLAUDE.md`. For bare style, it becomes `CLAUDE.md`.
+
+| Placeholder | Search location | Rendered value | Multi-match handling |
+|---|---|---|---|
+| `{{CONVENTIONS_DOC}}` | `<PROJECT_ROOT>/CLAUDE.md` ∪ `<cwd>/CLAUDE.md` | `PATH_PREFIX` + `CLAUDE.md` | If both PROJECT_ROOT and cwd have one → AskUserQuestion to pick |
+| `{{STRUCTURE_DOC}}` | `<PROJECT_ROOT>/docs/architecture/feature-structure.md` ∪ `docs/structure.md` | `PATH_PREFIX` + `docs/architecture/feature-structure.md` (or chosen variant) | First match wins (rare conflict) |
+| `{{PROGRESS_DOC}}` | `<PROJECT_ROOT>/docs/progress.md` ∪ `progress.md` ∪ `STATUS.md` | `PATH_PREFIX` + matched filename | First match wins |
+| `{{FEATURES_ROOT}}` | `<PROJECT_ROOT>/src/features/` ∪ `<PROJECT_ROOT>/src/modules/` | `PATH_PREFIX` + `src/features` (default) | First match |
+| `{{TEST_INFRA_ROOT}}` | `<PROJECT_ROOT>/src/test/` ∪ `<PROJECT_ROOT>/test/` | `PATH_PREFIX` + `src/test` (default) | First match |
+| `{{POLISH_AUDIT_SOURCE}}` | glob `<PROJECT_ROOT>/scripts/*polish*audit*.{mjs,js}` | `PATH_PREFIX` + matched path | First match |
+| `{{ARCHITECTURE_DOCS_GLOB}}` | `<PROJECT_ROOT>/docs/architecture/*` if exists | `PATH_PREFIX` + `docs/architecture/*` | — |
+| `{{COMPONENT_DOCS_GLOB}}` | `<PROJECT_ROOT>/docs/components/*` if exists | `PATH_PREFIX` + `docs/components/*` | — |
+| `{{FEATURE_DOCS_GLOB}}` | `<PROJECT_ROOT>/docs/features/*` if exists | `PATH_PREFIX` + `docs/features/*` | — |
+| `{{API_SERVICES_PATHS}}` | glob `<PROJECT_ROOT>/src/services/{api,http,case-transform}.ts` | comma-joined `PATH_PREFIX` + each path, backtick-wrapped | List all found |
+| `{{TEST_UTILS_IMPORT}}` | if `<PROJECT_ROOT>/src/test/test-utils.tsx` exists → `@/test/test-utils` | **No prefix** (import alias is project-internal) | — |
+| `{{I18N_LOCALES_PATH}}` | glob `<PROJECT_ROOT>/src/i18n/locales/en/*.json` | `PATH_PREFIX` + `src/i18n/locales/en/<feature>.json` | — |
+| `{{TEST_CANONICAL_BASELINE}}` | scan `<FEATURES_ROOT>/*/` → folder with most `*.test.*` files | `PATH_PREFIX` + chosen folder path | — |
+| `{{TEST_CANONICAL_FILES}}` | list `*.test.*` in baseline folder | each path prefixed with `PATH_PREFIX`, markdown bullet form | **Surface as preset-template** in Phase 2 — see "Curated-list questions" below |
+| `{{BACKEND_NAME}}` | sibling dirs at cwd matching `<PROJECT_NAME>-{api,be,backend,server}` | matched name (e.g. `pps-api`); no path prefix | First match |
 
 ### Scan C — Script + MD content (Read + grep)
 
 | Placeholder | Method |
 |---|---|
 | `{{MC_MAX}}` | Read `{{CONVENTIONS_DOC}}` → grep `MC-([0-9]+)` → take max |
-| `{{POLISHED_PAGE_EXAMPLES}}` | **Primary**: Read `{{POLISH_AUDIT_SOURCE}}` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `{{PROGRESS_DOC}}` → extract pages with `Polished` status. **Surface as multi-select** in Phase 2 with diversity-balanced pre-selection (one of each role: list / detail / config / form / overview / dashboard if available) — see "Curated-list questions" below. Never silently pick first-N. |
+| `{{POLISHED_PAGE_EXAMPLES}}` | **Primary**: Read `<POLISH_AUDIT_SOURCE>` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `<PROGRESS_DOC>` → extract pages with `Polished` status. **Surface as preset-template** in Phase 2 — see "Curated-list questions" below. Never silently pick first-N. |
 
 ### Scan D — Derive
 
@@ -106,12 +131,12 @@ After scan, present a single markdown block summarizing detected values:
 ```
 🔍 Auto-detected project setup
 
-Project: <name> (from package.json at <PROJECT_RELPATH>/package.json)
-Project root: <PROJECT_RELPATH>/  (cmd prefix: <CMD_PREFIX>)
+Project: <name> (from package.json at <PROJECT_ROOT>/package.json)
+Path/command style: <a-monorepo | b-bare>  (e.g. BUILD_CMD = <build-cmd>)
 Stack: <stack>
 Test stack: <test-stack>
 
-Commands (with cmd prefix applied):
+Commands:
 - Build: <build-cmd>
 - Dev: <dev-cmd>
 - Test: <test-cmd>  (coverage: <test-cov-cmd>)
@@ -134,10 +159,10 @@ Test setup:
 Backend (sibling): <backend-name>
 API services: <api-services-paths>
 
-Polished pages found: <N> pages (selection happens in Phase 2 — diversity-balanced pre-selection across role)
+Polished pages found: <N> pages (selection happens in Phase 2 — preset-template choice)
 ```
 
-If `CMD_PREFIX` is empty (cwd == PROJECT_ROOT), omit the `Project root:` line.
+If cwd == PROJECT_ROOT, the `Path/command style:` line is implicitly bare — omit or note as `bare (cwd == PROJECT_ROOT)`.
 
 **Multi-candidate disambiguation** — if Scan B's CONVENTIONS_DOC found multiple `CLAUDE.md` files, surface BEFORE the summary block via AskUserQuestion. Same for any other multi-match. Lock in the user's choice, THEN present the summary.
 
@@ -158,11 +183,31 @@ Question wording: plain, with concrete examples. Show auto-detected/default valu
 
 ### Curated-list questions (mandatory, not optional)
 
-For two placeholders the scan produces a ranked candidate list, not a final value. These MUST be presented as `AskUserQuestion` `multiSelect` with sensible pre-selections:
+For two placeholders the scan produces a ranked candidate list, not a final value. AskUserQuestion's 4-option limit (see "AskUserQuestion mechanics") means we cannot list 12+ candidates directly — use **3 preset-template options** instead. The scanner runs heuristics to pre-compute each preset's content, then the user picks which preset to use (or Customize for free-form override).
 
-1. **`{{POLISHED_PAGE_EXAMPLES}}`** — present all detected Polished pages (up to 12). Pre-select 4-6 balanced by role: one each of `list` / `detail` / `config` / `form` / `overview` / `dashboard`. Use page-name heuristics: ends with `ListPage` → list; `DetailPage` → detail; `ConfigPage` / `SettingsPage` → config; `FormShell` / `Form` → form. Tell the user *why* certain pages are pre-selected (role coverage), so they can override knowingly.
+1. **`{{POLISHED_PAGE_EXAMPLES}}`** — present detected Polished pages (up to 16) as `markdown context block` (visible above the question), then ask via `AskUserQuestion` with 3 options:
+   - **(a) Balanced by role (Recommended)** — pre-compute 4-6 pages balanced across roles. Use page-name heuristics:
+     - ends with `ListPage` → list
+     - ends with `DetailPage` → detail
+     - ends with `ConfigPage` / `SettingsPage` → config
+     - ends with `FormShell` / `Form` → form (or pages with `Form` infix on uniqueness)
+     - ends with `OverviewPage` / `DashboardPage` → overview/dashboard
+     Pick one per role, in role priority: list → detail → config → form → overview. Surface the role assignment in the option description.
+   - **(b) All N detected** — render all detected pages (cap at 12 for readability). Useful when project is small or user wants comprehensive examples.
+   - **(c) Customize** — user types comma-separated list. Validator: each token must match a detected page name (case-sensitive), else reject + reprompt.
 
-2. **`{{TEST_CANONICAL_FILES}}`** — present all `*.test.*` files found in the canonical baseline folder. Pre-select **one per layer**: schema, api, hook, component, integration. Use path heuristics: `*/schemas/*.test.*` → schema; `*/api/*.test.*` → api; `*/hooks/*.test.*` → hook; `*/components/*.test.*` → component; `*/integration/*.test.*` or top-level `*.test.tsx` → integration. If the user wants more comprehensive coverage of one layer, they can multi-select extras.
+2. **`{{TEST_CANONICAL_FILES}}`** — present detected `*.test.*` files (grouped by layer) as `markdown context block`, then ask via `AskUserQuestion` with 3 options:
+   - **(a) One per layer (Recommended)** — pre-compute one file per layer. Use path heuristics:
+     - `*/schemas/*.test.*` → schema
+     - `*/api/*.test.*` → api
+     - `*/hooks/*.test.*` → hook
+     - `*/components/*.test.*` → component
+     - `*/integration/*.test.*` or top-level `*.test.tsx` → integration
+     Pick first file per layer found (alphabetical).
+   - **(b) All N files** — render every detected test file. Best for canonical baselines with rich layer coverage (e.g. holiday/ in pps-web has 10 tests across 4 layers).
+   - **(c) Customize** — user types comma-separated list of relative paths.
+
+3. **Crib sheet preset (test-only, do NOT offer to end users)** — when running Layer B validation against a known reference project (e.g. pps-web), maintainer can override the preset by editing the substitution dict directly. This is NOT a 4th option in the AskUserQuestion. End users never see it.
 
 Present these AFTER Phase 1 confirm + Round 1 (identity/language), so the user is in question-answering mode. They do NOT belong in the Phase 1 auto-scan summary.
 
