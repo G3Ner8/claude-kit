@@ -53,7 +53,7 @@ In a Claude Code session with the kit installed:
 /profile-generator
 ```
 
-Answer the 28 questions with `pps-web` values (see "Answer crib sheet" below). Set the output folder to a scratch path that is **not** `plugins/pps-web-profile`:
+Answer the 27 questions with `pps-web` values (see "Answer crib sheet" below). Most are auto-detected via Phase 1 scan — confirm/override as needed; only ~5-7 require manual answers. Set the output folder to a scratch path that is **not** `plugins/pps-web-profile`:
 
 ```
 ~/Workspace/_scratch/pps-web-regen
@@ -91,7 +91,7 @@ Record one row per hunk in the run log.
 
 ### B4 — Iterate
 
-Repeat B1 → B3 until the only remaining diffs are `noise` or `hand-authored-bug`. Each iteration is cheap once the generator is correctly configured — most of the cost is the 28-question dialog.
+Repeat B1 → B3 until the only remaining diffs are `noise` or `hand-authored-bug`. Each iteration is cheap once the generator is correctly configured — Phase 1 auto-scan + Phase 2 ~5-7 question dialog.
 
 ### B5 — Cut over
 
@@ -214,7 +214,7 @@ cd ~/Workspace/<other-project>
 
 Pass criteria:
 
-- 28 questions complete; profile written to chosen output folder.
+- 27 questions complete (most auto-detected by Phase 1 scan); profile written to chosen output folder.
 - Generated agents contain **zero** strings from `pps-web` (grep for `pps-web`, `payroll-dev-api`, `holiday/` baseline references — any match is an unmasked hardcode).
 - A `<prefix>-implement` smoke task works on that project.
 

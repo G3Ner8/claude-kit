@@ -39,48 +39,55 @@ User runs `/profile-generator` after installing the `react-agents` plugin, or ty
 
 Before any `AskUserQuestion`, scan the project to pre-fill ~25 placeholders. Each scan is independent — if a scan fails (file missing, glob empty), defer that placeholder to Phase 2.
 
-### Scan A — `package.json`
+### Phase 1 ground rules
 
-`Read` the project's `package.json`. Infer:
+1. **Locate `package.json` first.** Search in this order: cwd → `*/package.json` (one-level subdirs) → `*/*/package.json` (two-level, for monorepo submodules). Set `PROJECT_ROOT` = directory containing the chosen `package.json`. If multiple found, **AskUserQuestion** with the candidates (list each with its `name` field for context). Do NOT silently pick.
+2. **Compute `PROJECT_RELPATH`** = relative path from cwd → PROJECT_ROOT. If empty (cwd == PROJECT_ROOT), set `CMD_PREFIX = ""`. Otherwise set `CMD_PREFIX = "cd <PROJECT_RELPATH> && "` and prepend to every shell command placeholder (BUILD_CMD, DEV_CMD, TEST_CMD, TEST_COV_CMD, LINT_STRUCTURE_CMD, LINT_STRUCTURE_CMD_STRICT). Surface this in the summary as `Project root: <PROJECT_RELPATH>/  (cmd prefix: cd <PROJECT_RELPATH> && )`.
+3. **Multi-candidate disambiguation.** If any glob in Scan B returns >1 match (e.g. `CLAUDE.md` exists at both cwd and `<subdir>/CLAUDE.md`), surface as AskUserQuestion. Default to the one closer to PROJECT_ROOT.
+4. **Curated lists, not auto-trim.** Scans that produce ranked candidates (POLISHED_PAGE_EXAMPLES, TEST_CANONICAL_FILES) must surface as `multiSelect` AskUserQuestion in Phase 2 with sensible pre-selections — do not silently pick first-N.
+
+### Scan A — `package.json` (read from PROJECT_ROOT)
+
+`Read` `<PROJECT_ROOT>/package.json`. Infer:
 
 | Placeholder | From `package.json` field |
 |---|---|
 | `{{PROJECT_NAME}}` | `name` |
-| `{{BUILD_CMD}}` | `scripts.build` (prepend `npm run` if missing) |
-| `{{DEV_CMD}}` | `scripts.dev` or `scripts.start` |
-| `{{TEST_CMD}}` | `scripts['test:unit']` ∪ `scripts.test` |
-| `{{TEST_COV_CMD}}` | `scripts['test:cov']` ∪ `scripts.coverage` |
-| `{{LINT_STRUCTURE_CMD}}` | `scripts['lint:structure']` (empty if absent) |
-| `{{LINT_STRUCTURE_CMD_STRICT}}` | `scripts['lint:structure:strict']` (empty if absent) |
-| `{{STACK}}` | parse `dependencies` → `<React-major> / TS / <bundler> / <css-lib> / <ui-lib>` (e.g. `React 19 / TS / Vite / Tailwind / Radix`) |
-| `{{TEST_STACK}}` | parse `devDependencies` → `<vitest> + <RTL> + <user-event> + <msw>` with majors |
+| `{{BUILD_CMD}}` | `CMD_PREFIX` + `npm run build` (or whatever script key exists for build) |
+| `{{DEV_CMD}}` | `CMD_PREFIX` + `npm run dev` (or `start`) |
+| `{{TEST_CMD}}` | `CMD_PREFIX` + `npm run test:unit` or `npm run test` (whichever exists) |
+| `{{TEST_COV_CMD}}` | `CMD_PREFIX` + `npm run test:cov` or `npm run coverage` |
+| `{{LINT_STRUCTURE_CMD}}` | `CMD_PREFIX` + `npm run lint:structure` (empty if script absent) |
+| `{{LINT_STRUCTURE_CMD_STRICT}}` | `CMD_PREFIX` + `npm run lint:structure:strict` (empty if absent) |
+| `{{STACK}}` | parse `dependencies` + `devDependencies`. Match by pattern: React major from `react`; bundler from `vite`/`webpack`/`turbopack`; css-lib from `tailwindcss`/`styled-components`/`emotion`; UI-lib by **prefix match** against `@radix-ui/*`, `@chakra-ui/*`, `@mantine/*`, `@nextui-org/*`, `@mui/*` (label as Radix UI / Chakra / Mantine / NextUI / MUI respectively). Render: `React <X> / TypeScript / <bundler> / <css-lib> / <ui-lib>` |
+| `{{TEST_STACK}}` | parse `devDependencies` → `<vitest> + <@testing-library/react> + <@testing-library/user-event> + <msw>` with majors |
 
-### Scan B — Filesystem (Glob + `ls`)
+### Scan B — Filesystem (Glob + `ls`, from PROJECT_ROOT and cwd)
 
-| Placeholder | Check / glob |
-|---|---|
-| `{{CONVENTIONS_DOC}}` | `CLAUDE.md` (default if found) |
-| `{{STRUCTURE_DOC}}` | `docs/architecture/feature-structure.md` ∪ `docs/structure.md` |
-| `{{PROGRESS_DOC}}` | `docs/progress.md` ∪ `progress.md` ∪ `STATUS.md` |
-| `{{FEATURES_ROOT}}` | `src/features/` ∪ `src/modules/` (default `src/features`) |
-| `{{TEST_INFRA_ROOT}}` | `src/test/` ∪ `test/` (default `src/test`) |
-| `{{POLISH_AUDIT_SOURCE}}` | glob `scripts/*polish*audit*.{mjs,js}` |
-| `{{ARCHITECTURE_DOCS_GLOB}}` | `docs/architecture/*` if exists (else empty) |
-| `{{COMPONENT_DOCS_GLOB}}` | `docs/components/*` if exists |
-| `{{FEATURE_DOCS_GLOB}}` | `docs/features/*` if exists |
-| `{{API_SERVICES_PATHS}}` | glob `src/services/{api,http,case-transform}.ts` → backtick-wrap each, comma-join |
-| `{{TEST_UTILS_IMPORT}}` | if `src/test/test-utils.tsx` exists → `@/test/test-utils` |
-| `{{I18N_LOCALES_PATH}}` | glob `src/i18n/locales/en/*.json` → `src/i18n/locales/en/<feature>.json` |
-| `{{TEST_CANONICAL_BASELINE}}` | scan `{{FEATURES_ROOT}}/*/` → folder with most `*.test.*` files |
-| `{{TEST_CANONICAL_FILES}}` | list `*.test.*` in baseline folder, markdown bullet form |
-| `{{BACKEND_NAME}}` | sibling dirs matching `<project>-{api,be,backend,server}` (default `backend`) |
+| Placeholder | Check / glob | Multi-match handling |
+|---|---|---|
+| `{{CONVENTIONS_DOC}}` | `<PROJECT_RELPATH>/CLAUDE.md` ∪ `CLAUDE.md` | If both found → AskUserQuestion to pick |
+| `{{STRUCTURE_DOC}}` | `<PROJECT_RELPATH>/docs/architecture/feature-structure.md` ∪ `docs/structure.md` | First match wins (rare conflict) |
+| `{{PROGRESS_DOC}}` | `<PROJECT_RELPATH>/docs/progress.md` ∪ `progress.md` ∪ `STATUS.md` | First match wins |
+| `{{FEATURES_ROOT}}` | `<PROJECT_RELPATH>/src/features/` ∪ `<PROJECT_RELPATH>/src/modules/` (default `src/features`) | First match |
+| `{{TEST_INFRA_ROOT}}` | `<PROJECT_RELPATH>/src/test/` ∪ `<PROJECT_RELPATH>/test/` (default `src/test`) | First match |
+| `{{POLISH_AUDIT_SOURCE}}` | glob `<PROJECT_RELPATH>/scripts/*polish*audit*.{mjs,js}` | First match (rare to have >1) |
+| `{{ARCHITECTURE_DOCS_GLOB}}` | `<PROJECT_RELPATH>/docs/architecture/*` if exists | — |
+| `{{COMPONENT_DOCS_GLOB}}` | `<PROJECT_RELPATH>/docs/components/*` if exists | — |
+| `{{FEATURE_DOCS_GLOB}}` | `<PROJECT_RELPATH>/docs/features/*` if exists | — |
+| `{{API_SERVICES_PATHS}}` | glob `<PROJECT_RELPATH>/src/services/{api,http,case-transform}.ts` | List all found |
+| `{{TEST_UTILS_IMPORT}}` | if `<PROJECT_RELPATH>/src/test/test-utils.tsx` exists → `@/test/test-utils` | — |
+| `{{I18N_LOCALES_PATH}}` | glob `<PROJECT_RELPATH>/src/i18n/locales/en/*.json` → render `src/i18n/locales/en/<feature>.json` | — |
+| `{{TEST_CANONICAL_BASELINE}}` | scan `<FEATURES_ROOT>/*/` → folder with most `*.test.*` files | — |
+| `{{TEST_CANONICAL_FILES}}` | list `*.test.*` in baseline folder | **Surface as multi-select** in Phase 2 with one-per-layer pre-selected (schema, api, hook, component, integration) — see "Curated-list questions" below |
+| `{{BACKEND_NAME}}` | sibling dirs at cwd matching `<PROJECT_NAME>-{api,be,backend,server}` (default `backend`) | First match |
 
 ### Scan C — Script + MD content (Read + grep)
 
 | Placeholder | Method |
 |---|---|
 | `{{MC_MAX}}` | Read `{{CONVENTIONS_DOC}}` → grep `MC-([0-9]+)` → take max |
-| `{{POLISHED_PAGE_EXAMPLES}}` | **Primary**: Read `{{POLISH_AUDIT_SOURCE}}` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `{{PROGRESS_DOC}}` → extract pages with `Polished` status. Then backtick + comma-join. Default: first 6 in source-file order — **but note this is arbitrary**; surface to user as "Suggested 6 of N — override to pick representative roles (list/detail/config/form)". |
+| `{{POLISHED_PAGE_EXAMPLES}}` | **Primary**: Read `{{POLISH_AUDIT_SOURCE}}` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `{{PROGRESS_DOC}}` → extract pages with `Polished` status. **Surface as multi-select** in Phase 2 with diversity-balanced pre-selection (one of each role: list / detail / config / form / overview / dashboard if available) — see "Curated-list questions" below. Never silently pick first-N. |
 
 ### Scan D — Derive
 
@@ -99,11 +106,12 @@ After scan, present a single markdown block summarizing detected values:
 ```
 🔍 Auto-detected project setup
 
-Project: <name> (from package.json)
+Project: <name> (from package.json at <PROJECT_RELPATH>/package.json)
+Project root: <PROJECT_RELPATH>/  (cmd prefix: <CMD_PREFIX>)
 Stack: <stack>
 Test stack: <test-stack>
 
-Commands:
+Commands (with cmd prefix applied):
 - Build: <build-cmd>
 - Dev: <dev-cmd>
 - Test: <test-cmd>  (coverage: <test-cov-cmd>)
@@ -118,7 +126,7 @@ Paths:
 - Polish audit script: <polish-audit-source>
 
 Test setup:
-- Canonical baseline: <baseline-folder>  (<N> test files)
+- Canonical baseline folder: <baseline-folder>  (<N> test files found — exact files picked in Phase 2)
 - API client import: <api-client-import>
 - Test utils import: <test-utils-import>
 - i18n locales: <i18n-locales-path>
@@ -126,8 +134,12 @@ Test setup:
 Backend (sibling): <backend-name>
 API services: <api-services-paths>
 
-Polished pages found: <polished-pages>
+Polished pages found: <N> pages (selection happens in Phase 2 — diversity-balanced pre-selection across role)
 ```
+
+If `CMD_PREFIX` is empty (cwd == PROJECT_ROOT), omit the `Project root:` line.
+
+**Multi-candidate disambiguation** — if Scan B's CONVENTIONS_DOC found multiple `CLAUDE.md` files, surface BEFORE the summary block via AskUserQuestion. Same for any other multi-match. Lock in the user's choice, THEN present the summary.
 
 Then `AskUserQuestion`:
 
@@ -143,6 +155,16 @@ If "Edit specific items": user lists which placeholders to override + new values
 Group the remaining questions into 6 rounds. Skip any whose value Phase 1 already pre-filled (unless user asked to override). Default each so accepting blindly works for a typical React 19 / Vite app.
 
 Question wording: plain, with concrete examples. Show auto-detected/default value if any. Never ask a question whose answer is already known.
+
+### Curated-list questions (mandatory, not optional)
+
+For two placeholders the scan produces a ranked candidate list, not a final value. These MUST be presented as `AskUserQuestion` `multiSelect` with sensible pre-selections:
+
+1. **`{{POLISHED_PAGE_EXAMPLES}}`** — present all detected Polished pages (up to 12). Pre-select 4-6 balanced by role: one each of `list` / `detail` / `config` / `form` / `overview` / `dashboard`. Use page-name heuristics: ends with `ListPage` → list; `DetailPage` → detail; `ConfigPage` / `SettingsPage` → config; `FormShell` / `Form` → form. Tell the user *why* certain pages are pre-selected (role coverage), so they can override knowingly.
+
+2. **`{{TEST_CANONICAL_FILES}}`** — present all `*.test.*` files found in the canonical baseline folder. Pre-select **one per layer**: schema, api, hook, component, integration. Use path heuristics: `*/schemas/*.test.*` → schema; `*/api/*.test.*` → api; `*/hooks/*.test.*` → hook; `*/components/*.test.*` → component; `*/integration/*.test.*` or top-level `*.test.tsx` → integration. If the user wants more comprehensive coverage of one layer, they can multi-select extras.
+
+Present these AFTER Phase 1 confirm + Round 1 (identity/language), so the user is in question-answering mode. They do NOT belong in the Phase 1 auto-scan summary.
 
 ### Round 1 — Identity confirm + output language
 
