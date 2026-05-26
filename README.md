@@ -4,9 +4,9 @@ A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace 
 
 | Plugin | What | Portable? |
 | --- | --- | --- |
-| [`react-core`](./plugins/react-core/) | 6 skills — perf, composition, audit, revamp, ux-review, dry | ✅ Any React 19 / Vite project |
+| [`react-core`](./plugins/react-core/) | 7 skills — perf, composition, audit, revamp, ux-review, dry, test-patterns | ✅ Any React 19 / Vite project |
 | [`react-agents`](./plugins/react-agents/) | Templates + `/profile-generator` skill that scaffolds the build/polish/pre-commit trio for your project | ✅ Any React 19 / Vite project |
-| [`pps-web-profile`](./plugins/pps-web-profile/) | Worked example: 1 skill + 3 agents filled in for Aware `pps-web` | ❌ Reference only — fork via `react-agents` for your own project |
+| [`pps-web-profile`](./plugins/pps-web-profile/) | Worked example: 1 skill + 4 agents filled in for Aware `pps-web` | ❌ Reference only — fork via `react-agents` for your own project |
 
 ## Install
 
@@ -26,7 +26,7 @@ For your own project, after installing `react-agents`:
 /profile-generator
 ```
 
-→ Claude asks ~22 questions in 4 short rounds, then writes a filled-in profile (3 agents + plugin manifest + README) to a folder you pick. Ready to symlink into `.claude/agents/` or push as its own plugin.
+→ Claude asks ~28 questions in 5 short rounds, then writes a filled-in profile (4 agents + plugin manifest + README) to a folder you pick. Ready to symlink into `.claude/agents/` or push as its own plugin.
 
 Update later with `/plugin marketplace update`.
 
@@ -50,20 +50,21 @@ Splitting them means:
 claude-kit/
 ├── .claude-plugin/marketplace.json     # catalog (3 plugins)
 ├── plugins/
-│   ├── react-core/                     # 6 portable skills
+│   ├── react-core/                     # 7 portable skills
 │   │   ├── .claude-plugin/plugin.json
 │   │   ├── skills/{react-perf,react-composition,react-audit,
-│   │   │           react-revamp,react-ux-review,react-dry}/
+│   │   │           react-revamp,react-ux-review,react-dry,
+│   │   │           react-test-patterns}/
 │   │   └── docs/CONVENTIONS.template.md
 │   ├── react-agents/                   # templates + generator
 │   │   ├── .claude-plugin/plugin.json
 │   │   ├── skills/profile-generator/SKILL.md
-│   │   ├── templates/agents/{implement,polish,pre-commit}.template.md
+│   │   ├── templates/agents/{implement,polish,pre-commit,test}.template.md
 │   │   └── docs/{PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md}
 │   └── pps-web-profile/                # Aware reference profile
 │       ├── .claude-plugin/plugin.json
 │       ├── skills/pps-ui/
-│       └── agents/{web-implement,web-polish,web-pre-commit}.md
+│       └── agents/{web-implement,web-polish,web-pre-commit,web-test}.md
 ├── NOTICES.md                          # upstream attribution
 ├── LICENSE                             # MIT
 └── README.md
@@ -129,7 +130,7 @@ Read-only output. User reads, decides, no edit.
 
 ## Provenance & license
 
-`react-perf` and `react-composition` are curated forks of [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (MIT). All other skills and agents are project-internal. Full attribution: [NOTICES.md](./NOTICES.md).
+`react-perf` is a curated fork of [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (MIT). All other skills and agents are project-internal. Full attribution: [NOTICES.md](./NOTICES.md).
 
 Kit code: **MIT**, see [LICENSE](./LICENSE).
 

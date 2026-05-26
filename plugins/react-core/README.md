@@ -1,6 +1,6 @@
 # react-core
 
-Six Claude Code skills for React 19 / Vite SPA projects. Stack-agnostic across any web-React codebase — no project-specific bindings.
+Seven Claude Code skills for React 19 / Vite SPA projects. Stack-agnostic across any web-React codebase — no project-specific bindings.
 
 ## Install
 
@@ -22,6 +22,7 @@ From a Claude Code session that has already added the parent marketplace:
 | [`react-revamp`](./skills/react-revamp/) | Read-only revamp proposal for a single page (discovery → audit → flow → sketches → plan). |
 | [`react-ux-review`](./skills/react-ux-review/) | Read-only workflow critic across 9 UX dimensions (dirty tracking, validation, cancel, loading, keyboard, etc.). |
 | [`react-dry`](./skills/react-dry/) | Read-only CSS/style/class divergence audit across one or more component usages. Table-first findings. |
+| [`react-test-patterns`](./skills/react-test-patterns/) | Reference manual for Vitest 4 + React Testing Library 16 + MSW 2 test patterns. Layered conventions (schema / API / hook / component) consulted by the `*-test` agent. |
 
 All read-only. None modify files. Each skill is self-contained — invoke individually (e.g. `/react-perf`) or let your agents call them via the `Skill` tool.
 
@@ -40,7 +41,7 @@ If your stack differs, individual rules may still apply — read the per-skill r
 
 ## Provenance
 
-`react-perf` and `react-composition` are curated forks of [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (MIT). The remaining four skills are project-internal. Full attribution: [NOTICES.md](../../NOTICES.md).
+`react-perf` is a curated fork of [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (MIT). The remaining six skills are project-internal. Full attribution: [NOTICES.md](../../NOTICES.md).
 
 ## License
 

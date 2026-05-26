@@ -311,16 +311,17 @@ references a specific project's paths/conventions, it belongs in a profile.
 
 ---
 
-## 10. Validation (Phase 1.4 — coming)
+## 10. Validation
 
 Before committing, run:
 
 ```bash
-./scripts/validate-frontmatter.sh    # every SKILL.md + agent has required fields
+./scripts/validate-frontmatter.sh    # per-file: every SKILL.md has required fields
+./scripts/validate-contract.sh       # cross-file: public/hidden contract alignment
 ./scripts/list-skills.sh             # sanity check the marketplace catalog
 ```
 
-Validation rules (enforced by `validate-frontmatter.sh`):
+### Per-file rules (`validate-frontmatter.sh`)
 
 1. **Required fields present**: `name`, `description`, `license`, `user-invocable`, `metadata.version`, `metadata.type`, `metadata.status`
 2. **`name` matches folder name** exactly
@@ -330,7 +331,13 @@ Validation rules (enforced by `validate-frontmatter.sh`):
 6. **Body has a `## When to use` section** (gate + reference) OR `## Pre-conditions` (action)
 7. **Skill in `_in-progress/`** has `status: experimental` or no status (warn, don't fail)
 
-CI integration (future): run validator on PR — block merge on failure.
+### Cross-file contract rules (`validate-contract.sh`)
+
+1. **Public skills discoverable** — every skill with `status: stable` or `experimental` MUST be referenced from a public surface (root `README.md`, plugin `README.md`, or plugin `plugin.json`). Phase 2: warn. Phase 3 GA: fail (run with `--strict`).
+2. **Hidden skills not advertised** — anything under `_in-progress/` or `_deprecated/` MUST NOT appear in any README (always fails).
+3. **Marketplace integrity** — every `source` in `.claude-plugin/marketplace.json` points to an existing plugin folder.
+
+CI integration (future): run both validators on PR — block merge on failure.
 
 ---
 
