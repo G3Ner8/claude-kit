@@ -8,8 +8,8 @@
 > and agents that conform. If something here is unclear, the rule wins — open
 > an issue to clarify rather than diverging.
 
-**Status**: v0.1 draft (Phase 1 foundation). Sections marked `⚖ DECISION`
-depend on supervisor approval before locking. See `PROPOSAL.md` for context.
+**Status**: Phase 1 foundation locked 2026-05-26. D1-D5 resolved at
+defaults (see Section 14). Phase 2 (decoupling) next.
 
 ---
 
@@ -76,8 +76,7 @@ claude-kit/
 
 **`_in-progress/`** (underscore prefix) holds drafts. The validator and the
 marketplace scan both skip underscore-prefixed folders. Drafts move out of
-`_in-progress/` once they pass validation + 1 real-use test. *(D1 default —
-override before lock if you prefer visible `in-progress/`.)*
+`_in-progress/` once they pass validation + 1 real-use test.
 
 **`_deprecated/`** uses the same underscore rule for retired skills kept for
 archival.
@@ -179,9 +178,6 @@ None exist today. When introduced, must include:
 
 ## 4. Skill types (3) — `metadata.type`
 
-⚖ DECISION D2 — defaulting to 3 types; override before lock if you prefer
-2 types (gate + reference, no action).
-
 | Type | What it does | Who calls it | Example |
 |---|---|---|---|
 | **gate** | Blocks workflow — runs an audit/review/proposal, then stops; no edits | Agent (Step 0) or user (`/audit`) | `react-audit`, `react-ux-review`, `react-revamp`, `react-dry` |
@@ -259,9 +255,6 @@ orchestration in a skill — that's an agent.
 ---
 
 ## 8. Trigger language — English-primary
-
-⚖ DECISION D3 — defaulting to English-primary; override before lock if you
-prefer Thai-primary for pps-web-profile.
 
 Agents and skills are **public artifacts** — their `description` fields are
 matched against user prompts. To support international users:
@@ -343,9 +336,6 @@ CI integration (future): run validator on PR — block merge on failure.
 
 ## 11. Public-release principles
 
-⚖ DECISION D4 + D5 — these principles assume "Phase 2 decoupling done before
-public marketplace listing"; override if shipping earlier.
-
 1. **No hard-coded project paths in templates.** Templates reference
    placeholders; profiles fill them in. The agent files inside a profile MAY
    contain filled-in paths (they're project artifacts), but the templates
@@ -399,18 +389,17 @@ public marketplace listing"; override if shipping earlier.
 
 ---
 
-## 14. Open decisions (await supervisor lock)
+## 14. Decision history
 
-These default to the recommendation in `PROPOSAL.md` Section 6. Mark resolved here
-once locked:
+Foundational decisions resolved during Phase 1 of PROPOSAL.md.
 
-| ID | Decision | Default | Status |
+| ID | Decision | Resolution | Locked |
 |---|---|---|---|
-| D1 | `_in-progress/` (hidden) vs `in-progress/` (visible) | hidden underscore | ⏳ pending |
-| D2 | Skill types: 2 (gate, reference) vs 3 (+ action) | 3 types | ⏳ pending |
-| D3 | Agent output language default: English vs Thai | English-primary, Thai alias | ⏳ pending |
-| D4 | Phase 2 decoupling: wholesale vs duplicate | wholesale templates | ⏳ pending |
-| D5 | Public timeline: Phase 1 only vs full Phase 3 | Phase 1 internal → Phase 2 beta → Phase 3 GA | ⏳ pending |
+| D1 | `_in-progress/` (hidden) vs `in-progress/` (visible) | hidden underscore | ✅ 2026-05-26 |
+| D2 | Skill types: 2 (gate, reference) vs 3 (+ action) | 3 types | ✅ 2026-05-26 |
+| D3 | Agent output language default: English vs Thai | English-primary, Thai alias | ✅ 2026-05-26 |
+| D4 | Phase 2 decoupling: wholesale vs duplicate | wholesale templates | ✅ 2026-05-26 |
+| D5 | Public timeline: Phase 1 only vs full Phase 3 | Phase 1 internal → Phase 2 beta → Phase 3 GA | ✅ 2026-05-26 |
 
-Once each is resolved, replace `⏳ pending` with `✅ locked YYYY-MM-DD` and
-delete the `⚖ DECISION` markers from the affected sections.
+Future decisions append to this table; never edit a resolved row in place —
+add a new row referencing the prior decision instead.
