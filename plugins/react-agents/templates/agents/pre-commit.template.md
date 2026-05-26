@@ -55,8 +55,8 @@ For every changed file:
 - **A11y** — icon-only `<Button>` without `aria-label` · inputs without labels · focus management on dialog open/close · keyboard nav
 - **Perf** (`react-perf`) — components defined inside components · `useEffect`+`setState` that could derive during render · sequential `await` where parallel works · barrel imports
 - **Architecture** (`react-composition`) — boolean props piling on · `forwardRef` (R19: `ref` as prop) · `useContext` (use `use(Context)`)
-- **API** (if diff touches network surface) — see "Swagger drift gate" below
-- **Workflow regression** (if diff touches a Polished page) — see "Workflow regression check" below
+- **API** (if diff touches {{API_TRIGGER_HINT}}) — see "Swagger drift gate" below
+- **Workflow regression** (if diff touches a `Polished` page) — see "Workflow regression check" below
 - **Structure regression** (if diff adds/renames files in `{{FEATURES_ROOT}}/*`) — see "Structure regression check" below
 
 Group findings: **Blocking** vs **Non-blocking**.
@@ -73,7 +73,7 @@ Procedure:
 2. `WebFetch` `{{SWAGGER_URL}}` (or scoped sub-page if URL is too large).
 3. For each affected endpoint, compare:
    - Path / method match
-   - Request schema fields match (after case-conversion)
+   - Request schema fields match (after case-conversion via project helper)
    - Response schema fields match (after case-conversion)
    - Required vs optional fields align
 4. Surface mismatches as **Blocking** findings with: `endpoint — FE field <name> not in BE schema` (or vice versa).
@@ -87,16 +87,7 @@ If diff touches a page where status is `Polished`:
 
 Verify these patterns still exist in the touched page (mark any removed as **Blocking** regression):
 
-| Pattern | How to check |
-|---|---|
-| Page-level skeleton on initial load | Look for `<*Skeleton />` render gate on `isLoading` |
-| Sticky `<PageHeader>` with `actions` slot | Look for `<PageHeader ... sticky>` |
-| `useUnsavedChangesGuard` on dirty form pages | Look for the hook import + usage |
-| `useKeyboardShortcuts` (Save / Cancel) on form pages | Look for the hook import + usage |
-| Validation error visibility (banner + auto-tab-switch when multi-tab) | Look for `Alert error` import or tab-switch on error logic |
-| `LoadingButton` instead of hand-rolled spinner | Look for `<LoadingButton>` on async actions |
-| `ErrorState` on query failure | Look for `<ErrorState onRetry>` render branch |
-| i18n on all visible strings | Grep changed files for raw string literals in JSX |
+{{WORKFLOW_PATTERNS_TABLE}}
 
 If diff intentionally removes one of these for a valid reason → flag as **Non-blocking** with the reason from commit context.
 
@@ -104,15 +95,13 @@ If `react-ux-review` skill is available and diff is form-heavy → recommend run
 
 ## Shared `lint:structure` run (run once per turn, reuse across gates)
 
-The Structure regression check (below) and the MC-walk mechanical fallback both need lint:structure output. **Run the script exactly once** per turn, capture stdout in a scratchpad variable (call it `STRUCT_OUT`), and reuse the same output in both gates.
+The Structure regression check (below) and the MC-walk mechanical fallback both need `lint:structure` output. **Run the script exactly once** per turn, capture its output in a scratchpad variable (call it `STRUCT_OUT`), and reuse the same output in both gates.
 
 Procedure:
 
-1. Run `{{LINT_STRUCTURE_CMD_STRICT}} 2>&1` exactly once. The strict variant exits non-zero on any `✖`.
+1. Run `{{LINT_STRUCTURE_CMD_STRICT}} 2>&1` exactly once. The `:strict` variant exits non-zero on any `✖` (suitable for both gates' needs — exit code is informational only here, do not let it abort the turn).
 2. Capture stdout+stderr as `STRUCT_OUT`. Errors are prefixed with `✖`; warnings with `⚠`.
 3. Both gates below read `STRUCT_OUT` — do **not** re-run the script.
-
-If your project doesn't ship a structure linter, skip this section and the Structure regression check.
 
 ## Structure regression check (when diff adds/renames files in `{{FEATURES_ROOT}}/*`)
 
@@ -120,15 +109,15 @@ Triggers when `git diff --name-status` shows new files (`A`) or renames (`R`) un
 
 Procedure:
 
-1. Use `STRUCT_OUT` from the shared run above.
+1. Use `STRUCT_OUT` from the shared run above. **Do not re-invoke** `{{LINT_STRUCTURE_CMD_STRICT}}`.
 2. Errors are prefixed with `✖`; warnings with `⚠`.
 3. For each `✖` error, check whether the offending file path appears in the current diff:
-   - **Diff-introduced violation** → **Blocking**.
-   - **Pre-existing violation that the diff touches** → **Blocking** (`diff modified an already-violating file — fix while you're here`).
-   - **Pre-existing violation that the diff does NOT touch** → ignore (legacy, not this PR's problem).
-4. For new `⚠` warnings in the diff: Non-blocking finding to fix opportunistically (unless it's in a tracked pending list).
-
-If linter exits 0: report "Structure regression: clean" and move on.
+   - **Diff-introduced violation** → **Blocking**. Report as: `<file:line> — <validator message> (introduced by this diff)`.
+   - **Pre-existing violation that the diff touches** → **Blocking**. Same report format with `(diff modified an already-violating file — fix while you're here)`.
+   - **Pre-existing violation that the diff does NOT touch** → ignore ({{STRUCTURE_LEGACY_REF}}, not this PR's problem).
+4. For new `⚠` warnings in the diff:{{STRUCT_PENDING_RULES}}
+{{STRUCT_REGRESSION_PSEUDOCODE}}
+If `{{LINT_STRUCTURE_CMD_STRICT}}` exits 0: report "Structure regression: clean" and move on.
 
 ## Build verify
 
@@ -140,7 +129,7 @@ Must pass. If fails: read error → if diff-caused, fix surgically in-diff; if p
 
 ## MC-walk gate (mandatory)
 
-The upstream agent (`{{AGENT_PREFIX}}-implement` or `{{AGENT_PREFIX}}-polish`) MUST have walked Micro-conventions MC-1..MC-{{MC_MAX}} from `{{CONVENTIONS_DOC}}` and reported a compact MC block. This gate verifies the walk happened.
+The upstream agent (`{{AGENT_PREFIX}}-implement` or `{{AGENT_PREFIX}}-polish`) MUST have walked Micro-conventions MC-1..MC-{{MC_MAX}} from `{{CONVENTIONS_DOC}}` Mandatory Conventions section and reported a compact MC block. This gate verifies the walk happened.
 
 Procedure:
 

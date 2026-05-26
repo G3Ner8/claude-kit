@@ -70,7 +70,7 @@ Surgical · Pick a winner from **Polished** pages in `{{PROGRESS_DOC}}` (e.g. {{
 1. **Read `{{CONVENTIONS_DOC}}` MC-1..MC-{{MC_MAX}} in full once per session.** Cite line numbers when claiming a section is clean.
 2. **Report MUST contain {{MC_MAX}} status lines** — one per MC-N. No line = invalid report.
 3. **Findings table groups by section** so the user sees what was walked, not just what was found.
-4. **Run `{{LINT_STRUCTURE_CMD}}`** before declaring done — mechanical catch-all for ~60% of MC violations.
+4. **Run `{{LINT_STRUCTURE_CMD}}`** before declaring done — mechanical catch-all for many MC violations.
 
 ### Findings table format
 
@@ -115,7 +115,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 1. Survey: `git status` (no `-uall`) + `git diff` + read changed files in full
 2. Identify (in-diff only): dead code/imports · hand-rolled patterns where primitive exists ({{UI_INVENTORY_SKILL}}) · DRY violations in changed files · re-render/effect anti-patterns · magic numbers where tokens exist · semantic-HTML gaps
 3. **Walk MC-1..MC-{{MC_MAX}} from `{{CONVENTIONS_DOC}}` Mandatory Conventions section** against every changed file — see "Micro-conventions walk" section above. Mandatory, not optional.
-4. Run `{{LINT_STRUCTURE_CMD}}` — mechanical catch-all for ~60% of MC violations.
+4. Run `{{LINT_STRUCTURE_CMD}}` — mechanical catch-all for many MC violations.
 5. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
 6. i18n — grep changed files for raw string literals in JSX
 7. Present list in {{OUTPUT_LANG}} (1-3 lines/item with `file:line` + reasoning) — group by MC-N → `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} → apply → build → report (must include the MC walk block)

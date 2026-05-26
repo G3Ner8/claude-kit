@@ -68,7 +68,7 @@ Produce this matrix before any plan. Each row = one file in the feature.
 ```
 
 `Risk` callouts to surface:
-- **high** for: mutation hooks (cache invalidation), components with Radix DatePicker/Select/Combobox (portal flake), payroll/auth/payment-handling code
+- **high** for: mutation hooks (cache invalidation), components with Radix DatePicker/Select/Combobox (portal flake), business-critical / auth / payment-handling code
 - **med** for: API clients with case-transform / interceptor coupling, query hooks with tenant-scope gates
 - **low** for: schemas, pure UI components, badges, skeletons
 
@@ -209,7 +209,7 @@ If user says no / wants edits → stop, ask which keys to drop or rename. Do not
 - Always `userEvent.setup()` — never `fireEvent.*`
 - MSW URL pattern: wildcard host + path (matches project baseURL + path)
 - Per-test override: `server.use(http.get(URL, ...))` — `afterEach` resets handlers
-- Hook tests: `tsx` extension (provider wrapper), fresh QueryClient per render, `createTestQueryClient()` from `@/test/test-utils`
+- Hook tests: `tsx` extension (provider wrapper), fresh QueryClient per render, `createTestQueryClient()` from `{{TEST_UTILS_IMPORT}}`
 - Mock tenant accessor (e.g. `useCurrentCompanyId`) at module level with `vi.mock`; override per test with `vi.mocked(...).mockReturnValue(...)`
 
 **Canonical anchors** (read in full when scope touches them):
@@ -225,9 +225,9 @@ If user says no / wants edits → stop, ask which keys to drop or rename. Do not
 1. Layer placement — every test file in the correct layer folder (schemas/api/hooks/components)?
 2. Selector hierarchy — `getByRole` first, no leftover `getByTestId` for things that have a role?
 3. `userEvent.setup()` — no `fireEvent` calls?
-4. MSW used for network — no `vi.mock('@/services/api')` shortcuts?
+4. MSW used for network — no `vi.mock('{{API_CLIENT_IMPORT}}')` shortcuts?
 5. Fresh QueryClient per render — no shared `queryClient` across `it()` blocks?
-6. i18n keys — every `t()` key asserted is a real key from `src/i18n/locales/en/<feature>.json` (or copied from existing test-utils.tsx)?
+6. i18n keys — every `t()` key asserted is a real key from `{{I18N_LOCALES_PATH}}` (or copied from existing test-utils.tsx)?
 7. No `.only` / `.skip` / `console.log` left in the suite?
 8. Coverage delta — captured and reported per file?
 
@@ -241,7 +241,7 @@ Compact format. Walk is mandatory across all 8 checks — output is condensed.
 - Layer placement: ✓ (schemas → tests in schemas/, hooks → hooks/, components → components/<group>/)
 - Selectors: ✓ getByRole-first across all <N> assertions
 - Interactions: ✓ userEvent.setup() (no fireEvent)
-- Network: ✓ MSW (no vi.mock of @/services/api)
+- Network: ✓ MSW (no vi.mock of {{API_CLIENT_IMPORT}})
 - QueryClient: ✓ fresh per render via createTestQueryClient()
 - i18n keys: ✓ <N> keys verified against locales/en/<feature>.json
 - Hygiene: ✓ no .only / .skip / console.log
@@ -302,7 +302,7 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 - Commit / push (that's `{{AGENT_PREFIX}}-pre-commit`)
 - Cross-feature test refactoring (one feature per invocation — split if more)
 - Add Playwright / E2E tests (project policy: manual browser verification for E2E)
-- Bypass MSW with `vi.mock('@/services/api')` shortcuts
+- Bypass MSW with `vi.mock('{{API_CLIENT_IMPORT}}')` shortcuts
 - Skip i18n confirm before touching `test-utils.tsx`
 - Apply without `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} confirmation
 - Add tests for layers the user didn't approve in the plan (e.g. integration scope when user said retrofit)
@@ -311,9 +311,9 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 
 - **Feature has 0 tests but no schemas/api/hooks (UI-only)** — `retrofit` with only Component layer; flag in audit as "limited scope" and recommend integration mode for end-to-end confidence.
 - **Test exposes a real production bug** — stop, do NOT auto-fix. Report in {{OUTPUT_LANG}} with file:line + suspected fix; ask user to dispatch to `{{AGENT_PREFIX}}-implement` or fix manually.
-- **Existing tests use deprecated patterns (`fireEvent`, mocked `@/services/api`)** — flag in audit but **do not** rewrite them unless user explicitly says "modernize existing tests too". Default = leave alone, add new tests next to them.
+- **Existing tests use deprecated patterns (`fireEvent`, mocked `{{API_CLIENT_IMPORT}}`)** — flag in audit but **do not** rewrite them unless user explicitly says "modernize existing tests too". Default = leave alone, add new tests next to them.
 - **Component uses Radix DatePicker/Select in a critical assertion path** — stop in audit, surface in {{OUTPUT_LANG}} with two options (stub or skip), wait for user direction.
 - **Coverage target unreachable due to unreachable branch** (e.g. error path that requires a network failure mode MSW can't simulate cleanly) — note in self-check `⚠ Coverage <X>% (target <Y>%) — <reason>` and propose either lowering the target for this file or skipping the branch.
-- **i18n key doesn't exist in `locales/en/<feature>.json`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
+- **i18n key doesn't exist in `{{I18N_LOCALES_PATH}}`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
 - **User says `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} after audit but skips Plan review** — paraphrase Plan in 3-5 lines in {{OUTPUT_LANG}}, ask "Start Chunk 1?" — do not jump to write.
 - **`{{TEST_CMD}}` fails on a chunk due to an unrelated pre-existing failure** — report which test failed; ask whether to defer fixing that or block. Default = block; tests must be green for the chunk to be declared done.

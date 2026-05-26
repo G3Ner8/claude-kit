@@ -32,6 +32,10 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{MC_WALK_INCIDENT_REF}}` | (Optional) Trailing sentence cited as motivation for the MC-walk forcing functions (typically a past incident). Empty if no incident | ` A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.` |
 | `{{MC_MECHANICAL_CATCH_MAP}}` | (Optional) Trailing sentence listing which MC sections the structure linter mechanically catches. Empty if not applicable | ` It catches MC-5 (factory schema), MC-6 (shared namespace), MC-7 (console.*).` |
 | `{{COMMIT_SCOPE_OPTIONS}}` | Scope-options sentence in `pre-commit` commit-draft section | `` `(pps-web)` when diff is purely frontend · `(pps-api)` when purely backend · omit for cross-cutting / repo-level `` |
+| `{{API_TRIGGER_HINT}}` | Inline phrase in `pre-commit` Bug+regression scan describing what API surface touched looks like | `` `services/api.ts` or feature `api/` `` (default: `network surface`) |
+| `{{STRUCTURE_LEGACY_REF}}` | Phrase used to refer to pre-existing structure violations (project's backlog name, if any) | `Section 17 backlog` (default: `legacy`) |
+| `{{STRUCT_PENDING_RULES}}` | Multi-line block under Structure regression check step 4 — project's pending-list workflow. Empty = single-line generic Non-blocking note | (see PROFILE-GENERATOR.md crib sheet — bullet list referencing project pending-list names) |
+| `{{STRUCT_REGRESSION_PSEUDOCODE}}` | (Optional) Project-specific helper pseudocode block under Structure regression check. Empty if not used | (see PROFILE-GENERATOR.md crib sheet — fenced code block) |
 
 ## Commands
 
@@ -64,6 +68,10 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{TEST_CANONICAL_BASELINE}}` | Folder of the canonical/reference test suite that `web-test` mirrors when retrofitting | `pps-web/src/features/holiday/` |
 | `{{TEST_CANONICAL_FILES}}` | Multi-line markdown bullet list of specific baseline test files to read in full (one per line, backtick-wrapped) | `- `pps-web/src/features/holiday/schemas/holiday.schema.test.ts`<br>- `pps-web/src/features/holiday/api/index.test.ts`<br>- ... (3 more) |
 | `{{TEST_INFRA_ROOT}}` | Folder holding shared test infra (`setup`, `test-utils`, `server`, `handlers`, `factories`) | `pps-web/src/test` |
+| `{{API_CLIENT_IMPORT}}` | Module path the project's API client is imported from (used in test agent for "don't `vi.mock()` this" checks) | `@/services/api` (default: same) |
+| `{{TEST_UTILS_IMPORT}}` | Module path `createTestQueryClient` (or equivalent) is imported from | `@/test/test-utils` (default: same) |
+| `{{I18N_LOCALES_PATH}}` | Glob/path of i18n locale JSON files (used in test agent for key-existence checks) | `src/i18n/locales/en/<feature>.json` (default: same) |
+| `{{WORKFLOW_PATTERNS_TABLE}}` | Markdown table of "Polished page" regression patterns the pre-commit Workflow regression check enforces. Project fills with its specific components/hooks; default = minimal 2-row generic | (see PROFILE-GENERATOR.md crib sheet — table of project's canonical components / hooks / patterns) |
 
 ## Triggers (per-agent description lines)
 

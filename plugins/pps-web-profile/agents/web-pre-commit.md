@@ -225,7 +225,7 @@ Only what the change invalidates. Terse bullets, existing doc style, English onl
 | `docs/components/*` | Modifies a documented component's props/variants |
 | `docs/features/*` | Adds/removes/significantly changes a feature |
 | `docs/progress.md` + `scripts/page-polish-audit.mjs` | Only after user confirms a status flip — never preemptive |
-| `CLAUDE.md` (root) | Moves a project-wide fact |
+| Repo-root CLAUDE.md | Moves a project-wide fact |
 
 Nothing invalidated → skip.
 
