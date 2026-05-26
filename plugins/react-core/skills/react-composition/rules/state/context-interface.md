@@ -1,173 +1,139 @@
 ---
-title: Define Generic Context Interfaces for Dependency Injection
+title: Stable Context Interface
 impact: HIGH
-impactDescription: enables swapping state implementations without touching UI
-tags: composition, context, state, typescript, dependency-injection
+impactDescription: defines a single, swap-friendly contract — `{ state, actions, meta }` — so the UI binds to behavior, not to a specific implementation
+tags: composition, state, context, contract, dependency-injection
 ---
 
-## Define Generic Context Interfaces for Dependency Injection
+## Stable Context Interface
 
-Give your component's context a **generic interface** with three parts: `state`, `actions`, and `meta`. The interface is the contract; *any* provider can implement it. The UI consumes the contract, not the implementation. This lets you swap state sources (local `useState`, Zustand store, server-synced cache) without changing a single UI component.
+When a provider exposes state to descendants, the **shape of the context value is a public contract**. Descendants depend on it; you can't change it without rippling. Pick a stable shape on day one.
 
-**Core principle:** Lift state, compose internals, make state dependency-injectable.
+The shape that scales across feature domains is:
 
-**Incorrect (UI coupled to a specific state source):**
+```ts
+interface FeatureContext {
+  state:   /* derived data the UI reads */;
+  actions: /* functions the UI calls */;
+  meta?:   /* derivable status — isLoading, isError, hasUnsavedChanges, etc. */;
+}
+```
+
+Three properties, always present. Three reasons it works:
+
+1. **The UI never reaches into provider internals.** It calls `actions.select(id)`, not `setSelectedId(id)`. The provider can rename, refactor, or swap implementations without touching consumers.
+2. **`state` is read-only from the UI's perspective.** No `setX` setters leaking through — actions are the only mutation surface. This kills "consumer mutates state directly" bugs.
+3. **`meta` carries derived flags** — `isLoading`, `isError`, `isReady`, `isDirty` — so consumers don't recompute them. Derive once, in the provider.
+
+**Incorrect — exposing implementation details:**
 
 ```tsx
-function ComposerInput() {
-  // Tightly coupled to a specific hook
-  const { input, setInput } = useChannelComposerState()
+interface EmployeesContextValue {
+  employees: Employee[];
+  setEmployees: Dispatch<SetStateAction<Employee[]>>;  // consumer can replace the whole array
+  selectedId: string | null;
+  setSelectedId: Dispatch<SetStateAction<string | null>>;
+  isLoading: boolean;
+  setIsLoading: Dispatch<SetStateAction<boolean>>;
+  searchTerm: string;
+  setSearchTerm: Dispatch<SetStateAction<string>>;
+}
+```
+
+Consumers can break invariants (`setIsLoading(true)` without actually loading). Refactoring `useState` → `useReducer` is a breaking change. The shape leaks every internal.
+
+**Correct — stable `{ state, actions, meta }`:**
+
+```tsx
+interface EmployeesContextValue {
+  state: {
+    employees: Employee[];
+    selectedEmployee: Employee | null;
+    searchTerm: string;
+  };
+  actions: {
+    select: (id: string | null) => void;
+    search: (term: string) => void;
+    refresh: () => Promise<void>;
+  };
+  meta: {
+    isLoading: boolean;
+    isError: boolean;
+    isEmpty: boolean;          // derived: !isLoading && employees.length === 0
+    isFiltered: boolean;       // derived: searchTerm.length > 0
+  };
+}
+
+const EmployeesContext = createContext<EmployeesContextValue | null>(null);
+
+function useEmployees() {
+  const ctx = use(EmployeesContext);
+  if (!ctx) throw new Error('useEmployees must be used inside <EmployeesProvider>');
+  return ctx;
+}
+
+function EmployeesProvider({ children }: { children: ReactNode }) {
+  const query = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const employees = useMemo(
+    () => filterBy(query.data ?? [], searchTerm),
+    [query.data, searchTerm],
+  );
+  const selectedEmployee = useMemo(
+    () => employees.find((e) => e.id === selectedId) ?? null,
+    [employees, selectedId],
+  );
+
+  const value = useMemo<EmployeesContextValue>(
+    () => ({
+      state:   { employees, selectedEmployee, searchTerm },
+      actions: { select: setSelectedId, search: setSearchTerm, refresh: query.refetch },
+      meta:    {
+        isLoading:  query.isLoading,
+        isError:    query.isError,
+        isEmpty:    !query.isLoading && employees.length === 0,
+        isFiltered: searchTerm.length > 0,
+      },
+    }),
+    [employees, selectedEmployee, searchTerm, query.isLoading, query.isError, query.refetch],
+  );
+
+  return <EmployeesContext value={value}>{children}</EmployeesContext>;
+}
+```
+
+A consumer:
+
+```tsx
+function EmployeesList() {
+  const { state, actions, meta } = useEmployees();
+  if (meta.isLoading) return <Skeleton />;
+  if (meta.isError)   return <ErrorState onRetry={actions.refresh} />;
+  if (meta.isEmpty)   return <EmptyState filtered={meta.isFiltered} />;
   return (
-    <input type="text" value={input} onChange={(e) => setInput(e.target.value)} />
-  )
+    <ul>
+      {state.employees.map((e) => (
+        <li key={e.id} onClick={() => actions.select(e.id)}>{e.name}</li>
+      ))}
+    </ul>
+  );
 }
 ```
 
-Now `ComposerInput` only works with channel state. To use it in a forward-message dialog, you'd duplicate the component or thread a different hook through props.
+The consumer has no idea whether the provider uses `useState`, `useReducer`, Zustand, Jotai, or a server-sync layer. Swapping any of those changes one file — the provider — not the consumers.
 
-**Correct (generic interface enables dependency injection):**
+## Key conventions
 
-```tsx
-import { createContext, use, type RefObject } from 'react'
+- **Lock the shape early.** Once `{ state, actions, meta }` is published, additions are additive (new field in one of the three buckets); removals or renames are breaking.
+- **Actions return `void` or `Promise<void>`.** Don't leak the underlying mutation result through the action signature. If the UI needs feedback ("save succeeded"), expose it through `meta` or via a separate signal.
+- **Derive `meta`, don't store it.** `isEmpty` should be a computed value, not a separate piece of state that the action layer has to keep in sync.
+- **Memoize the value object.** Without memoization, every parent render re-renders every consumer regardless of whether state changed.
 
-// Define a GENERIC interface that any provider can implement
-interface ComposerState {
-  input: string
-  attachments: Attachment[]
-  isSubmitting: boolean
-}
+## When NOT to apply
 
-interface ComposerActions {
-  update: (updater: (state: ComposerState) => ComposerState) => void
-  submit: () => void
-}
+- **Trivial contexts** — a theme provider exposing `{ theme: 'light' | 'dark', toggle: () => void }` doesn't need three buckets. The pattern earns its overhead when there are 3+ state pieces, 3+ actions, or any meta-derivation logic.
+- **Library boundaries** — TanStack Query's `useQuery()` return shape is already stable; don't wrap it in another `{ state, actions, meta }` just for symmetry.
 
-interface ComposerMeta {
-  inputRef: RefObject<HTMLInputElement | null>
-}
-
-interface ComposerContextValue {
-  state: ComposerState
-  actions: ComposerActions
-  meta: ComposerMeta
-}
-
-export const ComposerContext = createContext<ComposerContextValue | null>(null)
-```
-
-**UI components consume the interface, not the implementation:**
-
-```tsx
-function ComposerInput() {
-  const ctx = use(ComposerContext)
-  if (!ctx) throw new Error('ComposerInput must be inside a Composer.Provider')
-
-  // This component works with ANY provider that implements the interface
-  return (
-    <input
-      ref={ctx.meta.inputRef}
-      type="text"
-      value={ctx.state.input}
-      onChange={(e) =>
-        ctx.actions.update((s) => ({ ...s, input: e.target.value }))
-      }
-    />
-  )
-}
-```
-
-**Different providers, same UI:**
-
-```tsx
-// Provider A: local state for ephemeral forms
-function ForwardMessageProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState(initialState)
-  const inputRef = useRef<HTMLInputElement | null>(null)
-  const submit = useForwardMessage()
-
-  return (
-    <ComposerContext
-      value={{ state, actions: { update: setState, submit }, meta: { inputRef } }}
-    >
-      {children}
-    </ComposerContext>
-  )
-}
-
-// Provider B: global synced state for channels
-function ChannelProvider({ channelId, children }: ChannelProps) {
-  const { state, update, submit } = useGlobalChannel(channelId)
-  const inputRef = useRef<HTMLInputElement | null>(null)
-
-  return (
-    <ComposerContext
-      value={{ state, actions: { update, submit }, meta: { inputRef } }}
-    >
-      {children}
-    </ComposerContext>
-  )
-}
-```
-
-**The same composed UI works with both:**
-
-```tsx
-// Local state
-<ForwardMessageProvider>
-  <Composer.Frame>
-    <Composer.Input />
-    <Composer.Submit />
-  </Composer.Frame>
-</ForwardMessageProvider>
-
-// Global synced state
-<ChannelProvider channelId="abc">
-  <Composer.Frame>
-    <Composer.Input />
-    <Composer.Submit />
-  </Composer.Frame>
-</ChannelProvider>
-```
-
-### Custom UI outside the component can still access state
-
-The provider boundary is what matters, not the visual nesting:
-
-```tsx
-function ForwardMessageDialog() {
-  return (
-    <ForwardMessageProvider>
-      <Dialog>
-        <Composer.Frame>
-          <Composer.Input placeholder="Add a message, if you'd like." />
-          <Composer.Footer>
-            <Composer.Formatting />
-            <Composer.Emojis />
-          </Composer.Footer>
-        </Composer.Frame>
-
-        {/* Outside the composer frame, still inside the provider */}
-        <MessagePreview />
-
-        <DialogActions>
-          <CancelButton />
-          <ForwardButton />
-        </DialogActions>
-      </Dialog>
-    </ForwardMessageProvider>
-  )
-}
-
-// Outside <Composer.Frame> but still reads composer state
-function ForwardButton() {
-  const ctx = use(ComposerContext)
-  return <button type="button" onClick={ctx?.actions.submit}>Forward</button>
-}
-
-function MessagePreview() {
-  const ctx = use(ComposerContext)
-  return <Preview message={ctx?.state.input ?? ''} attachments={ctx?.state.attachments ?? []} />
-}
-```
-
-The UI is reusable parts you compose. State is injected by the provider. **Swap the provider, keep the UI.**
+The trigger is **a provider that exposes more than ~3 things and has consumers in more than one feature folder**. At that scope, the contract discipline pays back within the first refactor.

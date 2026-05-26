@@ -7,7 +7,6 @@ metadata:
   version: "1.0.0"
   type: reference
   status: stable
-  derived_from: vercel-labs/agent-skills/skills/composition-patterns (curated, web-React idioms)
   stack: React 19, TypeScript
   scope: framework-agnostic (web React preferred examples)
 ---
@@ -73,11 +72,13 @@ rules/architecture/avoid-boolean-props.md
 rules/state/context-interface.md
 ```
 
-Each file has:
-- A short explanation of the rule and why it matters
-- An **Incorrect** code example (the anti-pattern)
-- A **Correct** code example (the recommended pattern)
-- Optional notes on edge cases and when the pattern doesn't apply
+Each rule file follows the same shape:
+
+1. **Rationale** — what breaks without the pattern, in 1-2 paragraphs
+2. **Incorrect** — a realistic anti-pattern (not strawman) with explanation of why it grows pain over time
+3. **Correct** — the recommended pattern with React 19-idiomatic code
+4. **Key conventions** — the small rules that make the pattern work in practice
+5. **When NOT to apply** — explicit boundaries so the rule doesn't get over-applied
 
 ## Core Principles
 
@@ -86,12 +87,3 @@ Each file has:
 3. **Explicit variants over boolean modes** — `ThreadComposer` not `Composer isThread`
 4. **The interface is the contract** — define `{ state, actions, meta }` once, swap providers freely
 
-## Notes on Curation
-
-Derived from [vercel-labs/agent-skills/skills/composition-patterns](https://github.com/vercel-labs/agent-skills/tree/main/skills/composition-patterns). Changes from upstream:
-
-- Examples converted from React Native primitives (`TextInput`, `onPress`, `onChangeText`) to web React (`<input>`, `onClick`, `onChange`) for broader applicability
-- Subfolder layout matching the `react-perf` skill convention
-- Frontmatter and headings normalized
-
-See `README.md` for the full upstream mapping.

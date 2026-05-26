@@ -1,129 +1,128 @@
 ---
-title: Lift State into Provider Components
+title: Lift State to a Provider
 impact: HIGH
-impactDescription: enables state sharing outside the visual component tree
-tags: composition, state, context, providers
+impactDescription: lets sibling components read and update shared state without prop drilling or callback gymnastics
+tags: composition, state, context, provider, architecture
 ---
 
-## Lift State into Provider Components
+## Lift State to a Provider
 
-Move state management into a dedicated **provider component**. This lets sibling components — including ones outside the main UI tree — read and modify the same state without prop drilling, callbacks, or refs.
+When two or more sibling components need to read or update the same state, the cheapest fix is to move that state into a parent and pass it down via props. The moment the prop chain crosses 2-3 component layers, that becomes prop drilling — every intermediate component carries props it doesn't use, and refactors ripple through the tree.
 
-The provider boundary is what matters, not visual nesting. If two components need the same state, they don't need to be inside the same parent — they just need to be inside the same provider.
+The next move is to lift the state **into a provider**: a parent component that owns the state in `useState` (or `useReducer`), exposes it through Context, and renders children that read it via `use(Context)`. Siblings can then share state without the intermediate components knowing it exists.
 
-**Incorrect (state trapped inside the component):**
+This pattern underpins the [compound-component](../architecture/compound-components.md) approach — the provider is the parent that holds `open`/`setOpen`; subcomponents read what they need.
+
+**Incorrect — prop drilling through layers that don't care:**
 
 ```tsx
-function ForwardMessageComposer() {
-  const [state, setState] = useState(initialState)
-  const forwardMessage = useForwardMessage()
-
+// Page knows about selectedId only to forward it to <Toolbar> and <List>.
+function EmployeesPage() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   return (
-    <Composer.Frame>
-      <Composer.Input />
-      <Composer.Footer />
-    </Composer.Frame>
-  )
+    <PageLayout selectedId={selectedId} onSelect={setSelectedId}>
+      <PageHeader selectedId={selectedId} onSelect={setSelectedId} />
+      <PageBody selectedId={selectedId} onSelect={setSelectedId} />
+    </PageLayout>
+  );
 }
 
-// Problem: how does this button access the composer's state?
-function ForwardMessageDialog() {
+function PageLayout({ children, selectedId, onSelect }: PageLayoutProps) {
+  // Doesn't use selectedId — just forwards it.
+  return <div className="layout">{children}</div>;
+}
+
+function PageBody({ selectedId, onSelect }: PageBodyProps) {
   return (
-    <Dialog>
-      <ForwardMessageComposer />
-      <MessagePreview /> {/* needs the composer's current input */}
-      <DialogActions>
-        <CancelButton />
-        <ForwardButton /> {/* needs to call submit() */}
-      </DialogActions>
-    </Dialog>
-  )
+    <>
+      <Toolbar selectedId={selectedId} onSelect={onSelect} />
+      <List selectedId={selectedId} onSelect={onSelect} />
+    </>
+  );
 }
 ```
 
-**Incorrect (useEffect to sync state up):**
+Three components carry `selectedId`/`onSelect` props they don't read. Refactoring (renaming the prop, changing the type, adding a third sibling) is a multi-file diff.
+
+**Correct — provider owns the state; descendants read it where needed:**
 
 ```tsx
-function ForwardMessageDialog() {
-  const [input, setInput] = useState('')
-  return (
-    <Dialog>
-      <ForwardMessageComposer onInputChange={setInput} />
-      <MessagePreview input={input} />
-    </Dialog>
-  )
+interface SelectionContextValue {
+  selectedId: string | null;
+  select: (id: string | null) => void;
 }
 
-function ForwardMessageComposer({ onInputChange }: { onInputChange: (v: string) => void }) {
-  const [state, setState] = useState(initialState)
-  useEffect(() => {
-    onInputChange(state.input) // sync on every change — fragile, double-renders
-  }, [state.input])
-  // ...
+const SelectionContext = createContext<SelectionContextValue | null>(null);
+
+function useSelection() {
+  const ctx = use(SelectionContext);
+  if (!ctx) throw new Error('useSelection must be used inside <SelectionProvider>');
+  return ctx;
+}
+
+function SelectionProvider({ children }: { children: ReactNode }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const value = useMemo<SelectionContextValue>(
+    () => ({ selectedId, select: setSelectedId }),
+    [selectedId],
+  );
+  return <SelectionContext value={value}>{children}</SelectionContext>;
+}
+
+function EmployeesPage() {
+  return (
+    <SelectionProvider>
+      <PageLayout>
+        <PageHeader />
+        <PageBody />
+      </PageLayout>
+    </SelectionProvider>
+  );
+}
+
+function PageBody() {
+  return (
+    <>
+      <Toolbar />
+      <List />
+    </>
+  );
+}
+
+function Toolbar() {
+  const { selectedId, select } = useSelection();
+  if (selectedId === null) return null;
+  return <button onClick={() => select(null)}>Clear selection</button>;
+}
+
+function List() {
+  const { selectedId, select } = useSelection();
+  return (
+    <ul>
+      {employees.map((e) => (
+        <li key={e.id} aria-selected={e.id === selectedId} onClick={() => select(e.id)}>
+          {e.name}
+        </li>
+      ))}
+    </ul>
+  );
 }
 ```
 
-**Incorrect (reading state from a ref on submit):**
+`PageLayout`, `PageBody`, `PageHeader` no longer carry selection props. Adding a third sibling (`<Stats />`) that needs selection costs nothing structurally.
 
-```tsx
-function ForwardMessageDialog() {
-  const stateRef = useRef<ComposerState | null>(null)
-  return (
-    <Dialog>
-      <ForwardMessageComposer stateRef={stateRef} />
-      <ForwardButton onClick={() => submit(stateRef.current)} />
-    </Dialog>
-  )
-}
-```
+## Key conventions
 
-This breaks reactivity — `<MessagePreview>` can't re-render when the input changes because it's reading from a ref.
+- **Memoize the context `value`** to avoid re-rendering all consumers on every parent render. `useMemo` keyed on the actual state values is the standard fix.
+- **Split read-heavy and write-only context** when callers polarize. Keeping selection state and selection actions in one provider is fine; bundling 12 unrelated pieces of state into one context will re-render every consumer when any one changes — split into focused providers.
+- **Use `use(Context)`** (React 19), not `useContext(Context)`. `use()` can be called conditionally, narrows types more cleanly, and is the forward-looking API.
+- **Throw in the access hook** when context is missing. Silent defaults hide bugs.
 
-**Correct (state lifted to a provider):**
+## When NOT to apply
 
-```tsx
-function ForwardMessageProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState(initialState)
-  const forwardMessage = useForwardMessage()
-  const inputRef = useRef<HTMLInputElement | null>(null)
+- **Two siblings, one shared piece of state, single parent in between** — just lift to the parent and pass props. Context is overkill for one hop.
+- **Form state inside a single form** — React Hook Form, Formik, or TanStack Form already provide a form-scoped context. Don't reinvent it.
+- **Server-derived data** — TanStack Query / SWR provide their own cache + invalidation, accessible from anywhere via the query key. Pulling server data into your own context layer just duplicates the cache.
+- **Tree-wide constants** (theme, locale, current user) — these belong in a top-level provider, but they're not "lifted state" — they're config. Treat them like environment, not application state.
 
-  return (
-    <Composer.Provider
-      state={state}
-      actions={{ update: setState, submit: forwardMessage }}
-      meta={{ inputRef }}
-    >
-      {children}
-    </Composer.Provider>
-  )
-}
-
-function ForwardMessageDialog() {
-  return (
-    <ForwardMessageProvider>
-      <Dialog>
-        <ForwardMessageComposer />
-        <MessagePreview /> {/* now reads from context */}
-        <DialogActions>
-          <CancelButton />
-          <ForwardButton />  {/* now reads submit() from context */}
-        </DialogActions>
-      </Dialog>
-    </ForwardMessageProvider>
-  )
-}
-
-function ForwardButton() {
-  const ctx = use(Composer.Context)
-  return <button type="button" onClick={ctx?.actions.submit}>Forward</button>
-}
-
-function MessagePreview() {
-  const ctx = use(Composer.Context)
-  return <Preview value={ctx?.state.input ?? ''} />
-}
-```
-
-`ForwardButton` and `MessagePreview` live **outside** `<Composer.Frame>` but still access the composer's state — because they're inside the same provider. The visual tree and the data tree are independent.
-
-**Key insight:** components that share state don't have to be visually nested. They just need to share a provider.
+The trigger is **prop drilling through 2+ uninterested layers, or two siblings that share state**. Below that threshold, props are cheaper.

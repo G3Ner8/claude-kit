@@ -1,25 +1,16 @@
-# Sections
-
-This file defines the four sections used by `react-composition`, their priority ordering, impact levels, and folder mapping.
-
+---
+note: "Section metadata for react-composition. Order matches the priority list in SKILL.md."
 ---
 
-## 1. Component Architecture (`architecture/`)
+# Sections
 
-**Impact:** HIGH
-**Description:** Fundamental patterns for structuring components. Avoid boolean prop proliferation, use compound components, expose primitives that consumers compose into variants.
+Four sections, ordered by typical impact on a refactor.
 
-## 2. State Management (`state/`)
+| # | Folder | Impact | What it covers |
+|---|---|---|---|
+| 1 | `architecture/` | HIGH | Component shape — how to avoid boolean-prop bloat and how to expose primitives. |
+| 2 | `state/` | HIGH-MEDIUM | Where state lives — lifting, sharing via context, decoupling source from UI. |
+| 3 | `patterns/` | MEDIUM | Day-to-day techniques — children over render props, explicit variants over flag-driven modes. |
+| 4 | `react19/` | MEDIUM | React 19 API rewrites that obsolete pre-19 patterns (`forwardRef`, `useContext`). |
 
-**Impact:** HIGH–MEDIUM
-**Description:** Patterns for placing state in providers, sharing context across composed subcomponents, and decoupling state implementation from UI.
-
-## 3. Implementation Patterns (`patterns/`)
-
-**Impact:** MEDIUM
-**Description:** Specific techniques: prefer children over render props, prefer explicit variant components over boolean modes.
-
-## 4. React 19 APIs (`react19/`)
-
-**Impact:** MEDIUM
-**Description:** React 19+ only. `ref` is now a regular prop — `forwardRef` is deprecated. `use(Context)` replaces `useContext(Context)` and can be called conditionally.
+Read in order when refactoring; pick the section closest to your concern when answering a one-shot question.

@@ -1,128 +1,129 @@
 ---
-title: Use Compound Components
+title: Compound Components
 impact: HIGH
-impactDescription: enables flexible composition without prop drilling
-tags: composition, compound-components, context, architecture
+impactDescription: lets consumers compose primitives instead of configuring monoliths through dozens of props
+tags: composition, architecture, context, compound, api-design
 ---
 
-## Use Compound Components
+## Compound Components
 
-Structure complex components as a **compound component**: a small set of subcomponents that share state via context. Consumers compose the pieces they need; no prop drilling, no render-prop callbacks, no monolithic parent component knowing about every variant.
+A **compound component** is a parent that exposes its subcomponents as named static properties (`Dialog.Trigger`, `Dialog.Content`, `Dialog.Title`) and shares state with them through context. Consumers compose the parts they need; the parent owns coordination.
 
-This is the pattern behind Radix UI, shadcn/ui, Reach UI, and Ariakit.
+This is the API that Radix UI, Headless UI, Reach UI, Ark UI, and shadcn/ui all converge on. The reason: it scales linearly. Adding `<Dialog.Description>` to the library doesn't require touching every other subcomponent or props bag.
 
-**Incorrect (monolithic component with render props):**
+The alternative — a single component with `header`, `footer`, `showClose`, `closeLabel`, `description`, `descriptionPosition`, `actions` props — degrades into [boolean-prop bloat](./avoid-boolean-props.md) within a few releases.
+
+**Incorrect — monolithic config object:**
 
 ```tsx
-function Composer({
-  renderHeader,
-  renderFooter,
-  renderActions,
-  showAttachments,
-  showFormatting,
-  showEmojis,
-}: Props) {
-  return (
-    <form>
-      {renderHeader?.()}
-      <input type="text" />
-      {showAttachments && <Attachments />}
-      {renderFooter ? (
-        renderFooter()
-      ) : (
-        <Footer>
-          {showFormatting && <Formatting />}
-          {showEmojis && <Emojis />}
-          {renderActions?.()}
-        </Footer>
-      )}
-    </form>
-  )
-}
+<Dialog
+  title="Delete employee"
+  description="This will permanently remove the record."
+  showClose
+  closeLabel="Cancel"
+  showFooter
+  footerActions={[
+    { label: 'Cancel', variant: 'ghost', onClick: onCancel },
+    { label: 'Delete', variant: 'destructive', onClick: onConfirm },
+  ]}
+  size="md"
+  preventOutsideClose={false}
+/>;
 ```
 
-The parent knows about every possible piece (`showAttachments`, `renderFooter`, etc.). Adding a new variant means adding a new prop.
+To add a new feature (custom icon next to title), you grow the prop surface again. Custom layouts are impossible without a new prop.
 
-**Correct (compound components with shared context):**
+**Correct — compound API with context-shared state:**
 
 ```tsx
-import { createContext, use, useRef, type ReactNode, type RefObject } from 'react'
+import { createContext, use, useId, useState, type ReactNode } from 'react';
 
-interface ComposerContextValue {
-  state: { input: string }
-  actions: { update: (text: string) => void; submit: () => void }
-  meta: { inputRef: RefObject<HTMLInputElement | null> }
+interface DialogContextValue {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  titleId: string;
 }
 
-const ComposerContext = createContext<ComposerContextValue | null>(null)
+const DialogContext = createContext<DialogContextValue | null>(null);
 
-function ComposerProvider({
-  children,
-  state,
-  actions,
-  meta,
-}: { children: ReactNode } & ComposerContextValue) {
+function useDialog() {
+  const ctx = use(DialogContext);
+  if (!ctx) throw new Error('Dialog.* must be rendered inside <Dialog>');
+  return ctx;
+}
+
+function Dialog({ children, defaultOpen = false }: { children: ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const titleId = useId();
   return (
-    <ComposerContext value={{ state, actions, meta }}>
+    <DialogContext value={{ open, setOpen, titleId }}>
       {children}
-    </ComposerContext>
-  )
+    </DialogContext>
+  );
 }
 
-function ComposerFrame({ children }: { children: ReactNode }) {
-  return <form>{children}</form>
+function DialogTrigger({ children }: { children: ReactNode }) {
+  const { setOpen } = useDialog();
+  return <button onClick={() => setOpen(true)}>{children}</button>;
 }
 
-function ComposerInput() {
-  const ctx = use(ComposerContext)
-  if (!ctx) throw new Error('ComposerInput must be inside ComposerProvider')
+function DialogContent({ children }: { children: ReactNode }) {
+  const { open, titleId } = useDialog();
+  if (!open) return null;
   return (
-    <input
-      ref={ctx.meta.inputRef}
-      type="text"
-      value={ctx.state.input}
-      onChange={(e) => ctx.actions.update(e.target.value)}
-    />
-  )
+    <div role="dialog" aria-labelledby={titleId} aria-modal="true">
+      {children}
+    </div>
+  );
 }
 
-function ComposerSubmit() {
-  const ctx = use(ComposerContext)
-  if (!ctx) throw new Error('ComposerSubmit must be inside ComposerProvider')
-  return (
-    <button type="button" onClick={ctx.actions.submit}>
-      Send
-    </button>
-  )
+function DialogTitle({ children }: { children: ReactNode }) {
+  const { titleId } = useDialog();
+  return <h2 id={titleId}>{children}</h2>;
 }
 
-// Export as a compound component
-export const Composer = {
-  Provider: ComposerProvider,
-  Frame: ComposerFrame,
-  Input: ComposerInput,
-  Submit: ComposerSubmit,
-  // Header, Footer, Attachments, Formatting, Emojis defined the same way…
+function DialogClose({ children }: { children: ReactNode }) {
+  const { setOpen } = useDialog();
+  return <button onClick={() => setOpen(false)}>{children}</button>;
 }
+
+Dialog.Trigger = DialogTrigger;
+Dialog.Content = DialogContent;
+Dialog.Title = DialogTitle;
+Dialog.Close = DialogClose;
 ```
 
-**Usage:**
+Consumer code:
 
 ```tsx
-<Composer.Provider state={state} actions={actions} meta={meta}>
-  <Composer.Frame>
-    <Composer.Header />
-    <Composer.Input />
-    <Composer.Footer>
-      <Composer.Formatting />
-      <Composer.Submit />
-    </Composer.Footer>
-  </Composer.Frame>
-</Composer.Provider>
+<Dialog>
+  <Dialog.Trigger>Delete</Dialog.Trigger>
+  <Dialog.Content>
+    <Dialog.Title>Delete employee</Dialog.Title>
+    <p>This will permanently remove the record.</p>
+    <Dialog.Close>Cancel</Dialog.Close>
+    <button onClick={onConfirm}>Delete</button>
+  </Dialog.Content>
+</Dialog>
 ```
 
-Consumers explicitly compose what they need. The state, actions, and meta are dependency-injected by the provider — see [Lift State into Provider Components](../state/lift-state.md) and [Define Generic Context Interfaces](../state/context-interface.md).
+Adding a new piece (e.g., `Dialog.Description` that auto-wires `aria-describedby`) is purely additive — no existing usage breaks, no existing prop changes meaning.
 
-### Note on the context type
+## Key conventions
 
-The `throw new Error(...)` guard in `use(ComposerContext)` consumers is what lets you type the context as `ComposerContextValue | null` while still using non-null `ctx.state` downstream. Alternatives: assert non-null at the call site, or create a custom `useComposer()` hook that throws.
+- **Use `createContext(null)` + a throwing `useX()` hook.** Throwing surfaces "rendered outside parent" as a clear error instead of a silent default.
+- **Generate IDs with `useId`** for ARIA wiring (`aria-labelledby`, `aria-describedby`) — never hand-write IDs.
+- **Subcomponents are named static properties** (`Dialog.Trigger`) — not separate named exports — so the relationship is obvious at the import.
+- **React 19**: read context with `use(Context)`, not `useContext(Context)`. `use()` works in conditional branches; `useContext` doesn't. See [`no-forwardref`](../react19/no-forwardref.md).
+
+## When NOT to apply
+
+- **Single-use internal components** — `<EmptyState />` doesn't need to be compound; just take a `title` and `description` prop.
+- **Components where the layout never varies** — a `<Badge>` is always icon-then-label; no value in `<Badge.Icon>` + `<Badge.Label>`.
+- **Performance-sensitive lists** — context-sharing across hundreds of compound instances can re-render more than necessary. Profile first; if you measure a problem, hoist the shared state out and pass via props.
+
+The compound pattern earns its complexity when:
+
+1. The component has 3+ optional structural parts (header, footer, description, close, etc.)
+2. Different consumers compose them in different orders or omit some entirely
+3. The parts need to share state (open/close, selection, current step) or ARIA wiring

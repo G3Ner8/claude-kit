@@ -1,118 +1,150 @@
 ---
-title: Decouple State Management from UI
+title: Decouple Implementation from Interface
 impact: MEDIUM
-impactDescription: enables swapping state implementations without changing UI
-tags: composition, state, architecture
+impactDescription: the provider is the only place that knows how state is sourced — swap useState for a server cache, store, or sync engine without touching consumers
+tags: composition, state, abstraction, dependency-injection
 ---
 
-## Decouple State Management from UI
+## Decouple Implementation from Interface
 
-The **provider** is the only place that knows *how* state is managed. UI components consume the context interface — they don't know if state comes from `useState`, Zustand, a server-synced cache, or a backend WebSocket.
+Given a [stable context interface](./context-interface.md), the implementation that backs it should be the only thing that knows where state comes from. The UI binds to `{ state, actions, meta }` — never to `useState`, `useReducer`, `useQuery`, a Zustand store, or a WebSocket. Anything past the provider is implementation detail.
 
-This is the practical payoff of [Define Generic Context Interfaces](./context-interface.md): the same `<Composer.Input />` works in a dialog backed by local state and in a channel backed by server sync.
+When the contract holds, you can:
 
-**Incorrect (UI knows about the state implementation):**
+- Replace `useState` with `useReducer` when the state machine grows
+- Add a server cache (TanStack Query) without touching consumers
+- Swap a local mock provider into tests
+- Move state from local to remote (or vice versa) when the product evolves
+
+When the contract leaks, every implementation change ripples to the consumers.
+
+**Incorrect — provider that leaks its implementation:**
 
 ```tsx
-function ChannelComposer({ channelId }: { channelId: string }) {
-  // The UI component imports a specific state hook
-  const state = useGlobalChannelState(channelId)
-  const sync = useChannelSync(channelId)
+function EmployeesProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();                          // leaks: caller knows TanStack
+  const { data, isLoading, refetch } = useQuery({ ... });        // leaks: caller knows useQuery
+  const [selectedId, setSelectedId] = useState<string | null>(null); // leaks: caller knows useState
 
   return (
-    <Composer.Frame>
-      <Composer.Input
-        value={state.input}
-        onChange={(e) => sync.updateInput(e.target.value)}
-      />
-      <Composer.Submit onClick={() => sync.submit()} />
-    </Composer.Frame>
-  )
+    <EmployeesContext value={{
+      data,                  // raw `data` (may be undefined!) instead of a safe `employees: []`
+      isLoading,             // wired straight through; no derived meta
+      refetch,               // exposes the TanStack-specific API name
+      selectedId,
+      setSelectedId,         // raw setter — caller can replace selection with garbage
+      queryClient,           // gives consumers cache-mutation powers they should not have
+    }}>
+      {children}
+    </EmployeesContext>
+  );
 }
 ```
 
-Now `ChannelComposer` can never be reused in a context that uses local state instead of global sync. It's not a UI component — it's a UI + state implementation glued together.
+Any caller can `setSelectedId('not-an-id')` or `queryClient.setQueryData(...)`. Moving off TanStack Query is a multi-file rewrite.
 
-**Correct (state isolated in the provider):**
+**Correct — provider hides its source, exposes only the stable contract:**
 
 ```tsx
-// Provider handles all state-management details
-function ChannelProvider({
-  channelId,
-  children,
-}: {
-  channelId: string
-  children: React.ReactNode
-}) {
-  const { state, update, submit } = useGlobalChannel(channelId)
-  const inputRef = useRef<HTMLInputElement | null>(null)
+function EmployeesProvider({ children }: { children: ReactNode }) {
+  // Implementation: TanStack Query for data, useState for selection.
+  // Nothing past this function knows.
+  const query = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  return (
-    <Composer.Provider
-      state={state}
-      actions={{ update, submit }}
-      meta={{ inputRef }}
-    >
-      {children}
-    </Composer.Provider>
-  )
-}
+  const employees = query.data ?? [];                       // safe default — never undefined
+  const selectedEmployee = useMemo(
+    () => employees.find((e) => e.id === selectedId) ?? null,
+    [employees, selectedId],
+  );
 
-// UI component only knows about the context interface
-function ChannelComposer() {
-  return (
-    <Composer.Frame>
-      <Composer.Header />
-      <Composer.Input />
-      <Composer.Footer>
-        <Composer.Submit />
-      </Composer.Footer>
-    </Composer.Frame>
-  )
-}
+  const value = useMemo<EmployeesContextValue>(
+    () => ({
+      state:   { employees, selectedEmployee },
+      actions: {
+        // Wrapped so the public name is the action verb, not the library noun.
+        select:  setSelectedId,
+        refresh: async () => { await query.refetch(); },
+      },
+      meta: {
+        isLoading: query.isLoading,
+        isError:   query.isError,
+        isEmpty:   !query.isLoading && employees.length === 0,
+      },
+    }),
+    [employees, selectedEmployee, query.isLoading, query.isError, query.refetch],
+  );
 
-// Usage
-function Channel({ channelId }: { channelId: string }) {
-  return (
-    <ChannelProvider channelId={channelId}>
-      <ChannelComposer />
-    </ChannelProvider>
-  )
+  return <EmployeesContext value={value}>{children}</EmployeesContext>;
 }
 ```
 
-**Different providers, same UI:**
+Now consider swapping TanStack Query for a Zustand store — the provider is the only file that changes:
 
 ```tsx
-// Local state for ephemeral forms
-function ForwardMessageProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState(initialState)
-  const forwardMessage = useForwardMessage()
+function EmployeesProvider({ children }: { children: ReactNode }) {
+  const employees      = useEmployeesStore((s) => s.employees);
+  const isLoading      = useEmployeesStore((s) => s.isLoading);
+  const isError        = useEmployeesStore((s) => s.isError);
+  const refresh        = useEmployeesStore((s) => s.refresh);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  return (
-    <Composer.Provider
-      state={state}
-      actions={{ update: setState, submit: forwardMessage }}
-    >
-      {children}
-    </Composer.Provider>
-  )
-}
+  const selectedEmployee = useMemo(
+    () => employees.find((e) => e.id === selectedId) ?? null,
+    [employees, selectedId],
+  );
 
-// Global synced state for channels
-function ChannelProvider({ channelId, children }: ChannelProps) {
-  const { state, update, submit } = useGlobalChannel(channelId)
+  const value = useMemo<EmployeesContextValue>(
+    () => ({
+      state:   { employees, selectedEmployee },
+      actions: { select: setSelectedId, refresh },
+      meta:    { isLoading, isError, isEmpty: !isLoading && employees.length === 0 },
+    }),
+    [employees, selectedEmployee, isLoading, isError, refresh],
+  );
 
-  return (
-    <Composer.Provider state={state} actions={{ update, submit }}>
-      {children}
-    </Composer.Provider>
-  )
+  return <EmployeesContext value={value}>{children}</EmployeesContext>;
 }
 ```
 
-The same `<Composer.Input />` works in both because it only depends on the **context interface**, not the implementation.
+Zero consumer changes. The compiler doesn't even notice.
 
-### Test boundary
+## Test seam for free
 
-The decoupling makes testing trivial: render the UI with a `<MockComposerProvider>` that hands it whatever `{ state, actions }` the test needs. No HTTP mocks, no store setup.
+A decoupled provider also gives you a clean test seam. Wrap units in a deterministic provider:
+
+```tsx
+function TestEmployeesProvider({ employees, children }: { employees: Employee[]; children: ReactNode }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const value: EmployeesContextValue = {
+    state:   { employees, selectedEmployee: employees.find((e) => e.id === selectedId) ?? null },
+    actions: { select: setSelectedId, refresh: async () => {} },
+    meta:    { isLoading: false, isError: false, isEmpty: employees.length === 0 },
+  };
+  return <EmployeesContext value={value}>{children}</EmployeesContext>;
+}
+
+// In tests:
+render(
+  <TestEmployeesProvider employees={fixture.employees}>
+    <EmployeesList />
+  </TestEmployeesProvider>,
+);
+```
+
+No TanStack Query setup, no MSW intercept, no store reset — the contract is enough.
+
+## Key conventions
+
+- **Wrap library-specific action names** (`refetch`, `mutate`, `invalidate`) behind verbs from your domain (`refresh`, `save`, `archive`). The action name is part of the public contract.
+- **Never expose raw setters** through the context value. If the caller needs to write, expose an action — `actions.select(id)` — that validates or massages input.
+- **Default empty collections to `[]`, never `undefined`.** Consumers should not have to handle `query.data === undefined` separately from `query.data === []`.
+- **Keep one provider per feature.** Stacking providers is fine; merging them into a "global" provider breaks the decoupling because every change to the global file ripples everywhere.
+
+## When NOT to apply
+
+- **Trivial state with no foreseeable swap.** A `useToggle()` hook backing `{ open, toggle }` doesn't need `{ state, actions, meta }` framing.
+- **Library-provided contexts** (Router, QueryClient, Suspense boundary). These are already stable interfaces from a third-party — don't rewrap them just to mirror your own convention.
+- **Components, not features.** The pattern targets feature-scope state (employee list, payroll wizard, leave calendar). Component-internal state (a dropdown's open/close) belongs in `useState` inside the component.
+
+The trigger is **a feature whose data source might plausibly change** (local → server, mocked → real, useState → reducer, polling → streaming). At that point, the contract discipline pays its premium.
