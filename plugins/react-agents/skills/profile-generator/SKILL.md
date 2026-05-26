@@ -1,6 +1,6 @@
 ---
 name: profile-generator
-description: Interactively scaffold a project-specific Claude Code profile (build/polish/pre-commit agent trio + optional UI inventory stub) for any React 19 / Vite SPA. Reads agent templates from the `react-agents` plugin, gathers project facts via AskUserQuestion, substitutes placeholders, and writes the filled-in profile to a user-specified path. The output is a self-contained plugin folder ready to symlink into `.claude/agents/` or publish as its own marketplace plugin.
+description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet + optional UI inventory stub) for any React 19 / Vite SPA. Auto-scans the project (package.json, filesystem, MD docs) to pre-fill ~25 placeholders, then asks the user only what can't be inferred (~5-12 questions for a typical scaffolded project). Substitutes the result into agent templates from the `react-agents` plugin and writes the filled-in profile to a user-specified path. The output is a self-contained plugin folder ready to symlink into `.claude/agents/` or publish as its own marketplace plugin.
 license: MIT
 user-invocable: true
 metadata:
@@ -22,7 +22,7 @@ This skill mutates the filesystem by writing a new plugin folder. Refuse to proc
 
 1. **`react-agents` plugin is installed** — templates must exist at `plugins/react-agents/templates/agents/*.template.md`. Verify with `Glob` before any prompt.
 2. **Output path is empty or absent** — never overwrite an existing `plugins/<name>-profile/` folder. If it exists, ask user to confirm a different name or explicit overwrite intent.
-3. **All 28 question-round answers collected** — see "Inputs" below. Never write a profile with placeholder defaults silently substituted; surface defaults during the question round.
+3. **All required inputs resolved** — via auto-scan (Phase 1) or user answer (Phase 2). Never write a profile with placeholder defaults silently substituted; surface defaults during the scan/confirm round.
 4. **PLACEHOLDER-REFERENCE.md exists** — `plugins/react-agents/docs/PLACEHOLDER-REFERENCE.md` is the source of truth for placeholder names. If absent, refuse and surface the broken install.
 
 If any pre-condition fails, list the gap and stop without writing files.
@@ -35,84 +35,231 @@ User runs `/profile-generator` after installing the `react-agents` plugin, or ty
 - "set up the agent trio for this repo"
 - "generate <project>-profile"
 
-## Inputs (gathered via AskUserQuestion)
+## Phase 1 — Auto-scan project state
 
-Group the questions into 5 short rounds. Default each option so accepting blindly produces a sensible result for a typical React 19 / Vite app.
+Before any `AskUserQuestion`, scan the project to pre-fill ~25 placeholders. Each scan is independent — if a scan fails (file missing, glob empty), defer that placeholder to Phase 2.
 
-### Round 1 — Project identity
+### Scan A — `package.json`
 
-1. **Project name** (kebab-case, used in agent names like `<prefix>-implement`):
-   - Default: derive from the current working directory name
-2. **Agent prefix** (short tag in agent names — usually project name or `web`):
-   - Default: same as project name if ≤ 8 chars; else `web`
-3. **Stack one-liner** (frontmatter `description` of each agent):
-   - Default: `React 19 / TypeScript / Vite / Tailwind / Radix UI`
-4. **Output language** for `*-implement` + `*-polish` agent reports (`*-pre-commit` always English):
-   - Options: `English` · `Thai` · `Japanese` · (free text)
-   - Default: `English`
+`Read` the project's `package.json`. Infer:
 
-### Round 2 — Project paths
+| Placeholder | From `package.json` field |
+|---|---|
+| `{{PROJECT_NAME}}` | `name` |
+| `{{BUILD_CMD}}` | `scripts.build` (prepend `npm run` if missing) |
+| `{{DEV_CMD}}` | `scripts.dev` or `scripts.start` |
+| `{{TEST_CMD}}` | `scripts['test:unit']` ∪ `scripts.test` |
+| `{{TEST_COV_CMD}}` | `scripts['test:cov']` ∪ `scripts.coverage` |
+| `{{LINT_STRUCTURE_CMD}}` | `scripts['lint:structure']` (empty if absent) |
+| `{{LINT_STRUCTURE_CMD_STRICT}}` | `scripts['lint:structure:strict']` (empty if absent) |
+| `{{STACK}}` | parse `dependencies` → `<React-major> / TS / <bundler> / <css-lib> / <ui-lib>` (e.g. `React 19 / TS / Vite / Tailwind / Radix`) |
+| `{{TEST_STACK}}` | parse `devDependencies` → `<vitest> + <RTL> + <user-event> + <msw>` with majors |
 
-5. **Conventions doc path** (relative to repo root) — where MC-1..MC-N rules live:
-   - Default: `CLAUDE.md`
-6. **MC sections count** — how many MC-N sections the conventions doc has:
-   - Default: `7`
-7. **Structure doc path** (architecture/feature-structure rules):
-   - Default: `docs/architecture/feature-structure.md` — leave empty if your project doesn't have one
-8. **Progress doc path** (lists Polished baseline pages):
-   - Default: `docs/progress.md` — leave empty if your project doesn't have one
-9. **Features root** (where feature folders live):
-   - Default: `src/features`
-10. **Polished page examples** (3-5 page names, comma-separated):
-    - Default: `(none — fill in after first baseline page lands)`
-11. **Docs root** (parent dir of architecture/components/features doc folders — used to derive `{{ARCHITECTURE_DOCS_GLOB}}`, `{{COMPONENT_DOCS_GLOB}}`, `{{FEATURE_DOCS_GLOB}}`):
-    - Default: `<parent of conventions-doc>/docs` (e.g. `pps-web/docs`)
-    - Leave empty if your project doesn't split docs by category
+### Scan B — Filesystem (Glob + `ls`)
 
-### Round 3 — Commands & BE
+| Placeholder | Check / glob |
+|---|---|
+| `{{CONVENTIONS_DOC}}` | `CLAUDE.md` (default if found) |
+| `{{STRUCTURE_DOC}}` | `docs/architecture/feature-structure.md` ∪ `docs/structure.md` |
+| `{{PROGRESS_DOC}}` | `docs/progress.md` ∪ `progress.md` ∪ `STATUS.md` |
+| `{{FEATURES_ROOT}}` | `src/features/` ∪ `src/modules/` (default `src/features`) |
+| `{{TEST_INFRA_ROOT}}` | `src/test/` ∪ `test/` (default `src/test`) |
+| `{{POLISH_AUDIT_SOURCE}}` | glob `scripts/*polish*audit*.{mjs,js}` |
+| `{{ARCHITECTURE_DOCS_GLOB}}` | `docs/architecture/*` if exists (else empty) |
+| `{{COMPONENT_DOCS_GLOB}}` | `docs/components/*` if exists |
+| `{{FEATURE_DOCS_GLOB}}` | `docs/features/*` if exists |
+| `{{API_SERVICES_PATHS}}` | glob `src/services/{api,http,case-transform}.ts` → backtick-wrap each, comma-join |
+| `{{TEST_UTILS_IMPORT}}` | if `src/test/test-utils.tsx` exists → `@/test/test-utils` |
+| `{{I18N_LOCALES_PATH}}` | glob `src/i18n/locales/en/*.json` → `src/i18n/locales/en/<feature>.json` |
+| `{{TEST_CANONICAL_BASELINE}}` | scan `{{FEATURES_ROOT}}/*/` → folder with most `*.test.*` files |
+| `{{TEST_CANONICAL_FILES}}` | list `*.test.*` in baseline folder, markdown bullet form |
+| `{{BACKEND_NAME}}` | sibling dirs matching `<project>-{api,be,backend,server}` (default `backend`) |
 
-12. **Build command** (one-liner that must pass):
-    - Default: `npm run build`
-13. **Dev command**:
-    - Default: `npm run dev`
-14. **Test command**:
-    - Default: `npm test`
-15. **Lint:structure command** (project structure linter — leave empty if none):
-    - Default: `npm run lint:structure`
-16. **Lint:structure strict command** (non-zero exit on `✖`):
-    - Default: `npm run lint:structure:strict` (only if previous field non-empty)
-17. **Polish audit script** (optional — path to a page polish auditor, e.g. `pps-web/scripts/page-polish-audit.mjs`):
-    - Default: (empty)
-18. **Backend Swagger URL** (full URL to Swagger UI — leave empty for FE-only projects):
-    - Default: (empty)
-19. **BE-scope trigger keywords** — comma-separated keywords that opt-in the BE-scope gate:
-    - Default: `check BE, verify BE, sync api types, BE contract check`
-20. **Shared API service paths** (comma-separated paths of shared HTTP client / API service / case-transform helper — listed in the pre-commit Swagger drift gate):
-    - Default: (empty — gate will list only feature `api/*` files when no shared layer exists)
+### Scan C — Script + MD content (Read + grep)
 
-### Round 4 — Testing (for `<prefix>-test` agent)
+| Placeholder | Method |
+|---|---|
+| `{{MC_MAX}}` | Read `{{CONVENTIONS_DOC}}` → grep `MC-([0-9]+)` → take max |
+| `{{POLISHED_PAGE_EXAMPLES}}` | **Primary**: Read `{{POLISH_AUDIT_SOURCE}}` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `{{PROGRESS_DOC}}` → extract pages with `Polished` status. Then backtick + comma-join. Default: first 6 in source-file order — **but note this is arbitrary**; surface to user as "Suggested 6 of N — override to pick representative roles (list/detail/config/form)". |
 
-21. **Coverage test command** (variant of `{{TEST_CMD}}` that emits per-file coverage — used by `web-test` retrofit/expand baseline + delta):
-    - Default: derive from answer 14 — replace `test` with `test:cov`, or fall back to `npm run test:cov`
-22. **Test infra root** (folder holding `setup`, `test-utils`, `server`, `handlers`, `factories`):
-    - Default: `src/test`
-23. **Canonical test baseline folder** (folder of the reference test suite that `<prefix>-test` mirrors when retrofitting; leave empty if no canonical example yet):
-    - Default: (empty)
-24. **Canonical baseline test files** (multi-line markdown bullet list of specific test files to "read in full" — one per line, backtick-wrapped; leave empty if answer 23 is empty):
-    - Default: (empty)
+### Scan D — Derive
 
-### Round 5 — Output
+| Placeholder | From |
+|---|---|
+| `{{AGENT_PREFIX}}` | first hyphenated segment of `{{PROJECT_NAME}}` (e.g. `pps-web` → `web`); use whole name if ≤ 4 chars |
+| `{{API_CLIENT_IMPORT}}` | `@/services/api` if API services paths found |
+| `{{POLISH_AUDIT_CMD}}` | `node <POLISH_AUDIT_SOURCE>` |
+| `{{POLISH_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + ` `` + POLISH_AUDIT_SOURCE + `` ` `` + ` (` + `` ` `` + `PAGE_STATUS` + `` ` `` + ` map)` (empty if no audit script) |
+| `{{UI_INVENTORY_SKILL}}` | check claude-kit installed plugins for `<project>-ui` style skill |
+| `{{REPORT_*_HDR}}` placeholders | derived from `{{OUTPUT_LANG}}` after Phase 2 Round 1 (see "Report-header derivation") |
 
-25. **Apply keyword** — single word the user types to greenlight chunk apply:
-    - Default: `apply`
-26. **UI inventory skill name** (the `pps-ui`-style skill in your profile, if you ship one):
-    - Default: `<project>-ui` (auto-derive from project name)
-27. **Output folder** (absolute path where the profile is written):
-    - Default: `$HOME/Workspace/<project>-profile`
-28. **Profile plugin description** (one sentence, shown in marketplace listing):
-    - Default: derive — `<Project> profile: implement/polish/pre-commit/test subagents + UI primitive inventory`
+### Scan summary presentation
 
-After Round 5: summarize all answers in a single markdown block and ask **one** final confirmation before writing.
+After scan, present a single markdown block summarizing detected values:
+
+```
+🔍 Auto-detected project setup
+
+Project: <name> (from package.json)
+Stack: <stack>
+Test stack: <test-stack>
+
+Commands:
+- Build: <build-cmd>
+- Dev: <dev-cmd>
+- Test: <test-cmd>  (coverage: <test-cov-cmd>)
+- Lint structure: <lint-cmd>  (strict: <strict-cmd>)
+
+Paths:
+- Conventions doc: <conventions-doc>  (<MC-count> MC sections found)
+- Structure doc: <structure-doc>
+- Progress doc: <progress-doc>
+- Features root: <features-root>
+- Test infra: <test-infra>
+- Polish audit script: <polish-audit-source>
+
+Test setup:
+- Canonical baseline: <baseline-folder>  (<N> test files)
+- API client import: <api-client-import>
+- Test utils import: <test-utils-import>
+- i18n locales: <i18n-locales-path>
+
+Backend (sibling): <backend-name>
+API services: <api-services-paths>
+
+Polished pages found: <polished-pages>
+```
+
+Then `AskUserQuestion`:
+
+> Use these auto-detected values?
+> - ✓ Yes, all correct
+> - 🛠️ Edit specific items
+> - ↻ Start over — ask manually
+
+If "Edit specific items": user lists which placeholders to override + new values. Apply overrides, re-present summary.
+
+## Phase 2 — Ask user-only (skip what scan inferred)
+
+Group the remaining questions into 6 rounds. Skip any whose value Phase 1 already pre-filled (unless user asked to override). Default each so accepting blindly works for a typical React 19 / Vite app.
+
+Question wording: plain, with concrete examples. Show auto-detected/default value if any. Never ask a question whose answer is already known.
+
+### Round 1 — Identity confirm + output language
+
+If scan succeeded, just confirm. Otherwise ask.
+
+1. **Project name** — short name used in agent descriptions.
+   - Auto-detected: `<scanned>` from `package.json` `name`
+   - Override only if you want a display name different from package name.
+
+2. **Agent prefix** — short tag prepended to agent names (e.g. `<prefix>-implement`).
+   - Auto-derived: first hyphenated segment of project name (`pps-web` → `web`, `my-app` → `my-app`)
+   - Override if you want a custom prefix.
+
+3. **Output language** — what language should agents report in?
+   - Choose: English · Thai · Japanese · other (free text)
+   - Affects: `<prefix>-implement`, `<prefix>-polish`, `<prefix>-test` reports
+   - Note: `<prefix>-pre-commit` is always English
+
+### Round 2 — Apply trigger (1 ask)
+
+4. **Apply keyword** — the single word user types to give the agent "go-ahead" to apply changes.
+   - Examples: `apply` (English default), `เริ่ม` (Thai), `start`, `do it`, `go`
+
+5. **Apply aliases** — extra words also accepted as apply (optional).
+   - Format: trailing list starting with ` / `
+   - Default: ` / \`apply\` / \`go ahead\``
+   - Project can extend: ` / \`start\` / \`apply\` / \`go ahead\``
+
+### Round 3 — Backend / API (skip whole round if FE-only)
+
+If Phase 1 found no sibling backend repo AND user has no Swagger URL → skip.
+
+6. **Backend Swagger URL** — full URL to your backend's Swagger UI.
+   - Leave empty for frontend-only projects.
+   - Example: `https://api.example.com/swagger-ui/`
+
+7. **BE-scope trigger keywords** (only if Swagger given) — phrases that opt-in the backend-contract check during implement sessions.
+   - Default: `check BE, verify BE, sync api types, contract check`
+   - Multi-language allowed; agent does case-insensitive substring match.
+   - Example for Thai project: add `เช็ค BE, เช็ค swagger`
+
+### Round 4 — Trigger keywords for agents (1 ask, optional)
+
+These define what user phrases should invoke each agent. Defaults work for English-only projects.
+
+8. **Polish triggers** — phrases that invoke `<prefix>-polish`.
+   - Default: `"clean up", "DRY up X", "align features X, Y, Z", "polish diff"`
+   - Project may add multi-language variants.
+
+9. **Test triggers** — phrases that invoke `<prefix>-test`.
+   - Default: `"write tests for X", "test for X", "expand coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"`
+   - Project may extend.
+
+### Round 5 — Optional richness (menu — skip all = generic defaults)
+
+Present a checklist via `AskUserQuestion` `multiSelect`. Each picked item = 1 follow-up question to gather its value. Skip all → all placeholders use generic defaults.
+
+```
+Add project-specific richness? Pick what applies (skip all = generic):
+
+[ ] Structure pre-write check table  ({{STRUCTURE_PREWRITE_TABLE}})
+    Project's "new file kind → required-section" mapping table.
+
+[ ] Structure extraction mapping  ({{STRUCTURE_EXTRACT_MAPPING}})
+    Project's "extraction kind → section" bullet list.
+
+[ ] MC walk incident reference  ({{MC_WALK_INCIDENT_REF}})
+    Past incident that motivates strict MC walk (forcing function context).
+
+[ ] Plan-file path convention  ({{PLAN_FILE_PATTERN}})
+    Where draft plans get saved (e.g. `session-working-space/tasks/*-plan.md`).
+
+[ ] lint:structure → MC mapping  ({{MC_MECHANICAL_CATCH_MAP}})
+    Which MC sections the structure linter mechanically catches.
+
+[ ] Commit scope examples  ({{COMMIT_SCOPE_OPTIONS}})
+    Project-specific scope hints (e.g. `(pps-web)` / `(pps-api)`).
+
+[ ] Pending-list / backlog reference  ({{STRUCTURE_LEGACY_REF}} + {{STRUCT_PENDING_RULES}})
+    Project's "Section 17 backlog" style + pending-list workflow.
+
+[ ] Workflow regression check table  ({{WORKFLOW_PATTERNS_TABLE}})
+    Canonical components/hooks per Polished page (used by pre-commit gate).
+
+[ ] BPapplied bullet examples  ({{BP_APPLIED_UX}} + {{BP_APPLIED_ARCH}})
+    Concrete UX/Arch patterns for revamp-scope reports.
+
+[ ] Polish-status signal definitions  ({{POLISH_STATUS_CHECK_SECTION}})
+    Flip thresholds + signal-drop examples (only if polish audit script configured).
+
+[ ] Polish/Test Mode-table rows  ({{POLISH_MODE_ROWS}} + {{TEST_MODE_ROWS}})
+    Override default Mode-table triggers (e.g. add Thai trigger phrases).
+
+[ ] MSW URL pattern  ({{MSW_URL_PATTERN}})
+    Your project's API URL convention.
+
+[ ] Mutation hook scenarios  ({{MUTATION_SCENARIOS}})
+    Project's tenant/cache invalidation test rules.
+
+[ ] API trigger surface  ({{API_TRIGGER_HINT}})
+    Phrase describing what API surface touched looks like.
+```
+
+### Round 6 — Output (1 ask, 3 questions)
+
+10. **Output folder** — absolute path to write the profile.
+    - Default: `$HOME/Workspace/<project-name>-profile`
+
+11. **Profile description** — one sentence for plugin.json marketplace listing.
+    - Default: `<Project> profile: implement/polish/pre-commit/test subagents`
+
+12. **UI inventory skill name** (optional) — if your project ships a UI primitive inventory skill.
+    - Default: empty (no UI inventory configured)
+    - Example: `pps-ui`
+
+After Round 6: summarize all resolved values in a single markdown block and ask **one** final confirmation before writing.
 
 ## Substitution rules
 
@@ -328,11 +475,42 @@ See claude-kit's `pps-ui` skill for a complete worked example.
 
 When invoked:
 
-1. **Verify** you're in a Claude Code session that has access to the `react-agents` plugin's template files. Read directly from the plugin install location.
-2. **Round 1-5**: invoke `AskUserQuestion` five times, one per round (Round 3 may need 2 calls due to the 4-question cap). Validate answers as you go (e.g. project name kebab-case, paths look like paths).
-3. **Summarize**: present all 28 answers in a single markdown block. Show the absolute path where files will be written. Ask one final `AskUserQuestion`: "Write the profile?" with options `Yes — write` / `No — let me adjust`.
-4. **Write**: read each template via `Read`, perform substitutions (use repeated `Edit` with `replace_all=true`), write the result via `Write` to the target path. Handle the conditional sections (BE-scope, Polish-status, lint:structure) before writing.
-5. **Report**: print absolute paths of all created files, plus the symlink install snippet from the README. Remind user to `git init` + push if they want to publish as a marketplace plugin.
+1. **Verify** access to `react-agents` plugin templates. Read from the plugin install location.
+
+2. **Phase 1 — Auto-scan**:
+   - Run Scan A (`package.json`), Scan B (filesystem), Scan C (MD content), Scan D (derive).
+   - Compose a single markdown summary of all detected values.
+   - Ask via `AskUserQuestion`: "Use these auto-detected values?" → Yes / Edit specific / Start over.
+   - If "Edit specific", let user override; re-present summary; loop until "Yes".
+
+3. **Phase 2 — Ask user-only** (skip questions whose values came from Phase 1):
+   - Round 1: identity confirm + output language (skip confirms if Phase 1 succeeded; ask only language)
+   - Round 2: apply trigger (keyword + aliases)
+   - Round 3: backend (skip whole round if Phase 1 found no backend AND user has no Swagger URL)
+   - Round 4: trigger keywords for polish + test (offer defaults; user can extend)
+   - Round 5: optional richness menu (`multiSelect` checklist; each picked item → 1 follow-up question)
+   - Round 6: output folder + profile description + UI inventory skill name
+   - Validate answers as collected.
+
+4. **Summarize + final confirm**:
+   - Present all resolved values (scanned + answered) in a single markdown block.
+   - Show absolute output path.
+   - `AskUserQuestion`: "Write the profile?" → Yes / Adjust.
+
+5. **Write**: read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Polish-status, lint:structure) before writing — strip whole sections when their gate is empty.
+
+6. **Report**: print absolute paths of all created files + symlink install snippet from README. Remind user to `git init` + push if they want to publish as marketplace plugin.
+
+### Typical question count (for reference)
+
+| Project type | Phase 1 scan | Phase 2 ask | Total |
+|---|---|---|---|
+| Standard Vite React project, fully scaffolded | ~25 inferred | ~5-7 asks (language + apply + output) | ~5-7 questions |
+| Frontend-only project (no BE) | ~22 inferred | ~5-7 asks | ~5-7 |
+| Greenfield project (minimal scaffolding) | ~10 inferred | ~10-12 asks (more manual fill) | ~10-12 |
+| Project with rich custom conventions | ~25 inferred | ~7-9 asks + 3-5 richness | ~10-14 |
+
+Previous spec asked all 28-50 questions sequentially. New spec scans first → asks only what's not detectable.
 
 ## Do NOT
 

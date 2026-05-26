@@ -126,7 +126,7 @@ For the interactive `/profile-generator`, use these values for `pps-web`:
 | 11 | Docs root | `pps-web/docs` |
 | 12 | Build cmd | `cd pps-web && npm run build` |
 | 13 | Dev cmd | `cd pps-web && npm run dev` |
-| 14 | Test cmd | `cd pps-web && npm run test:unit` |
+| 14 | Test cmd | `npm run test` (note: pps-web's package.json has only `scripts.test`, not `scripts.test:unit`) |
 | 15 | Lint:structure cmd | `npm run lint:structure` |
 | 16 | Lint:structure strict | `npm run lint:structure:strict` |
 | 17 | Polish audit script | `pps-web/scripts/page-polish-audit.mjs` |
