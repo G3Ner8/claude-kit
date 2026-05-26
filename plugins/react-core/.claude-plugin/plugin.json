@@ -1,7 +1,7 @@
 {
   "name": "react-core",
-  "version": "0.1.0",
-  "description": "Six curated Claude Code skills for React 19 / Vite SPAs: performance, composition patterns, audit, revamp, UX review, and DRY/style consolidation.",
+  "version": "0.2.0",
+  "description": "Seven curated Claude Code skills for React 19 / Vite SPAs: performance, composition patterns, audit, revamp, UX review, DRY/style consolidation, and test patterns (vitest + RTL + MSW).",
   "author": {
     "name": "Chettawat Phosri"
   },
