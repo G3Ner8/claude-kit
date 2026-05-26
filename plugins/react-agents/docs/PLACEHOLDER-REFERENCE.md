@@ -111,13 +111,6 @@ The Report block in `implement` / `polish` / `test` agents uses small placeholde
 
 The generator must ship a built-in derivation map for `English` and `Thai`. For other languages, prompt the user to supply each value during Round 5; do not silently fall back to English.
 
-## Other
-
-| Placeholder | What it is | Example |
-|---|---|---|
-| `{{UI_INVENTORY_SKILL}}` | Backtick-wrapped name of the project's UI inventory skill | `` `pps-ui` `` |
-| `{{UI_INVENTORY_REF}}` | Comma-separated extension for skill-list tables | `, `` `pps-ui` `` |
-
 ## Empty / conditional sections
 
 The generator strips entire sections when key placeholders are empty:
@@ -127,7 +120,6 @@ The generator strips entire sections when key placeholders are empty:
 | `{{SWAGGER_URL}}` | Step 0.0 BE-scope gate (implement) + Swagger drift gate (pre-commit) |
 | `{{LINT_STRUCTURE_CMD}}` | Shared `lint:structure` run + Structure regression check (pre-commit) |
 | `{{POLISH_AUDIT_SOURCE}}` / `{{POLISH_AUDIT_CMD}}` (both empty when no polish auditor configured) | Entire Polish-status check section (pre-commit) + `{{POLISH_AUDIT_SCRIPT_REF}}` collapses to empty |
-| `{{UI_INVENTORY_SKILL}}` | Replaced with `(no UI inventory skill configured)`; reference removed from skill tables |
 | `{{ARCHITECTURE_DOCS_GLOB}}` / `{{COMPONENT_DOCS_GLOB}}` / `{{FEATURE_DOCS_GLOB}}` (any empty) | Matching row in pre-commit `## Docs update` table is dropped |
 | `{{TEST_CANONICAL_BASELINE}}` + `{{TEST_CANONICAL_FILES}}` (both empty) | "Canonical baseline" sections in `<prefix>-test` render empty; agent falls back to in-repo conventions |
 

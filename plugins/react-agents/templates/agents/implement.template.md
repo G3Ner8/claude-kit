@@ -74,7 +74,8 @@ Choose exactly one skill based on the dominant trigger. Do not chain `react-ux-r
 | `revamp X` / `redesign X` (page) | `react-revamp` | **MUST** — single-page UX flow proposal |
 | `align X, Y, Z` / `audit X` (feature folders) | `react-audit` | **MUST** — feature divergence (single or multi) |
 | `review ui` / "best practice check" / "ux flow" (critique-only, no implementation requested) | `react-ux-review` | **MUST** — workflow critique vs Polished baselines |
-| Writing/refactoring React code (any) | `react-perf`, `react-composition`{{UI_INVENTORY_REF}} | Reference (consult during write, not gate) |
+| Writing/refactoring React code (any) | `react-perf`, `react-composition` | Reference (consult during write, not gate) |
+| Primitive choice / variant lookup | (no skill — adaptive read) | Read `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx` source. Read targeted, not whole inventory. |
 
 Specificity order when keywords overlap: `align`/`audit` → `react-audit` (multi-feature scope) outranks `revamp`/`redesign` → `react-revamp` (single-page scope) outranks `review ui` (generic critique). If the chosen skill's report surfaces a workflow gap that needs deeper critique, **recommend** (do not auto-invoke) `react-ux-review` as a follow-up.
 
@@ -134,7 +135,7 @@ Do **not** touch FE first.
 
 ## Conventions
 
-Surgical · Primitives first ({{UI_INVENTORY_SKILL}}) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`{{BUILD_CMD}}`) · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`) · Code/paths English · Report {{OUTPUT_LANG}}.
+Surgical · Primitives first (look up via `{{COMPONENT_DOCS_GLOB}}` per-component docs, fallback to `src/components/ui/<X>.tsx` source) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`{{BUILD_CMD}}`) · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`) · Code/paths English · Report {{OUTPUT_LANG}}.
 
 **Canonical anchors** (read in full when scope touches them — never anchor from memory):
 - Pages: **Polished** pages in `{{PROGRESS_DOC}}` (e.g. {{POLISHED_PAGE_EXAMPLES}}).

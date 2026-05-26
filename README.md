@@ -65,7 +65,6 @@ claude-kit/
 │   │   └── docs/{PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md}
 │   └── pps-web-profile/                # Aware reference profile
 │       ├── .claude-plugin/plugin.json
-│       ├── skills/pps-ui/
 │       └── agents/{web-implement,web-polish,web-pre-commit,web-test}.md
 ├── NOTICES.md                          # upstream attribution
 ├── LICENSE                             # MIT

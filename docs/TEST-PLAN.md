@@ -138,9 +138,8 @@ For the interactive `/profile-generator`, use these values for `pps-web`:
 | 23 | Test canonical baseline | `pps-web/src/features/holiday/` |
 | 24 | Test canonical files | (multi-line list — see `PLACEHOLDER-REFERENCE.md`) |
 | 25 | Apply keyword | `เริ่ม` |
-| 26 | UI inventory skill | `pps-ui` |
-| 27 | Output folder | `~/Workspace/_scratch/pps-web-regen` |
-| 28 | Profile description | `Aware pps-web project profile: implement/polish/pre-commit/test subagents wired to MC-1..MC-7, plus pps-ui primitive inventory` |
+| 26 | Output folder | `~/Workspace/_scratch/pps-web-regen` |
+| 27 | Profile description | `Aware pps-web project profile: implement/polish/pre-commit/test subagents wired to MC-1..MC-7. Primitive guidance is adaptive (reads pps-web/docs/components/ + design-system.md directly).` |
 
 ## Layer C — Install verify
 
@@ -167,7 +166,6 @@ Pass criteria: 3/3 plugins install; `/agents` shows `web-implement`, `web-polish
 | `/react-ux-review` | "review UX of EmployeeListPage" | 9-dimension critique |
 | `/react-dry` | "audit Card padding across pages" | findings table |
 | `/react-test-patterns` | (invoke) | reference content + patterns by layer |
-| `/pps-ui` | (invoke) | primitive inventory table |
 | `/react-debug` | (invoke) | 5-step protocol + when NOT to apply |
 | `/react-scrutinize` | (invoke + diff + intent) | alignment + scope-creep matrices + verdict |
 | `/react-post-mortem` | (invoke + incident details) | filled markdown template |

@@ -90,7 +90,6 @@ Before any `AskUserQuestion`, scan the project to pre-fill ~25 placeholders. Eac
 | `{{API_CLIENT_IMPORT}}` | `@/services/api` if API services paths found |
 | `{{POLISH_AUDIT_CMD}}` | `node <POLISH_AUDIT_SOURCE>` |
 | `{{POLISH_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + ` `` + POLISH_AUDIT_SOURCE + `` ` `` + ` (` + `` ` `` + `PAGE_STATUS` + `` ` `` + ` map)` (empty if no audit script) |
-| `{{UI_INVENTORY_SKILL}}` | check claude-kit installed plugins for `<project>-ui` style skill |
 | `{{REPORT_*_HDR}}` placeholders | derived from `{{OUTPUT_LANG}}` after Phase 2 Round 1 (see "Report-header derivation") |
 
 ### Scan summary presentation
@@ -247,7 +246,7 @@ Add project-specific richness? Pick what applies (skip all = generic):
     Phrase describing what API surface touched looks like.
 ```
 
-### Round 6 — Output (1 ask, 3 questions)
+### Round 6 — Output (1 ask, 2 questions)
 
 10. **Output folder** — absolute path to write the profile.
     - Default: `$HOME/Workspace/<project-name>-profile`
@@ -255,11 +254,9 @@ Add project-specific richness? Pick what applies (skip all = generic):
 11. **Profile description** — one sentence for plugin.json marketplace listing.
     - Default: `<Project> profile: implement/polish/pre-commit/test subagents`
 
-12. **UI inventory skill name** (optional) — if your project ships a UI primitive inventory skill.
-    - Default: empty (no UI inventory configured)
-    - Example: `pps-ui`
-
 After Round 6: summarize all resolved values in a single markdown block and ask **one** final confirmation before writing.
+
+> **Primitive guidance is adaptive — no separate UI inventory skill is generated.** Agents read `<docs-root>/components/<X>.md` → `<docs-root>/architecture/design-system.md` → `src/components/ui/<X>.tsx` source. Keeps primitives in sync with the codebase automatically.
 
 ## Substitution rules
 
@@ -304,8 +301,6 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{POLISH_TRIGGER_KEYWORDS}}` | answer 25c — comma-separated quoted triggers for polish description (multi-language allowed) | default: `"clean up", "DRY up X", "align features X, Y, Z", "polish diff"` |
 | `{{POLISH_SCOPE_NOTE}}` | answer 25d — optional parenthetical clarifier in polish description (or empty) | default empty |
 | `{{TEST_TRIGGER_KEYWORDS}}` | answer 25e — comma-separated quoted triggers for test description (multi-language allowed) | default: `"write tests for X", "test for X", "expand coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"` |
-| `{{UI_INVENTORY_SKILL}}` | answer 26 | wrap in backticks: `` `<name>` `` |
-| `{{UI_INVENTORY_REF}}` | `, ` + UI_INVENTORY_SKILL if non-empty; else empty string | inline list separator |
 | Report-block headers (`{{REPORT_NOTES_HDR}}`, `{{REPORT_PENDING_HDR}}`, `{{REPORT_HANDOFF_VERB}}`, `{{REPORT_BUILD_VERB}}`, `{{REPORT_OR_REASON}}`, `{{REPORT_FILES_HDR}}`, `{{REPORT_SKIP_HDR}}`, `{{REPORT_IFANY_SUFFIX}}`, `{{REPORT_PENDING_NONE}}`) | derived from `{{OUTPUT_LANG}}` — see "Report-header derivation" below | |
 
 ### Report-header derivation (OUTPUT_LANG-driven)
@@ -348,7 +343,6 @@ Substitute the inner placeholders too, then drop in.
 
 - **Empty Swagger URL** (answer 18): strip the entire `### 0.0 BE-scope gate` section from `implement.template.md` and the `## Swagger drift gate` section from `pre-commit.template.md`. Replace with a 1-line note: `BE-scope / Swagger drift gates: not configured (no Swagger URL).`
 - **Empty lint:structure** (answer 15): strip `## Shared lint:structure run` and `## Structure regression check` sections from `pre-commit.template.md`. Inline a 1-line note in their place.
-- **Empty UI inventory** (answer 26): replace `{{UI_INVENTORY_SKILL}}` with `(no UI inventory skill configured)` and remove the `{{UI_INVENTORY_REF}}` entry from skill-invocation tables.
 - **Empty docs root** (answer 11): the three `{{*_DOCS_GLOB}}` placeholders render empty; the generator should drop the corresponding rows from the `## Docs update` table in `pre-commit.template.md` (otherwise the table has empty cells).
 - **Empty `{{API_SERVICES_PATHS}}`** (answer 20): the Swagger drift gate bullet "Project's shared HTTP client / API service / case-transform" disappears — gate triggers only on per-feature `api/*` and network-wrapping hooks.
 - **Empty test baseline** (answers 23 + 24): `test.template.md` renders with an empty Canonical baseline section. The agent still works (falls back to in-repo conventions), but the user should fill in baseline files once their first feature has good tests.
@@ -362,16 +356,14 @@ Write the following tree under the user's chosen output folder:
 ├── .claude-plugin/
 │   └── plugin.json          # filled from Round 1 + 5
 ├── README.md                # boilerplate explaining what was generated + how to install
-├── agents/
-│   ├── <prefix>-implement.md   # filled template
-│   ├── <prefix>-polish.md
-│   ├── <prefix>-pre-commit.md
-│   └── <prefix>-test.md
-└── skills/                  # only if UI inventory skill name was provided
-    └── <ui-inventory>/
-        ├── SKILL.md         # empty stub with TODOs
-        └── README.md        # instructions to fill in primitive inventory
+└── agents/
+    ├── <prefix>-implement.md   # filled template
+    ├── <prefix>-polish.md
+    ├── <prefix>-pre-commit.md
+    └── <prefix>-test.md
 ```
+
+No `skills/` folder is generated — primitive guidance is adaptive (agents read project docs + source directly).
 
 ### plugin.json template
 
@@ -408,12 +400,10 @@ Project-specific agent trio for `<project>`:
 
 \`\`\`bash
 cd "$(git rev-parse --show-toplevel)"
-mkdir -p .claude/agents .claude/skills
+mkdir -p .claude/agents
 for a in <prefix>-implement <prefix>-polish <prefix>-pre-commit <prefix>-test; do
   ln -s "<output-path>/agents/$a.md" ".claude/agents/$a.md"
 done
-# Skill (if generated):
-ln -s "<output-path>/skills/<ui-inventory>" ".claude/skills/<ui-inventory>"
 \`\`\`
 
 ### Plugin marketplace (if this folder becomes its own repo)
@@ -432,43 +422,6 @@ Edit `agents/*.md` directly. Re-running `profile-generator` will overwrite — b
 ## License
 
 MIT
-```
-
-### UI inventory stub (SKILL.md)
-
-```markdown
----
-name: <ui-inventory>
-description: Inventory of <project>'s UI primitives and "don't roll your own" decision rules. Use whenever writing, reviewing, or refactoring <project> React code to pick the right primitive instead of rolling custom markup.
-license: MIT
-user-invocable: true
-metadata:
-  version: "0.1.0"
-  derived_from: project-internal
-  stack: <stack>
-  scope: <project>-specific
----
-
-# <ui-inventory>
-
-TODO: Inventory all primitives in your `src/components/ui/` (or equivalent).
-
-## Section A — Anti-patterns (don't roll your own)
-
-TODO list common cases where developers typically hand-roll markup when a primitive exists:
-- Modal vs Drawer choice rule
-- Select vs Combobox choice rule
-- Toast vs Alert choice rule
-
-## Section B — Inventory
-
-Group primitives by category (Buttons, Inputs, Layout, Feedback, Navigation, Data display, Overlays, Pickers).
-
-| Primitive | Path | Use when | Don't use when |
-|---|---|---|---|
-| `Button` | `src/components/ui/button.tsx` | ... | ... |
-
-See claude-kit's `pps-ui` skill for a complete worked example.
 ```
 
 ## Procedure

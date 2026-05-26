@@ -55,8 +55,9 @@ English output · Never execute `git add`/`commit`/`push` (draft only) · Surgic
 |---|---|---|
 | Components/hooks/fetching/bundle | `react-perf` | Re-render, sequential awaits, barrel imports, memo |
 | Component API design | `react-composition` | Boolean-prop bloat, inline components, forwardRef in R19 |
-| {{PROJECT_NAME}} JSX | {{UI_INVENTORY_SKILL}} | Primitive choice (only if `{{AGENT_PREFIX}}-polish` didn't run) |
 | Form/UX flow on a Polished page | `react-ux-review` | Workflow regression check vs Polished baseline |
+
+For primitive choice (only if `{{AGENT_PREFIX}}-polish` didn't run): adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx`. Read targeted, not whole inventory.
 
 Reference during scan. Output is findings + commit draft, not the skill's report format.
 

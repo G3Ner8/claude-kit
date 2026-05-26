@@ -51,7 +51,8 @@ Ambiguous → ask once in {{OUTPUT_LANG}}.
 |---|---|
 | Hooks / effects / fetches | `react-perf` |
 | Component API | `react-composition` |
-| JSX | {{UI_INVENTORY_SKILL}} |
+
+For primitive choice / variants: adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx` source. Read targeted; never load whole inventory.
 
 ## Conventions
 
@@ -102,7 +103,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 
 Diff-polish has no audit skill — agent scans diff directly. Step 0's Recon = `git status` (no `-uall`) + `git diff` + read changed files in full. Findings = the scan below.
 
-1. Identify (in-diff only): dead code/imports · hand-rolled patterns where primitive exists ({{UI_INVENTORY_SKILL}}) · DRY violations · re-render/effect anti-patterns · magic numbers where tokens exist · semantic-HTML gaps
+1. Identify (in-diff only): dead code/imports · hand-rolled patterns where primitive exists (cross-check via `{{COMPONENT_DOCS_GLOB}}` or `src/components/ui/`) · DRY violations · re-render/effect anti-patterns · magic numbers where tokens exist · semantic-HTML gaps
 2. Walk MC-1..MC-{{MC_MAX}} (see "Micro-conventions walk" above) — mandatory, not optional.
 3. Run `{{LINT_STRUCTURE_CMD}}` — mechanical catch-all.
 4. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
