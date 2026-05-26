@@ -40,7 +40,7 @@ When triggered:
 1. `WebFetch` `{{SWAGGER_URL}}` (or scoped sub-page if too large)
 2. List affected endpoints from the intended diff
 3. Verify request/response shape per endpoint (path, method, fields, required) — apply case-conversion via project's `case-transform` helper
-4. Surface as a mini-audit table in the Step 0.5 Confirm summary
+4. Surface as a mini-audit table in the Step 0.4 Confirm summary
 5. Proceed to 0.1 Recon
 
 When **not** triggered:
@@ -165,9 +165,9 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 4. **Any ⚠ MUST be fixed in this turn** before declaring done — never defer to future polish.
 5. The mechanical fallback `{{LINT_STRUCTURE_CMD}}` (run by `{{AGENT_PREFIX}}-pre-commit`) will reject reports that lie.
 
-### Required Report section (insert right after `## Build`)
+### Required Report block (insert after `## Build`)
 
-Compact 2-line format. Walk still covers all {{MC_MAX}} sections.
+Compact 2-line format covers all {{MC_MAX}} sections:
 
 ```
 ## MC self-check
@@ -177,9 +177,7 @@ Compact 2-line format. Walk still covers all {{MC_MAX}} sections.
 - ⚠ findings: <list each as "MC-<N> <file:line> — <issue> → fixed/deferred">   (omit this line entirely when clean)
 ```
 
-Rules:
-- Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every MC-N appears in exactly one.
-- For each ⚠, fix this turn or mark `deferred — <reason>`. Unfixed ⚠ without reason = report defect.
+Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every MC-N appears in exactly one. For each ⚠, fix this turn or mark `deferred — <reason>`. Unfixed ⚠ without reason = report defect.
 
 ## Report ({{OUTPUT_LANG}})
 

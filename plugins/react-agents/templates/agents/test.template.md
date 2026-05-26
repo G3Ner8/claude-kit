@@ -22,7 +22,7 @@ If any missing: state your interpretation + name the gaps in {{OUTPUT_LANG}}, pr
 
 Example: "ถ้าหมายถึง retrofit feature `<f>` (พบ 0 tests) — ผมจะลุย 5-layer audit. คอนเฟิร์มมั้ย?"
 
-## Step 0 — Mode detection → Recon → Audit → Plan → Confirm
+## Step 0 — Mode detection → Recon → Audit → Plan + Confirm
 
 Mandatory for every invocation. Sequence matters — do not skip.
 
@@ -35,8 +35,8 @@ Detect mode from the user's prompt + the target feature's current state.
 {{TEST_MODE_ROWS}}
 
 **Ambiguous trigger**:
-- If keyword is generic ("add tests", "more tests") and feature **has** test files → assume `expand`, confirm in 0.5.
-- If keyword is generic and feature **has no** tests → assume `retrofit`, confirm in 0.5.
+- If keyword is generic ("add tests", "more tests") and feature **has** test files → assume `expand`, confirm in 0.4.
+- If keyword is generic and feature **has no** tests → assume `retrofit`, confirm in 0.4.
 - If user requests `integration` but no page exists → stop, surface in {{OUTPUT_LANG}}; do not silently downgrade to component scope.
 
 ### 0.2 Recon
@@ -83,7 +83,7 @@ Produce this matrix before any plan. Each row = one file in the feature.
 - **med** for: API clients with case-transform / interceptor coupling, query hooks with tenant-scope gates
 - **low** for: schemas, pure UI components, badges, skeletons
 
-### 0.4 Plan
+### 0.4 Plan + Confirm
 
 Numbered chunks, **in apply order (pure → impure)**. Each chunk = one or more closely related test files written together + a build/test verify step.
 
@@ -114,9 +114,7 @@ Cap at **10 chunks per invocation** — if the audit needs more, split into two 
 
 **i18n confirm gate**: if the plan touches `{{TEST_INFRA_ROOT}}/test-utils.tsx` to add a new namespace, list the namespace name + every key path in the plan. The user must approve before any edit to `test-utils.tsx` is staged. See Step 1 `i18n confirm` for the exact handshake.
 
-### 0.5 Confirm
-
-In {{OUTPUT_LANG}}: present `Mode detected: <retrofit|expand|integration>` + Audit matrix + Plan + i18n keys list (if any). **Stop, wait** for `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Do not start Step 1 until the user explicitly approves.
+Then present in {{OUTPUT_LANG}}: `Mode detected: <retrofit|expand|integration>` + Audit matrix + Plan + i18n keys list (if any). **Stop, wait** for `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Do not start Step 1 until the user explicitly approves.
 
 If mode was auto-detected, **state the detection in 1 line** and offer a one-shot override (e.g. "auto-detected `retrofit` — say `expand` to override"). Do not loop on confirmation.
 
@@ -177,7 +175,7 @@ If a flow's critical step depends on a Radix DatePicker/Select portal that's fla
 
 ## Chunked apply discipline
 
-After 0.5 confirm:
+After 0.4 confirm:
 
 1. Apply **1 chunk** (one or more test files written together — usually one layer or one component).
 2. Run `{{TEST_CMD}} -- <chunk-files>` after the chunk. Verify all new tests pass.
@@ -196,7 +194,7 @@ After 0.5 confirm:
 Before any edit to `{{TEST_INFRA_ROOT}}/test-utils.tsx`:
 
 1. List the namespace name + every key path that will be added in the plan (Step 0.4).
-2. In Step 0.5 confirm, the user sees the list and approves with apply.
+2. In Step 0.4 confirm, the user sees the list and approves with apply.
 3. When the time comes to edit `test-utils.tsx` (usually before the first Component chunk), `AskUserQuestion` once with the final block to be inserted:
 
 ```
@@ -239,7 +237,7 @@ After writing, verify the Conventions above hold against the tests you just wrot
 3. **Hygiene** — no `.only` / `.skip` / `console.log` in suite
 4. **Coverage delta** — captured and reported per file
 
-### Required Report section
+### Required Report block
 
 ```
 ## Self-check

@@ -78,7 +78,7 @@ When violations exist, present in a single table grouped by section ID:
 
 Severity: **High** (broken / a11y violation / wrong primitive / HTML invalid / ESLint-enforced rule break) · Med (visual drift / inconsistent with canonical) · Low (nitpick).
 
-### Required Report section
+### Required Report block
 
 Compact 2-line format. Walk still covers all {{MC_MAX}} sections.
 

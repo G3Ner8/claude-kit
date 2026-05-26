@@ -104,8 +104,6 @@ Verify these patterns still exist in the touched page (mark any removed as **Blo
 
 If diff intentionally removes one of these for a valid reason → flag as **Non-blocking** with the reason from commit context.
 
-If `react-ux-review` skill is available and diff is form-heavy → recommend running it for a deeper workflow audit.
-
 ## Shared `lint:structure` run
 
 Both gates below need `lint:structure` output. Run `{{LINT_STRUCTURE_CMD_STRICT}} 2>&1` exactly once per turn; capture stdout+stderr as `STRUCT_OUT` (errors `✖`, warnings `⚠`). Reuse — do **not** re-run.
