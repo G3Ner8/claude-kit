@@ -60,10 +60,10 @@ Choose exactly one skill based on the dominant trigger. Do not chain `react-ux-r
 |---|---|---|
 | `revamp X` / `redesign X` (page) | `react-revamp` | **MUST** — single-page UX flow proposal |
 | `align X, Y, Z` / `audit X` (feature folders) | `react-audit` | **MUST** — feature divergence (single or multi) |
-| `review ui` / "best practice check" / "ux flow" (critique-only) | `react-ux-review` | **MUST** — workflow critique vs Polished baselines |
+| `review ui` / "best practice check" / "ux flow" (critique-only, no implementation requested) | `react-ux-review` | **MUST** — workflow critique vs Polished baselines |
 | Writing/refactoring React code (any) | `react-perf`, `react-composition`{{UI_INVENTORY_REF}} | Reference (consult during write, not gate) |
 
-Specificity order when keywords overlap: `align`/`audit` outranks `revamp`/`redesign` outranks `review ui`. If the chosen skill surfaces a workflow gap, **recommend** (do not auto-invoke) `react-ux-review` as follow-up.
+Specificity order when keywords overlap: `align`/`audit` → `react-audit` (multi-feature scope) outranks `revamp`/`redesign` → `react-revamp` (single-page scope) outranks `review ui` (generic critique). If the chosen skill's report surfaces a workflow gap that needs deeper critique, **recommend** (do not auto-invoke) `react-ux-review` as a follow-up.
 
 ### 0.3 Mockup
 
@@ -85,9 +85,9 @@ N. <verb + target>
    Section ref: <{{STRUCTURE_DOC}} section number> (required for [new] files)
 ```
 
-Add `Why:` only when counterintuitive.
+Add `Why:` only when counterintuitive (e.g. Drawer vs Dialog when fields >5, or skipping a common pattern).
 
-After drafting the Plan, run `{{LINT_STRUCTURE_CMD}} -- <feature>` against affected feature(s) so the user sees the **current** baseline of warnings before edits.
+After drafting the Plan, run `{{LINT_STRUCTURE_CMD}} -- <feature>` against the affected feature(s) so the user sees the **current** baseline of warnings before edits. This is a snapshot, not a verdict — Phase 1's gate runs after apply.
 
 ### 0.5 Confirm
 
@@ -136,11 +136,11 @@ For plans with >3 steps OR mixed-risk steps:
 
 1. Apply 1 chunk (1-3 related steps that form a commit-sized unit).
 2. Run `{{BUILD_CMD}}` after the chunk.
-3. Report 1-line progress in {{OUTPUT_LANG}}: `✓ Chunk N (what was done) — build pass`.
-4. Pause **if** any of: build failed · chunk introduced unexpected change · plan had `risk: med/high` on next chunk.
+3. Report 1-line progress in {{OUTPUT_LANG}}: `✓ Chunk N (<action description>) — build pass`.
+4. Pause **if** any of: build failed · chunk introduced an unexpected change · plan had `risk: med/high` on next chunk.
 5. Otherwise continue to next chunk.
 
-User can interrupt between chunks.
+This is not a full re-confirm — just a checkpoint. User can interrupt between chunks.
 
 ## Pre-report self-check (MANDATORY before final report)
 
@@ -156,6 +156,8 @@ User can interrupt between chunks.
 
 ### Required Report section (insert right after `## Build`)
 
+Compact format. The walk is still mandatory across all {{MC_MAX}} sections — only the output is condensed.
+
 ```
 ## MC self-check
 
@@ -165,10 +167,10 @@ User can interrupt between chunks.
 ```
 
 Rules:
-- Always list both `Touched:` and `Untouched:` lines, even if one is empty.
-- Every MC-N must appear in exactly one of the two lines.
-- `⚠ findings:` line appears **only when violations exist**.
-- For each ⚠, fix in this turn or mark "deferred — <reason>".
+- Always list both `Touched:` and `Untouched:` lines, even if one is empty (then write `Touched: (none)` / `Untouched: (none)`).
+- Every MC-N must appear in exactly one of the two lines — the walk covers all {{MC_MAX}}.
+- `⚠ findings:` line appears **only when violations exist**. When clean, omit it.
+- For each ⚠, fix in this turn or mark "deferred — <reason>". Unfixed ⚠ without a deferred reason is a report defect.
 
 ## Report ({{OUTPUT_LANG}})
 

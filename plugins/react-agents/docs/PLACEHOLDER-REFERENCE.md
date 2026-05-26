@@ -30,6 +30,8 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{FEATURE_DOCS_GLOB}}` | Glob of per-feature docs | `pps-web/docs/features/*` |
 | `{{PLAN_FILE_PATTERN}}` | (Optional) Trailing parenthetical hint for Plan-file path convention in `implement` Mode table | ` (\`session-working-space/tasks/*-plan.md\`)` |
 | `{{MC_WALK_INCIDENT_REF}}` | (Optional) Trailing sentence cited as motivation for the MC-walk forcing functions (typically a past incident). Empty if no incident | ` A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.` |
+| `{{MC_MECHANICAL_CATCH_MAP}}` | (Optional) Trailing sentence listing which MC sections the structure linter mechanically catches. Empty if not applicable | ` It catches MC-5 (factory schema), MC-6 (shared namespace), MC-7 (console.*).` |
+| `{{COMMIT_SCOPE_OPTIONS}}` | Scope-options sentence in `pre-commit` commit-draft section | `` `(pps-web)` when diff is purely frontend · `(pps-api)` when purely backend · omit for cross-cutting / repo-level `` |
 
 ## Commands
 

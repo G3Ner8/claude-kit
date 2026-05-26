@@ -28,7 +28,7 @@ Detect mode from the user's prompt + the target feature's current state.
 - If keyword is generic and feature **has no** tests → assume `retrofit`, confirm in 0.5.
 - If user requests `integration` but no page exists → stop, surface in {{OUTPUT_LANG}}; do not silently downgrade to component scope.
 
-### 0.2 Recon (TIGHTENED)
+### 0.2 Recon
 
 Mandatory reads — never partial, never from memory:
 
@@ -114,8 +114,6 @@ If mode was auto-detected, **state the detection in 1 line** and offer a one-sho
 | Condition | Skip |
 |---|---|
 | User pasted a single concrete test scenario for a single file ("add a test that X for file Y") + the file already has a test suite | Audit + multi-chunk plan. Write the one test, run vitest on it, report. |
-
-Removed: "small feature", "schemas only" — those still go through Step 0 because the audit matrix is 30 seconds and prevents missed layers.
 
 ## Mode behaviors
 
