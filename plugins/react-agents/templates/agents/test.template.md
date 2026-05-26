@@ -139,7 +139,7 @@ Required scenarios per layer (write all; skip with explicit note if a scenario d
 | Schema | required-empty, whitespace-trim, max-length (at + over), each enum member, optional field absent |
 | API client | each method × happy path; request-body snake_case capture (POST/PATCH/PUT); response camelCase unwrap; 204/201 status handling |
 | Query hook | disabled when prerequisite missing; success returns camelCase; param forwarding (when query takes params) |
-| Mutation hook | invalidates correct keys on success; does NOT invalidate on error; does NOT invalidate when companyId missing; removeQueries for delete |
+| Mutation hook | {{MUTATION_SCENARIOS}} |
 | Component (smoke) | title renders per mode; submit gated on validation; Cancel triggers onClose; edit prefills text inputs; isSaving disables Cancel + shows loading label; dirty-state Save gate (edit mode) |
 
 ### expand
@@ -215,11 +215,12 @@ If user says no / wants edits → stop, ask which keys to drop or rename. Do not
 
 ## Conventions
 
+When writing tests, follow these rules:
+
 - Surgical · Write tests only · No production code changes (if test exposes a bug, surface to user) · Code/paths English · Report {{OUTPUT_LANG}} · Tests must pass before declaring chunk done · Build must pass at end · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`)
 - Selector hierarchy: `getByRole` > `getByLabelText` > `getByTestId` (last resort)
 - Always `userEvent.setup()` — never `fireEvent.*`
-- MSW URL pattern: {{MSW_URL_PATTERN}}
-- Per-test override: `server.use(http.get(URL, ...))` — `afterEach` resets handlers
+- MSW for network: URL pattern {{MSW_URL_PATTERN}}; per-test override `server.use(http.get(URL, ...))` with `afterEach` reset; **never** `vi.mock('{{API_CLIENT_IMPORT}}')` shortcut
 - Hook tests: `tsx` extension (provider wrapper), fresh QueryClient per render, `createTestQueryClient()` from `{{TEST_UTILS_IMPORT}}`
 - Mock tenant accessor (e.g. `useCurrentCompanyId`) at module level with `vi.mock`; override per test with `vi.mocked(...).mockReturnValue(...)`
 
@@ -231,36 +232,27 @@ If user says no / wants edits → stop, ask which keys to drop or rename. Do not
 
 ## Pre-report self-check (MANDATORY before final report)
 
-**Source of truth: `react-test-patterns` skill + `{{CONVENTIONS_DOC}}`**. Walk these against the **tests you just wrote**:
+After writing, verify the Conventions above hold against the tests you just wrote, plus these 4 hygiene checks:
 
-1. Layer placement — every test file in the correct layer folder (schemas/api/hooks/components)?
-2. Selector hierarchy — `getByRole` first, no leftover `getByTestId` for things that have a role?
-3. `userEvent.setup()` — no `fireEvent` calls?
-4. MSW used for network — no `vi.mock('{{API_CLIENT_IMPORT}}')` shortcuts?
-5. Fresh QueryClient per render — no shared `queryClient` across `it()` blocks?
-6. i18n keys — every `t()` key asserted is a real key from `{{I18N_LOCALES_PATH}}` (or copied from existing test-utils.tsx)?
-7. No `.only` / `.skip` / `console.log` left in the suite?
-8. Coverage delta — captured and reported per file?
+1. **Layer placement** — every test file in correct layer folder (schemas/api/hooks/components)
+2. **i18n keys** — every `t()` key is a real key from `{{I18N_LOCALES_PATH}}` (or copied from existing test-utils.tsx)
+3. **Hygiene** — no `.only` / `.skip` / `console.log` in suite
+4. **Coverage delta** — captured and reported per file
 
 ### Required Report section
-
-Compact format. Walk is mandatory across all 8 checks — output is condensed.
 
 ```
 ## Self-check
 
-- Layer placement: ✓ (schemas → tests in schemas/, hooks → hooks/, components → components/<group>/)
-- Selectors: ✓ getByRole-first across all <N> assertions
-- Interactions: ✓ userEvent.setup() (no fireEvent)
-- Network: ✓ MSW (no vi.mock of {{API_CLIENT_IMPORT}})
-- QueryClient: ✓ fresh per render via createTestQueryClient()
-- i18n keys: ✓ <N> keys verified against locales/en/<feature>.json
+- Conventions: ✓ all rules applied (selectors, userEvent, MSW, QueryClient, tenant mock)
+- Layer placement: ✓ (schemas → schemas/, hooks → hooks/, components → components/<group>/)
+- i18n keys: ✓ <N> keys verified against {{I18N_LOCALES_PATH}}
 - Hygiene: ✓ no .only / .skip / console.log
 - Coverage delta: ✓ reported per file
 - ⚠ findings: <list each as "<file:line> — <issue> → fixed/deferred"> (omit when clean)
 ```
 
-Unfixed ⚠ without a `deferred` reason = report defect.
+Unfixed ⚠ without `deferred` reason = report defect.
 
 ## Report ({{OUTPUT_LANG}})
 

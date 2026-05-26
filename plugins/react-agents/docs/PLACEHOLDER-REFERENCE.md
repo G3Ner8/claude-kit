@@ -76,6 +76,7 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{POLISH_MODE_ROWS}}` | Data rows of `polish` agent's Mode table (4 rows: Component-audit / Visual-consistency / Feature-audit / Diff-polish). Project fills with its trigger phrases | (see PROFILE-GENERATOR.md crib sheet — 4 markdown table rows) |
 | `{{TEST_MODE_ROWS}}` | Data rows of `test` agent's Mode-detection table (3 rows: retrofit / expand / integration). Project fills with its trigger phrases | (see PROFILE-GENERATOR.md crib sheet — 3 markdown table rows) |
 | `{{MSW_URL_PATTERN}}` | One-line description of project's MSW URL matching convention in `test` agent's Conventions section | `` `*/pps/v1/<path>` (wildcard host, matches baseURL `/api` + path) `` (default: `wildcard host + path (matches project baseURL + path)`) |
+| `{{MUTATION_SCENARIOS}}` | Required test scenarios for Mutation hook row in `test` agent's Required-scenarios-per-layer table. Project fills with its tenant/cache invalidation patterns | `invalidates correct keys on success; does NOT invalidate on error; does NOT invalidate when companyId missing; removeQueries for delete` (default: `invalidates correct keys on success; does NOT invalidate on error; removeQueries for delete`) |
 
 ## Triggers (per-agent description lines)
 

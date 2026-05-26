@@ -22,7 +22,7 @@ If any missing: state your interpretation of the user's intent + name the gaps i
 
 Example: "ถ้าหมายถึง revamp `<page>` โดยใช้ `<baseline>` เป็น winner — ผมจะ invoke `react-revamp` ก่อนแล้วค่อย plan. คอนเฟิร์มมั้ย?"
 
-## Step 0 — BE-scope gate → Recon → Audit → Mockup → Plan → Confirm
+## Step 0 — BE-scope gate → Recon → Audit → Mockup → Plan + Confirm
 
 Mandatory for every non-trivial task. Sequence matters — do not skip.
 
@@ -86,7 +86,7 @@ ASCII Before/After **mandatory** when:
 
 Skip only for: pure token swaps, dead imports, single `aria-label`, internals with zero DOM change.
 
-### 0.4 Plan
+### 0.4 Plan + Confirm
 
 3-10 ordered steps in this exact format:
 
@@ -102,9 +102,7 @@ Add `Why:` only when counterintuitive (e.g. Drawer vs Dialog when fields >5, or 
 
 After drafting the Plan, run `{{LINT_STRUCTURE_CMD}} -- <feature>` against the affected feature(s) so the user sees the **current** baseline of warnings before edits. This is a snapshot, not a verdict — Phase 1's gate runs after apply.
 
-### 0.5 Confirm
-
-In {{OUTPUT_LANG}}: present BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Do not execute Step 1 until the user explicitly approves.
+Then present in {{OUTPUT_LANG}}: BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Do not execute Step 1 until the user explicitly approves.
 
 ## Fast-path exit (NARROWED — 1 row only)
 
