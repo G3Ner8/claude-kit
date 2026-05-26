@@ -1,57 +1,70 @@
 ---
-title: Prefer Statically Analyzable Paths
+title: Keep Imports Statically Analyzable
 impact: HIGH
-impactDescription: keeps the bundler's view of reachable modules narrow and predictable
-tags: bundle, vite, rollup, esbuild, path, dynamic-import
+impactDescription: lets the bundler tree-shake correctly — dynamic property accesses and string-built paths defeat it, often shipping 10-100x more code than needed
+tags: bundle, imports, tree-shaking, vite, rollup
 ---
 
-## Prefer Statically Analyzable Paths
+## Keep Imports Statically Analyzable
 
-Bundlers (Vite, Rollup, esbuild, Webpack) work best when import paths are obvious at build time. If you hide the real path inside a variable or compose it dynamically, the tool either has to include a broad set of possible files, warn that it cannot analyze the import, or skip optimization entirely.
+Bundlers (Vite/Rollup/esbuild/webpack) tree-shake by reading import statements at build time. If the bundler can't statically determine which symbols you use, it has to include the entire module to be safe — including dependencies-of-dependencies you never touch.
 
-Prefer explicit maps or literal paths so the set of reachable modules stays narrow and predictable.
+The two patterns that defeat static analysis:
 
-When analysis becomes too broad, the cost is real:
+1. **String-built specifiers**: `import(\`./icons/${iconName}\`)` — the bundler must include every file under `./icons/`.
+2. **Dynamic property access on a namespace import**: `Icons[iconName]` after `import * as Icons from '...'` — the bundler includes all of `Icons`.
 
-- Larger production bundles (unused modules included)
-- Slower builds (more files to process)
-- Worse cache reuse (broader dependency graph)
-- More memory use during build
+The fix in both cases: switch to named imports for the actual symbols you reference.
 
-### Import Paths
-
-**Incorrect (the bundler cannot tell what may be imported):**
+**Incorrect — namespace import + dynamic property access:**
 
 ```ts
-const PAGE_MODULES = {
-  home: './pages/home',
-  settings: './pages/settings',
-} as const
+import * as Icons from 'lucide-react';
 
-const Page = await import(PAGE_MODULES[pageName])
+function IconCell({ name }: { name: keyof typeof Icons }) {
+  const Icon = Icons[name];           // bundler can't tell which Icons.X is used
+  return <Icon />;
+}
 ```
 
-**Correct (use an explicit map of allowed modules):**
+The bundle ships **all** of `lucide-react` — usually 1000+ icons — because the bundler can't prove which subset is reachable.
 
-```ts
-const PAGE_MODULES = {
-  home: () => import('./pages/home'),
-  settings: () => import('./pages/settings'),
-} as const
+**Correct — named imports for the symbols actually used:**
 
-const Page = await PAGE_MODULES[pageName]()
+```tsx
+import { ChevronDown, Search, X } from 'lucide-react';
+
+const ICONS = { 'chevron-down': ChevronDown, search: Search, x: X } as const;
+type IconName = keyof typeof ICONS;
+
+function IconCell({ name }: { name: IconName }) {
+  const Icon = ICONS[name];           // ICONS is local — the bundler sees the 3 named imports
+  return <Icon />;
+}
 ```
 
-Each `() => import('./pages/home')` is a literal `import()` call — the bundler can statically see all reachable modules and code-split each into its own chunk.
+The bundler tree-shakes `lucide-react` down to the three icons that appear in named-import positions.
 
-### Glob Imports
+## Patterns to watch
 
-If you really do need a runtime-chosen module, prefer Vite's `import.meta.glob()` over composing a string path. It gives the bundler an explicit set of files to consider:
+| Pattern | Tree-shakeable? | Fix |
+|---|---|---|
+| `import { foo } from 'lib'` | ✅ yes | — |
+| `import * as Lib from 'lib'; Lib.foo()` | ⚠ usually yes (modern Rollup) | switch to named import for clarity |
+| `import * as Lib from 'lib'; Lib[name]()` | ❌ no | named imports + local lookup |
+| `await import(\`./modules/${name}\`)` | ❌ no | enumerate the modules, or use a `Record<string, () => Promise>` |
+| `require(variable)` (CJS) | ❌ no | switch to ESM static imports |
 
-```ts
-const pages = import.meta.glob('./pages/*.tsx')
-const loader = pages[`./pages/${pageName}.tsx`]
-const Page = await loader()
-```
+## When NOT to apply
 
-Reference: [Vite features – Glob import](https://vite.dev/guide/features.html#glob-import), [Rollup dynamic import vars](https://www.npmjs.com/package/@rollup/plugin-dynamic-import-vars)
+- **The set of symbols really is dynamic** — e.g. you load locale files based on user setting. Use an explicit map: `const LOCALES = { en: () => import('./en.json'), th: () => import('./th.json') } as const;`. Each `import()` is statically analyzable on its own.
+- **The library doesn't ship ES modules** — pre-built CommonJS libraries can't be tree-shaken at all, regardless of how you import. Either accept the cost or find an ESM alternative.
+
+## Verify
+
+Run a bundle analyzer (`vite-bundle-visualizer`, `rollup-plugin-visualizer`) on a production build. If a module is included that you didn't intentionally use, suspect a non-analyzable import.
+
+## Related
+
+- [`barrel-imports`](./barrel-imports.md) — barrel `index.ts` files that re-export 100 things can defeat tree-shaking even when imports look analyzable.
+- [`dynamic-imports`](./dynamic-imports.md) — when you genuinely need code-splitting, use `React.lazy` + static `import()` calls.

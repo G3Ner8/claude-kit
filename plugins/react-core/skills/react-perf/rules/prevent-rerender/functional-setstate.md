@@ -1,74 +1,81 @@
 ---
-title: Use Functional setState Updates
+title: Use Functional setState for Stable Callbacks
 impact: MEDIUM
-impactDescription: prevents stale closures and unnecessary callback recreations
-tags: react, hooks, useState, useCallback, callbacks, closures
+impactDescription: keeps callbacks stable across renders and avoids stale-closure bugs when state changes between callback creation and call
+tags: prevent-rerender, setState, closures, stale-state
 ---
 
-## Use Functional setState Updates
+## Use Functional setState for Stable Callbacks
 
-When updating state based on the current state value, use the functional update form of setState instead of directly referencing the state variable. This prevents stale closures, eliminates unnecessary dependencies, and creates stable callback references.
+`setState(value)` reads the current state implicitly from the surrounding closure. If the callback was created in an old render, `value` will be computed from a stale snapshot — leading to lost updates and subtle bugs.
 
-**Incorrect (requires state as dependency):**
+`setState((prev) => next)` reads the current state explicitly from React's reducer, not from the closure. Same result for one-shot updates, but **safe** when the callback may run after the closure is stale (e.g. inside a debounced handler, a Promise resolution, a multi-call sequence).
+
+It also lets the callback be **referentially stable** — React Hook Form, TanStack Query, and many memoized children compare callback identity. A stable callback means no spurious re-renders downstream.
+
+**Incorrect — closure-captured state, breaks on rapid updates:**
 
 ```tsx
-function TodoList() {
-  const [items, setItems] = useState(initialItems)
-  
-  // Callback must depend on items, recreated on every items change
-  const addItems = useCallback((newItems: Item[]) => {
-    setItems([...items, ...newItems])
-  }, [items])  // ❌ items dependency causes recreations
-  
-  // Risk of stale closure if dependency is forgotten
-  const removeItem = useCallback((id: string) => {
-    setItems(items.filter(item => item.id !== id))
-  }, [])  // ❌ Missing items dependency - will use stale items!
-  
-  return <ItemsEditor items={items} onAdd={addItems} onRemove={removeItem} />
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  const increment = () => {
+    setCount(count + 1);
+    setCount(count + 1);   // both reads see the SAME closure-captured count
+    setCount(count + 1);   // → count goes up by 1, not 3
+  };
+
+  return <button onClick={increment}>Count: {count}</button>;
 }
 ```
 
-The first callback is recreated every time `items` changes, which can cause child components to re-render unnecessarily. The second callback has a stale closure bug—it will always reference the initial `items` value.
+Click once → count goes from 0 to 1, not to 3. All three `setCount(count + 1)` reads see `count === 0`.
 
-**Correct (stable callbacks, no stale closures):**
+**Correct — functional updater, applies sequentially:**
 
 ```tsx
-function TodoList() {
-  const [items, setItems] = useState(initialItems)
-  
-  // Stable callback, never recreated
-  const addItems = useCallback((newItems: Item[]) => {
-    setItems(curr => [...curr, ...newItems])
-  }, [])  // ✅ No dependencies needed
-  
-  // Always uses latest state, no stale closure risk
-  const removeItem = useCallback((id: string) => {
-    setItems(curr => curr.filter(item => item.id !== id))
-  }, [])  // ✅ Safe and stable
-  
-  return <ItemsEditor items={items} onAdd={addItems} onRemove={removeItem} />
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  const increment = useCallback(() => {
+    setCount((c) => c + 1);
+    setCount((c) => c + 1);
+    setCount((c) => c + 1);   // 0 → 1 → 2 → 3
+  }, []);   // stable! No dependency on `count`.
+
+  return <button onClick={increment}>Count: {count}</button>;
 }
 ```
 
-**Benefits:**
+Each `setCount((c) => c + 1)` sees the latest count, in order. The callback has no closure dependency on `count`, so `useCallback([], ...)` makes it stable across renders.
 
-1. **Stable callback references** - Callbacks don't need to be recreated when state changes
-2. **No stale closures** - Always operates on the latest state value
-3. **Fewer dependencies** - Simplifies dependency arrays and reduces memory leaks
-4. **Prevents bugs** - Eliminates the most common source of React closure bugs
+## The stale-closure trap
 
-**When to use functional updates:**
+The most common bug is in async paths:
 
-- Any setState that depends on the current state value
-- Inside useCallback/useMemo when state is needed
-- Event handlers that reference state
-- Async operations that update state
+```tsx
+const onSave = async () => {
+  const result = await save(data);
+  setHistory(history.concat(result));   // `history` is the snapshot from when onSave was created
+};
+```
 
-**When direct updates are fine:**
+If `history` updates between the click and the await resolving, the concat happens on the old array — overwriting the intervening update.
 
-- Setting state to a static value: `setCount(0)`
-- Setting state from props/arguments only: `setName(newName)`
-- State doesn't depend on previous value
+Functional form fixes it:
 
-**Note:** If your project has [React Compiler](https://react.dev/learn/react-compiler) enabled, the compiler can automatically optimize some cases, but functional updates are still recommended for correctness and to prevent stale closure bugs.
+```ts
+setHistory((prev) => prev.concat(result));
+```
+
+Always read through the updater inside async paths.
+
+## When NOT to apply
+
+- **One-shot non-incremental update from a known source** — `setName(event.target.value)` is fine: the value doesn't depend on the previous state. The functional form adds no safety.
+- **The state itself is the dependency you want** — sometimes you genuinely want the closure-captured value (e.g., logging the value at the time of click). Use a ref for that, not a stale closure.
+
+## Related
+
+- [`narrow-effect-deps`](./narrow-effect-deps.md) — functional updaters also let you omit `count` from effect deps without lint warnings.
+- [`use-ref-transient-values`](./use-ref-transient-values.md) — for values that shouldn't trigger re-render but you still need fresh in callbacks.

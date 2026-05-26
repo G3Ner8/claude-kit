@@ -1,76 +1,90 @@
 ---
-title: Preload Based on User Intent
+title: Preload Likely-Next Chunks
 impact: MEDIUM
-impactDescription: reduces perceived latency when the user lands on the lazy-loaded view
-tags: bundle, preload, user-intent, hover, prefetch
+impactDescription: shaves the chunk-fetch latency off navigations the user is about to make — typically saves 100-400 ms on click-through
+tags: bundle, preload, prefetch, modulepreload, navigation
 ---
 
-## Preload Based on User Intent
+## Preload Likely-Next Chunks
 
-When the user signals intent — hovering a link, focusing a button, opening a menu — there's a window of a few hundred milliseconds before they actually click. Use it to start fetching the next chunk so the navigation feels instant.
+If a lazy chunk will likely be needed soon (the user is hovering a link, focused a button, or just landed on a page where the next view is highly predictable), start the fetch *now* instead of waiting for the click.
 
-**Example — preload a heavy editor before the user clicks "Open":**
+The mechanism:
+
+- **`<link rel="modulepreload">`** — hints the browser to fetch + parse a JS module file in the background, at high priority.
+- **`<link rel="prefetch">`** — same idea but lower priority (fits in idle time). Better for "might use later" guesses.
+- **Calling `import()` without awaiting** — manually triggers the chunk fetch from JS.
+
+The user-perceived effect: when they click, the chunk is already cached. Render is instant.
+
+**Incorrect — link click triggers a cold chunk fetch:**
 
 ```tsx
-function EditorButton({ onClick }: { onClick: () => void }) {
-  const preload = () => {
-    void import('./monaco-editor')
-  }
-
+function Nav() {
   return (
-    <button
-      onMouseEnter={preload}
-      onFocus={preload}
-      onClick={onClick}
-    >
-      Open Editor
-    </button>
-  )
+    <Link to="/reports">Reports</Link>     // click -> 300 ms chunk fetch -> render
+  );
 }
 ```
 
-`onMouseEnter` covers pointer users; `onFocus` covers keyboard users. The `void` discards the promise so React doesn't complain about an unhandled return.
+The 300 ms feels like a stall.
 
-**Example — preload a route chunk on link hover:**
+**Correct (option 1) — prefetch on hover/focus:**
 
 ```tsx
-const Dashboard = lazy(() => import('./routes/Dashboard'))
+import { lazy } from 'react';
 
-function NavLink() {
-  const preload = () => {
-    void import('./routes/Dashboard')
-  }
+const Reports = lazy(() => import('./pages/Reports'));
 
+function NavLink({ to, children }: { to: string; children: ReactNode }) {
+  const onPrefetch = () => {
+    if (to === '/reports') void import('./pages/Reports');  // start fetch; ignore result
+  };
   return (
-    <a
-      href="/dashboard"
-      onMouseEnter={preload}
-      onFocus={preload}
-      onClick={(e) => {
-        e.preventDefault()
-        navigate('/dashboard')
-      }}
-    >
-      Dashboard
-    </a>
-  )
+    <Link to={to} onMouseEnter={onPrefetch} onFocus={onPrefetch}>
+      {children}
+    </Link>
+  );
 }
 ```
 
-Calling `import('./routes/Dashboard')` twice is safe — modern bundlers (Vite, Rollup, Webpack) dedupe the chunk request, so the second call resolves instantly.
+Hovering or tab-focusing the link starts the fetch. By the time the user actually clicks, the chunk is in the cache.
 
-**Example — preload when a feature flag enables:**
+**Correct (option 2) — declarative preload tag:**
 
 ```tsx
-function FlagsProvider({ children, flags }: Props) {
-  useEffect(() => {
-    if (flags.editorEnabled) {
-      void import('./monaco-editor').then(mod => mod.init?.())
-    }
-  }, [flags.editorEnabled])
+import { preload } from 'react-dom';      // React 19 resource-hint helper
 
-  return <FlagsContext.Provider value={flags}>{children}</FlagsContext.Provider>
+function ReportsRoutePreloader() {
+  // Called eagerly when the parent layout mounts — typically a dashboard
+  // where the next click is statistically a report.
+  preload('/chunks/reports.js', { as: 'script' });
+  return null;
 }
 ```
 
-**Pair with `<link rel="modulepreload">` for known critical chunks** — see [Use React DOM Resource Hints](../rendering/resource-hints.md) for `preloadModule()`.
+React 19 ships a `preload` hook that injects a `<link rel="modulepreload">` tag at the document head. The browser handles the fetch with high priority.
+
+## Router-level prefetch
+
+If you use a router that ships its own prefetch primitive, use it:
+
+- React Router 7: `<Link prefetch="intent">` (prefetches on hover/focus).
+- TanStack Router: `<Link preload="intent">`.
+
+These do exactly what option 1 does, declaratively. Prefer them over hand-rolling the hover handler.
+
+## When NOT to apply
+
+- **Low-bandwidth users** — aggressive prefetching wastes data on chunks the user never visits. The Save-Data header (`navigator.connection.saveData`) is the signal to back off.
+- **Many candidate destinations** — if a page has 20 nav links, you can't prefetch all 20 on mount. Prefetch only the top 1-2 by traffic, or wait for hover.
+- **Critical-path chunks** — these shouldn't be lazy in the first place. Don't preload to mask a lazy boundary that shouldn't exist.
+
+## Verify
+
+Network tab: after the prefetch trigger, the chunk request should appear with Initiator = "preload" or "link" and Priority = "Low" (prefetch) or "High" (modulepreload). On click, the chunk should come from `(disk cache)` or `(memory cache)`.
+
+## Related
+
+- [`dynamic-imports`](./dynamic-imports.md) — the chunks you preload are typically produced by `React.lazy`.
+- [`render-output/resource-hints`](../render-output/resource-hints.md) — same concept for fonts, images, API endpoints (not just scripts).

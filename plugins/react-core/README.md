@@ -39,10 +39,6 @@ If your stack differs, individual rules may still apply — read the per-skill r
 
 `react-audit` references a project-level mandatory-conventions doc (commonly `CLAUDE.md`). A reference template ships at [`docs/CONVENTIONS.template.md`](./docs/CONVENTIONS.template.md) with 7 default sections (HTML/a11y, Inputs, Tables, Modal/Drawer, Forms, i18n, Logging). Copy to your repo root, adapt to your stack, then point the audit at it.
 
-## Provenance
-
-`react-perf` is a curated fork of [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (MIT). The remaining six skills are project-internal. Full attribution: [NOTICES.md](../../NOTICES.md).
-
 ## License
 
-MIT — see [../../LICENSE](../../LICENSE).
+MIT — all seven skills authored in this repository. See [../../LICENSE](../../LICENSE) and [NOTICES.md](../../NOTICES.md).

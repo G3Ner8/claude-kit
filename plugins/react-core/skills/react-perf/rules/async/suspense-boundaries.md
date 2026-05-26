@@ -1,122 +1,96 @@
 ---
-title: Strategic Suspense Boundaries
+title: Suspense Boundaries for Streaming Render
 impact: HIGH
-impactDescription: faster perceived load — wrapper UI paints before data resolves
-tags: async, suspense, streaming, layout-shift, tanstack-query
+impactDescription: lets ready-to-render parts of a page paint immediately while slower parts continue loading — pages feel faster even when total fetch time is unchanged
+tags: async, suspense, streaming, ux, react19
 ---
 
-## Strategic Suspense Boundaries
+## Suspense Boundaries for Streaming Render
 
-When a parent component blocks on data, *the entire subtree* waits — including layout chrome (sidebar, header, footer) that doesn't depend on the data. Wrap only the data-dependent piece in `<Suspense>` so the rest paints immediately and skeletons show only where data is actually pending.
+`Promise.all` collapses N parallel fetches into the time of the slowest. But until the slowest finishes, the user sees a single page-wide skeleton — every fast result is held hostage by the slowest.
 
-**Incorrect (whole page blocked by one query):**
+Suspense boundaries unblock that. Each boundary paints **as soon as its own data is ready**. The fast 50 ms widget paints in 50 ms; the slow 800 ms widget keeps its skeleton until 800 ms. Perceived performance improves even when the total work is unchanged.
+
+The pattern requires two pieces:
+
+1. A data-fetching primitive that **suspends** (throws a Promise during render) — `useSuspenseQuery` from TanStack Query, or React 19's `use(promise)`.
+2. A `<Suspense>` boundary somewhere above the suspending component, with a `fallback` to show until it resolves.
+
+**Incorrect — one boundary at the top: fast widgets blocked by the slowest:**
 
 ```tsx
-function DashboardPage() {
-  // useSuspenseQuery throws a promise — the entire DashboardPage suspends
-  const { data } = useSuspenseQuery({
-    queryKey: ['dashboard'],
-    queryFn: fetchDashboard,
-  })
-
+function Dashboard() {
   return (
-    <Layout>
-      <Sidebar />
-      <Header />
-      <main>
-        <DashboardContent data={data} />
-      </main>
-      <Footer />
-    </Layout>
-  )
+    <Suspense fallback={<DashboardSkeleton />}>
+      {/* All three suspend; the page only paints when all three resolve. */}
+      <ProfileCard />        {/* 50 ms fetch */}
+      <TaskList />           {/* 200 ms fetch */}
+      <ActivityFeed />       {/* 800 ms fetch — gates the entire page */}
+    </Suspense>
+  );
 }
 ```
 
-The user sees nothing until `fetchDashboard` resolves. Sidebar, Header, Footer all wait.
+The user waits 800 ms staring at one skeleton.
 
-**Correct (boundary around just the data-dependent piece):**
+**Correct — one boundary per independently-paintable region:**
 
 ```tsx
-function DashboardPage() {
+function Dashboard() {
   return (
-    <Layout>
-      <Sidebar />
-      <Header />
-      <main>
-        <Suspense fallback={<DashboardSkeleton />}>
-          <DashboardContent />
-        </Suspense>
-      </main>
-      <Footer />
-    </Layout>
-  )
+    <DashboardLayout>
+      <Suspense fallback={<ProfileSkeleton />}>
+        <ProfileCard />        {/* paints at 50 ms */}
+      </Suspense>
+      <Suspense fallback={<TaskListSkeleton />}>
+        <TaskList />           {/* paints at 200 ms */}
+      </Suspense>
+      <Suspense fallback={<ActivityFeedSkeleton />}>
+        <ActivityFeed />       {/* paints at 800 ms */}
+      </Suspense>
+    </DashboardLayout>
+  );
 }
 
-function DashboardContent() {
-  const { data } = useSuspenseQuery({
-    queryKey: ['dashboard'],
-    queryFn: fetchDashboard,
-  })
-
-  return <DashboardBody data={data} />
+function ProfileCard() {
+  // useSuspenseQuery throws the in-flight Promise — caught by the nearest <Suspense>.
+  const { data: profile } = useSuspenseQuery({
+    queryKey: ['profile'],
+    queryFn:  fetchProfile,
+  });
+  return <ProfileCardLayout profile={profile} />;
 }
 ```
 
-Sidebar, Header, Footer paint on first frame. Only the `<main>` shows a skeleton while data loads.
+Each component suspends independently; each boundary resolves on its own timeline.
 
-### Multiple parallel boundaries
+## Boundary placement rules
 
-If a page has multiple independent data sections, give each its own boundary so a slow one doesn't block the fast ones:
+- **One boundary per independently-paintable region.** Not per component — components that should appear together (e.g. a label and its value) share a boundary.
+- **The boundary must be a *parent* of the suspending component**, not a sibling. React walks up the tree to find the nearest boundary; the layout above stays painted.
+- **Place the fallback at the layout level the user will actually see**. A page-shell `<Suspense>` is rarely what you want; per-section boundaries usually are.
+
+## Loading transitions
+
+When the user navigates between two views that both suspend, you usually don't want the second view's fallback to flash. Wrap the navigation in `startTransition` (or `useTransition`):
 
 ```tsx
-function DashboardPage() {
-  return (
-    <Layout>
-      <Sidebar />
-      <Header />
-      <main className="grid grid-cols-2 gap-4">
-        <Suspense fallback={<RevenueSkeleton />}>
-          <RevenuePanel />     {/* uses useSuspenseQuery */}
-        </Suspense>
-        <Suspense fallback={<UsersSkeleton />}>
-          <ActiveUsersPanel /> {/* uses useSuspenseQuery */}
-        </Suspense>
-      </main>
-    </Layout>
-  )
+const [isPending, startTransition] = useTransition();
+
+function navigate(next: string) {
+  startTransition(() => setRoute(next));
 }
 ```
 
-If `ActiveUsersPanel` is faster, it paints first. They don't block each other.
+While the transition is pending, React keeps the old UI visible and shows `isPending`. The fallback fires only if the new view takes longer than the transition deadline.
 
-### Avoid serial Suspense
+## When NOT to apply
 
-A `<Suspense>` boundary that contains a *child* `<Suspense>` is fine, but make sure both children's queries **start in parallel**, not after the outer one resolves. With TanStack Query this works naturally because queries are deduped by `queryKey` and started on first render. The pitfall is:
+- **Above-the-fold content** — putting your hero widget behind a Suspense boundary delays the largest contentful paint. Render hero content eagerly; suspend the below-fold parts.
+- **Sequential dependencies** — if widget B's query depends on widget A's data, B can't paint until A is done anyway. The second `<Suspense>` is redundant.
+- **Tests** — Suspense in tests usually requires a wrapping `<Suspense>` boundary in your render utility. Without it, every test fails with a thrown Promise. Bake it into your test setup.
 
-```tsx
-// Bad — Child can't start its fetch until Parent's data is read
-function Parent() {
-  const { data: user } = useSuspenseQuery({ queryKey: ['user'], queryFn: fetchUser })
-  return <Child userId={user.id} />
-}
+## Related
 
-function Child({ userId }: { userId: string }) {
-  const { data: orders } = useSuspenseQuery({
-    queryKey: ['orders', userId],
-    queryFn: () => fetchOrders(userId),
-  })
-  return <OrderList orders={orders} />
-}
-```
-
-If you know the `userId` ahead of time (e.g., from the route), kick off both queries at the same level so they run in parallel.
-
-### When NOT to add a boundary
-
-- The data is needed to decide the **layout** (e.g., user role → which sidebar to show). Showing chrome that flips after data loads causes layout shift.
-- The query is fast (cached, prefetched, or local). The Suspense overhead is then more disruptive than the wait.
-- A single boundary higher up gives a cleaner skeleton — don't shred the page into a dozen independently-spinning sections.
-
-**Trade-off:** Faster initial paint vs. potential layout shift. Choose based on whether the chrome can render meaningfully without the data.
-
-Reference: [TanStack Query — Suspense](https://tanstack.com/query/latest/docs/framework/react/guides/suspense), [React Suspense](https://react.dev/reference/react/Suspense)
+- [`parallel-promises`](./parallel-promises.md) — when you need *all* data before rendering anything, parallelize but skip the boundaries.
+- [`render-output/usetransition-loading`](../render-output/usetransition-loading.md) — when navigating between suspending views, hide the fallback flash with `useTransition`.

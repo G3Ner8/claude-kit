@@ -4,23 +4,22 @@ description: Curated React 19 performance rules for client-side SPAs (Vite + Tan
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "2.0.0"
   type: reference
   status: stable
-  derived_from: vercel-labs/agent-skills/skills/react-best-practices (curated subset)
   stack: React 19, Vite, TanStack Query, TypeScript
   scope: SPA / CSR only
 ---
 
 # React Performance (SPA / Vite / TanStack Query)
 
-40 curated performance rules for modern React 19 single-page applications. Optimized for AI agents to follow when writing or refactoring React code.
+40 React 19 performance rules for single-page applications. Each rule states the symptom, an Incorrect → Correct contrast, and when not to apply. Optimized for AI agents to follow when writing or refactoring React code.
 
 ## Scope
 
 **Applies to:** React 19 + Vite + TanStack Query (or SWR) on the client.
 
-**Does NOT apply to:** Next.js App Router, React Server Components, server actions, SSR/SSG hydration patterns. Server-side rules from the upstream Vercel pack have been removed; rules using Next.js-specific APIs (`next/dynamic`, `next/script`, `next.config.optimizePackageImports`) have been rewritten for Vite + React.lazy.
+**Does NOT apply to:** Next.js App Router, React Server Components, server actions, SSR/SSG hydration patterns. Server-side rules are intentionally out of scope; Next.js-specific bundler APIs (`next/dynamic`, `next/script`, `next.config.optimizePackageImports`) are replaced by Vite + `React.lazy` idioms throughout.
 
 ## When to use
 
@@ -108,14 +107,3 @@ Each rule file has frontmatter (`title`, `impact`, `tags`), a brief rationale, a
 - `effect-event-deps` — keep useEffectEvent results out of deps
 - `init-once` — initialize app singletons exactly once
 
-## Notes on Curation
-
-This skill is a curated subset of [vercel-labs/agent-skills/skills/react-best-practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices). Rules dropped:
-
-- **All Next.js / RSC / SSR rules** (server-*, async-api-routes, rendering-hydration-*)
-- **Micro-optimizations that modern JS engines already handle** (js-cache-property-access, js-length-check-first, js-early-exit, js-cache-storage, js-cache-function-results, js-combine-iterations)
-- **Niche rules** (rendering-animate-svg-wrapper, rendering-svg-precision, rendering-hoist-jsx, advanced-event-handler-refs, advanced-use-latest, js-batch-dom-css, js-request-idle-callback)
-- **Rules made obsolete by React Compiler** (rerender-simple-expression-in-memo)
-- **Rules requiring niche dependencies** (async-dependencies, which mandated `better-all`)
-
-See `README.md` for full mapping back to upstream.

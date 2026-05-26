@@ -1,133 +1,97 @@
 ---
-title: Use a Query Library for Automatic Deduplication
-impact: MEDIUM-HIGH
-impactDescription: removes redundant network requests and centralizes cache/revalidation
-tags: client, tanstack-query, swr, deduplication, data-fetching, cache
+title: Use a Query Library for Automatic Dedup
+impact: HIGH
+impactDescription: stops the same endpoint from being fetched N times when N components ask for it simultaneously
+tags: runtime, data-fetching, dedup, tanstack-query, swr, cache
 ---
 
-## Use a Query Library for Automatic Deduplication
+## Use a Query Library for Automatic Dedup
 
-Two components rendering at the same time and calling `fetch('/api/users')` produce **two network requests**. Three components → three requests. The classic anti-pattern is `useEffect` + `useState` + `fetch`:
+If five components all need the current user, naive `fetch` calls fire five HTTP requests. A query library (TanStack Query, SWR) wraps the fetch in a keyed cache: the **first** call hits the network, the next four are deduped to the in-flight Promise. All five components subscribe; one network round-trip serves them all.
 
-**Incorrect (every instance fetches independently):**
+Beyond dedup, the libraries handle: caching with stale-while-revalidate, automatic refetch on window focus, request cancellation on unmount, and consistent loading/error state. That's why this rule has HIGH impact even though the savings can look invisible — a hand-rolled equivalent ends up reinventing 80% of the library badly.
+
+**Incorrect — naive fetch in every component:**
 
 ```tsx
-function UserList() {
-  const [users, setUsers] = useState<User[]>([])
+function CurrentUserAvatar() {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => { fetch('/api/me').then(r => r.json()).then(setUser); }, []);
+  return user ? <img src={user.avatarUrl} /> : null;
+}
 
-  useEffect(() => {
-    fetch('/api/users')
-      .then(r => r.json())
-      .then(setUsers)
-  }, [])
-
-  return <List items={users} />
+function CurrentUserName() {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => { fetch('/api/me').then(r => r.json()).then(setUser); }, []);
+  return user ? <span>{user.name}</span> : null;
 }
 ```
 
-Render `<UserList />` three times on the same page → three GET `/api/users`. Add navigation, focus refetch, polling, retry-on-error, error states, and you're rebuilding a cache library by hand — badly.
+Two components → two requests to `/api/me`. Per page render, per navigation. At scale: hundreds of duplicates per day.
 
-### Correct — TanStack Query
+**Correct — single shared query:**
 
 ```tsx
-import { useQuery } from '@tanstack/react-query'
+function useCurrentUser() {
+  return useQuery({
+    queryKey: ['me'],
+    queryFn: () => fetch('/api/me').then(r => r.json() as Promise<User>),
+    staleTime: 5 * 60 * 1000,   // 5 min: don't refetch on every mount
+  });
+}
 
-function UserList() {
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => fetch('/api/users').then(r => r.json()),
-    staleTime: 60_000, // 1min — don't refetch unless older than this
-  })
+function CurrentUserAvatar() {
+  const { data: user } = useCurrentUser();
+  return user ? <img src={user.avatarUrl} /> : null;
+}
 
-  return <List items={users} />
+function CurrentUserName() {
+  const { data: user } = useCurrentUser();
+  return user ? <span>{user.name}</span> : null;
 }
 ```
 
-All `useQuery` calls with the same `queryKey` share **one** in-flight request and one cache entry. The library handles:
+Both components mount → one HTTP request. Both read the same cache entry. When the user logs out, invalidate the key and both re-render with the new state.
 
-- **Dedup** of concurrent requests
-- **Cache** keyed by `queryKey`
-- **Background revalidation** on window focus / reconnect / mount
-- **Stale-while-revalidate** — show cached data immediately, refetch in background
-- **Retry** with exponential backoff
-- **Pagination / infinite scroll** primitives
-- **Mutation** with optimistic updates and cache invalidation
+## Key naming conventions
 
-### Suspense variant — `useSuspenseQuery`
+Query keys are arrays — ordered by specificity, from coarse to fine:
 
-When you want the component to suspend (and a parent `<Suspense>` to show the fallback) until data is ready:
-
-```tsx
-import { useSuspenseQuery } from '@tanstack/react-query'
-
-function UserList() {
-  const { data: users } = useSuspenseQuery({
-    queryKey: ['users'],
-    queryFn: () => fetch('/api/users').then(r => r.json()),
-  })
-  return <List items={users} />
-}
+```ts
+['employees']                              // list endpoint
+['employees', { status: 'active' }]        // list with filters
+['employees', employeeId]                  // single resource
+['employees', employeeId, 'roles']         // nested resource
 ```
 
-`data` is now non-nullable — no loading state to handle inside the component. Pair with strategic Suspense boundaries (see [Strategic Suspense Boundaries](../async/suspense-boundaries.md)).
+This shape lets you invalidate at any level:
 
-### Mutations
-
-For writes, use `useMutation` so you can invalidate the relevant cache entries afterward:
-
-```tsx
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-
-function UpdateUserButton({ user }: { user: User }) {
-  const queryClient = useQueryClient()
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: (updates: Partial<User>) =>
-      fetch(`/api/users/${user.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(updates),
-      }).then(r => r.json()),
-
-    onSuccess: () => {
-      // Refetch the list so the UI reflects the change
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-    },
-  })
-
-  return (
-    <button disabled={isPending} onClick={() => mutate({ name: 'New Name' })}>
-      Update
-    </button>
-  )
-}
+```ts
+queryClient.invalidateQueries({ queryKey: ['employees'] });           // refetch everything employees-related
+queryClient.invalidateQueries({ queryKey: ['employees', employeeId] }); // refetch just one employee
 ```
 
-### SWR equivalent
+Extract a `queryKey` factory per feature so call sites never hand-roll the array:
 
-If you're using SWR instead, the same principles apply:
-
-```tsx
-import useSWR from 'swr'
-
-function UserList() {
-  const { data: users = [] } = useSWR('/api/users', fetcher)
-  return <List items={users} />
-}
+```ts
+// features/employees/api/keys.ts
+export const employeeKeys = {
+  all:        ['employees'] as const,
+  lists:      (filters: Filters) => [...employeeKeys.all, 'list', filters] as const,
+  detail:     (id: string) =>      [...employeeKeys.all, 'detail', id] as const,
+  roles:      (id: string) =>      [...employeeKeys.detail(id), 'roles'] as const,
+};
 ```
 
-Both libraries dedupe by key (`queryKey` in TanStack Query, the first arg in SWR) — the rule is the same: **never put `fetch` directly inside `useEffect` for shared data**. Either use a query library, or wrap your own deduping primitive — but don't roll the fetch by hand.
+Now `invalidateQueries({ queryKey: employeeKeys.all })` confidently refreshes the entire employee tree without typos.
 
-### Key naming hygiene
+## When NOT to apply
 
-Treat `queryKey` like a cache key, not a free-form string. Include every input that affects the response:
+- **One-shot, fire-and-forget calls** — analytics events, log shipping. No cache, no dedup needed.
+- **Mutations that don't read back** — `POST /api/log-action` doesn't benefit from query caching. Use `useMutation` for cache invalidation semantics, not for the call itself.
+- **WebSocket / SSE** — for live data, the query library isn't the right shape. Use `useSyncExternalStore` against your socket, or a dedicated streaming hook.
 
-```tsx
-useQuery({
-  queryKey: ['users', { page, filters }],   // page and filters are part of the key
-  queryFn: () => fetchUsers({ page, filters }),
-})
-```
+## Related
 
-Mis-keyed queries cause stale data and confusing cache hits — bigger source of bugs than the fetch logic itself.
-
-Reference: [TanStack Query – Queries](https://tanstack.com/query/latest/docs/framework/react/guides/queries), [TanStack Query – Query Keys](https://tanstack.com/query/latest/docs/framework/react/guides/query-keys), [SWR](https://swr.vercel.app)
+- **Query keys** ↔ cache invalidation. Plan the key shape before writing the first query.
+- [`prevent-rerender/derived-state`](../prevent-rerender/derived-state.md) — when many consumers read the same query, narrow the selector so each re-renders only on the field it cares about.

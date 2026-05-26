@@ -1,58 +1,67 @@
 ---
-title: Use Lazy State Initialization
-impact: MEDIUM
-impactDescription: wasted computation on every render
-tags: react, hooks, useState, performance, initialization
+title: Lazy Initial State for Expensive Defaults
+impact: LOW-MEDIUM
+impactDescription: avoids recomputing an expensive initial state on every render (it's only used on the first one)
+tags: prevent-rerender, useState, initialization, lazy
 ---
 
-## Use Lazy State Initialization
+## Lazy Initial State for Expensive Defaults
 
-Pass a function to `useState` for expensive initial values. Without the function form, the initializer runs on every render even though the value is only used once.
+`useState(value)` evaluates `value` on every render — but React only **uses** it on the first render. If `value` is the result of an expensive computation, you're paying that cost every render for no reason.
 
-**Incorrect (runs on every render):**
+The fix is to pass a **function** instead of a value: `useState(() => computeInitial())`. React calls the function exactly once, on mount.
+
+This applies whenever the initial value comes from: reading a localStorage payload, parsing a JSON blob, building a Map from an array, computing a derived structure from props.
+
+**Incorrect — expensive computation on every render:**
 
 ```tsx
-function FilteredList({ items }: { items: Item[] }) {
-  // buildSearchIndex() runs on EVERY render, even after initialization
-  const [searchIndex, setSearchIndex] = useState(buildSearchIndex(items))
-  const [query, setQuery] = useState('')
-  
-  // When query changes, buildSearchIndex runs again unnecessarily
-  return <SearchResults index={searchIndex} query={query} />
+function FilterPanel({ allOptions }: { allOptions: Option[] }) {
+  // Builds the index every render, even though it's only used on mount.
+  const [filters, setFilters] = useState(buildIndex(allOptions));
+
+  // ...
 }
 
-function UserProfile() {
-  // JSON.parse runs on every render
-  const [settings, setSettings] = useState(
-    JSON.parse(localStorage.getItem('settings') || '{}')
-  )
-  
-  return <SettingsForm settings={settings} onChange={setSettings} />
+function buildIndex(options: Option[]): Index {
+  return options.reduce((acc, o) => { acc[o.id] = o; return acc; }, {} as Index);
 }
 ```
 
-**Correct (runs only once):**
+`buildIndex` runs on every render. With 10,000 options, the per-render cost is real.
+
+**Correct — initializer function, called once:**
 
 ```tsx
-function FilteredList({ items }: { items: Item[] }) {
-  // buildSearchIndex() runs ONLY on initial render
-  const [searchIndex, setSearchIndex] = useState(() => buildSearchIndex(items))
-  const [query, setQuery] = useState('')
-  
-  return <SearchResults index={searchIndex} query={query} />
-}
-
-function UserProfile() {
-  // JSON.parse runs only on initial render
-  const [settings, setSettings] = useState(() => {
-    const stored = localStorage.getItem('settings')
-    return stored ? JSON.parse(stored) : {}
-  })
-  
-  return <SettingsForm settings={settings} onChange={setSettings} />
+function FilterPanel({ allOptions }: { allOptions: Option[] }) {
+  const [filters, setFilters] = useState(() => buildIndex(allOptions));
+  // ...
 }
 ```
 
-Use lazy initialization when computing initial values from localStorage/sessionStorage, building data structures (indexes, maps), reading from the DOM, or performing heavy transformations.
+`buildIndex` runs on mount. Subsequent renders skip the call entirely.
 
-For simple primitives (`useState(0)`), direct references (`useState(props.value)`), or cheap literals (`useState({})`), the function form is unnecessary.
+## When the initial value depends on props that may change
+
+The lazy initializer runs only on mount. If `allOptions` changes after mount, the state stays with the original index. That may or may not be what you want:
+
+- **Form initial values** — usually correct: the form should keep its initial state across prop changes, only resetting on explicit re-mount.
+- **Derived index of incoming data** — usually wrong: you want the index to track new data. Use `useMemo` instead:
+
+```tsx
+const filtersIndex = useMemo(() => buildIndex(allOptions), [allOptions]);
+```
+
+`useMemo` re-derives when its dependency changes. `useState` doesn't.
+
+The rule: lazy `useState` is for **state that persists across input changes**. `useMemo` is for **derived values that track inputs**.
+
+## When NOT to apply
+
+- **The initial value is cheap** — `useState(0)` or `useState([])` doesn't need an initializer; the wrapper function costs more than the value.
+- **The initial value comes from a hook** — `useState(useStore.getState().x)` works, but more idiomatic is to subscribe via the store's hook in the body.
+
+## Related
+
+- [`memo-with-default-value`](./memo-with-default-value.md) — for non-primitive default *props* (not initial state), hoist them to module-level constants.
+- [`derived-state-no-effect`](./derived-state-no-effect.md) — when the value should track inputs, derive instead of storing.

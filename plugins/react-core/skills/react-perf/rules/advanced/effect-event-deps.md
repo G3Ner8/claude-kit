@@ -1,56 +1,71 @@
 ---
-title: Do Not Put Effect Events in Dependency Arrays
-impact: LOW
-impactDescription: avoids unnecessary effect re-runs and lint errors
-tags: advanced, hooks, useEffectEvent, dependencies, effects
+title: Keep `useEffectEvent` Out of Effect Deps
+impact: MEDIUM
+impactDescription: `useEffectEvent` is the React 19 escape hatch for "always-fresh callback that shouldn't trigger effect re-runs" — listing it in deps defeats its entire purpose
+tags: advanced, useEffectEvent, useEffect, react19
 ---
 
-## Do Not Put Effect Events in Dependency Arrays
+## Keep `useEffectEvent` Out of Effect Deps
 
-Effect Event functions do not have a stable identity. Their identity intentionally changes on every render. Do not include the function returned by `useEffectEvent` in a `useEffect` dependency array. Keep the actual reactive values as dependencies and call the Effect Event from inside the effect body or subscriptions created by that effect.
+React 19's `useEffectEvent` (still under the `experimental_` prefix in some builds) wraps a function so that:
 
-**Incorrect (Effect Event added as a dependency):**
+1. The function always reads the **latest** state and props (no stale closure).
+2. The function is **referentially stable** — it doesn't change between renders.
+3. **Crucially**, the effect that calls it does **not** re-run when state/props change.
+
+The third property is the whole reason `useEffectEvent` exists. If you list the wrapped function in the effect's dep array, you defeat that property — the effect re-runs because of the captured state, even though the wrapper is stable.
+
+The rule is enforced by lint (`react-hooks/exhaustive-deps` handles `useEffectEvent` correctly and explicitly **excludes** it from the deps it requires).
+
+**Incorrect — `onPing` listed in deps:**
 
 ```tsx
-import { useEffect, useEffectEvent } from 'react'
-
-function ChatRoom({ roomId, onConnected }: {
-  roomId: string
-  onConnected: () => void
-}) {
-  const handleConnected = useEffectEvent(onConnected)
+function Chat({ roomId, userId }: { roomId: string; userId: string }) {
+  const onPing = useEffectEvent(() => {
+    analytics.track('ping', { roomId, userId });   // always reads latest
+  });
 
   useEffect(() => {
-    const connection = createConnection(roomId)
-    connection.on('connected', handleConnected)
-    connection.connect()
-
-    return () => connection.disconnect()
-  }, [roomId, handleConnected])
+    const id = setInterval(onPing, 5000);
+    return () => clearInterval(id);
+  }, [roomId, userId, onPing]);   // ❌ userId/roomId here re-fires every change
 }
 ```
 
-Including the Effect Event in dependencies makes the effect re-run every render and triggers the React Hooks lint rule.
+Every time `userId` changes, the interval tears down and re-sets — defeating the "stable interval" goal.
 
-**Correct (depend on reactive values, not the Effect Event):**
+**Correct — only the effect's *real* deps (the room subscription itself):**
 
 ```tsx
-import { useEffect, useEffectEvent } from 'react'
-
-function ChatRoom({ roomId, onConnected }: {
-  roomId: string
-  onConnected: () => void
-}) {
-  const handleConnected = useEffectEvent(onConnected)
+function Chat({ roomId, userId }: { roomId: string; userId: string }) {
+  const onPing = useEffectEvent(() => {
+    analytics.track('ping', { roomId, userId });
+  });
 
   useEffect(() => {
-    const connection = createConnection(roomId)
-    connection.on('connected', handleConnected)
-    connection.connect()
-
-    return () => connection.disconnect()
-  }, [roomId])
+    const id = setInterval(onPing, 5000);
+    return () => clearInterval(id);
+  }, []);   // ✅ no deps — the effect stays mounted; onPing reads fresh state
 }
 ```
 
-Reference: [React useEffectEvent: Effect Event in deps](https://react.dev/reference/react/useEffectEvent#effect-event-in-deps)
+The interval mounts once. Every tick, `onPing` reads the current `roomId` and `userId` from the latest render.
+
+## When to reach for `useEffectEvent`
+
+The pattern earns its keep when:
+
+- A long-lived effect (interval, subscription, event listener) calls back into your component.
+- The callback needs the latest state, but the effect itself shouldn't restart on every state change.
+
+This is the textbook "Effect Event" — the *event* part of an effect that should fire fresh, while the rest of the effect lifecycle is stable.
+
+## When NOT to apply
+
+- **The effect actually depends on the value** — if the subscription URL changes when `roomId` changes, the effect *should* tear down and resubscribe. `useEffectEvent` is the wrong tool.
+- **Pre-React-19 codebases** — the hook isn't shipped. Workaround: store the callback in a ref and read `ref.current()` inside the effect.
+
+## Related
+
+- [`prevent-rerender/move-effect-to-event`](../prevent-rerender/move-effect-to-event.md) — many `useEffect` calls should be event handlers; only the remainder needs `useEffectEvent`.
+- [`prevent-rerender/narrow-effect-deps`](../prevent-rerender/narrow-effect-deps.md) — the linter that enforces deps also handles `useEffectEvent`. Don't silence it.

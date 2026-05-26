@@ -1,82 +1,66 @@
 ---
-title: Use Loop for Min/Max Instead of Sort
+title: One-Pass Loop Beats Sort-Then-Pick for Min/Max
 impact: LOW
-impactDescription: O(n) instead of O(n log n)
-tags: javascript, arrays, performance, sorting, algorithms
+impactDescription: O(N) instead of O(N log N), with constant-factor wins from avoiding allocation
+tags: js-micro, sort, min-max, complexity, loop
 ---
 
-## Use Loop for Min/Max Instead of Sort
+## One-Pass Loop Beats Sort-Then-Pick for Min/Max
 
-Finding the smallest or largest element only requires a single pass through the array. Sorting is wasteful and slower.
+To find the min or max of an array, walking once and tracking the best value is O(N). Sorting is O(N log N), plus it allocates a new array (with `.toSorted` or `[...arr].sort()`).
 
-**Incorrect (O(n log n) - sort to find latest):**
+For *just min or just max*, a loop is strictly better.
+
+**Incorrect — sort just to pick one:**
 
 ```ts
-interface Project {
-  id: string
-  name: string
-  updatedAt: number
-}
-
-function getLatestProject(projects: Project[]) {
-  const sorted = [...projects].sort((a, b) => b.updatedAt - a.updatedAt)
-  return sorted[0]
+function newestPostDate(posts: Post[]): Date {
+  const sorted = posts.toSorted((a, b) => b.createdAt - a.createdAt);
+  return sorted[0].createdAt;
 }
 ```
 
-Sorts the entire array just to find the maximum value.
+O(N log N) + allocation, when O(N) suffices.
 
-**Incorrect (O(n log n) - sort for oldest and newest):**
-
-```ts
-function getOldestAndNewest(projects: Project[]) {
-  const sorted = [...projects].sort((a, b) => a.updatedAt - b.updatedAt)
-  return { oldest: sorted[0], newest: sorted[sorted.length - 1] }
-}
-```
-
-Still sorts unnecessarily when only min/max are needed.
-
-**Correct (O(n) - single loop):**
+**Correct — single pass:**
 
 ```ts
-function getLatestProject(projects: Project[]) {
-  if (projects.length === 0) return null
-  
-  let latest = projects[0]
-  
-  for (let i = 1; i < projects.length; i++) {
-    if (projects[i].updatedAt > latest.updatedAt) {
-      latest = projects[i]
-    }
+function newestPostDate(posts: Post[]): Date | undefined {
+  if (posts.length === 0) return undefined;
+  let newest = posts[0].createdAt;
+  for (let i = 1; i < posts.length; i++) {
+    if (posts[i].createdAt > newest) newest = posts[i].createdAt;
   }
-  
-  return latest
-}
-
-function getOldestAndNewest(projects: Project[]) {
-  if (projects.length === 0) return { oldest: null, newest: null }
-  
-  let oldest = projects[0]
-  let newest = projects[0]
-  
-  for (let i = 1; i < projects.length; i++) {
-    if (projects[i].updatedAt < oldest.updatedAt) oldest = projects[i]
-    if (projects[i].updatedAt > newest.updatedAt) newest = projects[i]
-  }
-  
-  return { oldest, newest }
+  return newest;
 }
 ```
 
-Single pass through the array, no copying, no sorting.
-
-**Alternative (Math.min/Math.max for small arrays):**
+For comparable primitives, `reduce` reads even cleaner:
 
 ```ts
-const numbers = [5, 2, 8, 1, 9]
-const min = Math.min(...numbers)
-const max = Math.max(...numbers)
+const newest = posts.reduce(
+  (best, p) => (p.createdAt > best ? p.createdAt : best),
+  posts[0].createdAt,
+);
 ```
 
-This works for small arrays, but can be slower or just throw an error for very large arrays due to spread operator limitations. Maximal array length is approximately 124000 in Chrome 143 and 638000 in Safari 18; exact numbers may vary - see [the fiddle](https://jsfiddle.net/qw1jabsx/4/). Use the loop approach for reliability.
+Or for numbers specifically:
+
+```ts
+const max = Math.max(...nums);    // fine for small arrays
+```
+
+`Math.max(...arr)` is concise but spreads the array into arguments — engines impose limits (~100k items) and the spread allocates. For known-small arrays it's fine; for larger ones, prefer the loop.
+
+## When you need top-K
+
+If you actually need the **K smallest/largest** (not just min/max), sorting wins past K = log N. For K=3 in a 1000-item array, a single pass with three pointers beats sort by a few constants but the code is ugly — sort + slice is more readable and fast enough.
+
+## When NOT to apply
+
+- **You need a sorted result anyway** — sort once; pick from the result.
+- **The array is tiny (< 20)** — engine overhead makes both approaches identical.
+
+## Related
+
+- [`tosorted-immutable`](./tosorted-immutable.md) — when you do want a sorted copy, prefer `toSorted()` over `[...arr].sort()`.

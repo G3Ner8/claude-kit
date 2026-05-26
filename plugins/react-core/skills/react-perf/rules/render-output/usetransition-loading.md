@@ -1,79 +1,104 @@
 ---
-title: Use useTransition Over Manual Loading States
-impact: LOW
-impactDescription: reduces re-renders and improves code clarity for non-urgent updates
-tags: rendering, transitions, useTransition, loading, state
+title: `useTransition` Instead of `isLoading` Flags
+impact: MEDIUM
+impactDescription: avoids the spinner flash on fast operations and gives a smooth "in-progress" UI without manual loading-state bookkeeping
+tags: render-output, useTransition, loading, react18, ux
 ---
 
-## Use useTransition Over Manual Loading States
+## `useTransition` Instead of `isLoading` Flags
 
-For non-urgent state updates (search results, filter changes, tab switches), `useTransition` is a drop-in replacement for manual `isLoading` flags. It gives you a built-in `isPending` flag, automatically resets it on error, and lets React interrupt the transition if the user types again before the previous one finishes.
+A common pattern: an action triggers an async operation, code flips `setIsLoading(true)` before the call and `setIsLoading(false)` after. JSX renders a spinner while `isLoading` is true.
 
-**Incorrect (manual loading state):**
+This works, but has two annoyances:
+
+1. **Spinner flash** — for operations that finish in 50 ms, the spinner shows for 50 ms. The flicker feels worse than no spinner.
+2. **Manual bookkeeping** — every async path has its own `try / finally` to flip the flag back.
+
+`useTransition` solves both. It marks an update as non-urgent and gives you an `isPending` flag that's automatically derived from React's scheduler. You don't manage it; you don't risk forgetting the cleanup; and React can choose not to show pending state if the work completes within a short threshold.
+
+**Incorrect — manual flag with cleanup ritual:**
 
 ```tsx
-function SearchResults() {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<Result[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+function SaveButton() {
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSearch = async (value: string) => {
-    setIsLoading(true)
-    setQuery(value)
-    const data = await fetchResults(value)
-    setResults(data)
-    setIsLoading(false)
-  }
+  const onSave = async () => {
+    setIsSaving(true);
+    try {
+      await saveDraft();
+    } finally {
+      setIsSaving(false);     // forgetting this = stuck spinner
+    }
+  };
 
-  return (
-    <>
-      <input onChange={(e) => handleSearch(e.target.value)} />
-      {isLoading && <Spinner />}
-      <ResultsList results={results} />
-    </>
-  )
+  return <button onClick={onSave}>{isSaving ? <Spinner /> : 'Save'}</button>;
 }
 ```
 
-Problems with this: if `fetchResults` throws, `setIsLoading(false)` never runs. If the user types fast, you accumulate stale fetches and the latest one might not be the one that lands.
+Risks: a thrown error before `finally`, a cancellation path that bypasses cleanup, double-flipping when the user clicks twice quickly.
 
-**Correct (useTransition with built-in pending state):**
+**Correct — `useTransition` manages the flag:**
 
 ```tsx
-import { useTransition, useState } from 'react'
+function SaveButton() {
+  const [isPending, startTransition] = useTransition();
 
-function SearchResults() {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<Result[]>([])
-  const [isPending, startTransition] = useTransition()
-
-  const handleSearch = (value: string) => {
-    setQuery(value) // Update input immediately (urgent)
-
+  const onSave = () => {
     startTransition(async () => {
-      // Non-urgent: React can interrupt this if the user types again
-      const data = await fetchResults(value)
-      setResults(data)
-    })
-  }
+      await saveDraft();
+    });
+  };
 
   return (
-    <>
-      <input onChange={(e) => handleSearch(e.target.value)} />
-      {isPending && <Spinner />}
-      <ResultsList results={results} />
-    </>
-  )
+    <button onClick={onSave} disabled={isPending}>
+      {isPending ? <Spinner /> : 'Save'}
+    </button>
+  );
 }
 ```
 
-**Benefits:**
+React's scheduler manages `isPending`. It's true while the transition is in flight, false when done. No try/finally; no risk of stuck spinner.
 
-- **Automatic pending state** — no manual `setIsLoading(true/false)`
-- **Error resilience** — `isPending` correctly resets even if the transition throws
-- **Interrupt handling** — if the user kicks off a new transition, the previous one yields
-- **Concurrent rendering** — React can pause the transition to keep input typing responsive
+## React 19 form integration
 
-If you specifically need to keep showing the *previous* results while the new ones load (instead of a spinner), use `useDeferredValue` instead — see [Use Deferred Value](../rerender/use-deferred-value.md).
+For forms, React 19 ships `<form action={fn}>` with automatic pending state via `useFormStatus`:
 
-Reference: [useTransition](https://react.dev/reference/react/useTransition)
+```tsx
+import { useFormStatus } from 'react-dom';
+
+function Submit() {
+  const { pending } = useFormStatus();   // reads parent <form>'s pending state
+  return <button disabled={pending}>{pending ? 'Saving...' : 'Save'}</button>;
+}
+
+function EmployeeForm() {
+  return (
+    <form action={async (formData) => { await saveEmployee(formData); }}>
+      <input name="name" />
+      <Submit />
+    </form>
+  );
+}
+```
+
+The `<form action>` is a transition under the hood. `<Submit>` reads `pending` from `useFormStatus` without prop drilling.
+
+## Naming convention
+
+For consistency across the codebase:
+
+- `isLoading` = data fetch in flight (TanStack Query / SWR).
+- `isPending` = transition in flight (`useTransition` / form submission).
+
+`isLoading` and `isPending` are not the same flag and shouldn't be aliased.
+
+## When NOT to apply
+
+- **Long-running operations (> 1 second)** — transitions are tuned for short interactive work. For long uploads, use explicit progress UI.
+- **Async work that runs outside React** — a fetch driven by a non-React store; transitions don't see it. Use the store's loading state.
+- **You need timing data** — `useTransition` doesn't expose elapsed time. Manual flags + `performance.now()` give that.
+
+## Related
+
+- [`prevent-rerender/transitions`](../prevent-rerender/transitions.md) — same primitive, used to keep input responsive during slow renders.
+- [`prevent-rerender/use-deferred-value`](../prevent-rerender/use-deferred-value.md) — the receive-side equivalent for downstream renders.

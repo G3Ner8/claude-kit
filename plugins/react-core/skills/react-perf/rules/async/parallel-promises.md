@@ -1,71 +1,91 @@
 ---
-title: Promise.all for Independent Operations
+title: Promise.all for Independent Work
 impact: CRITICAL
-impactDescription: 2-10× speedup for unrelated async work
+impactDescription: 2-10x speedup whenever two unrelated awaits happen back-to-back
 tags: async, parallelization, promises, waterfalls
 ---
 
-## Promise.all for Independent Operations
+## Promise.all for Independent Work
 
-When async operations have no interdependencies, run them concurrently using `Promise.all()` (or `Promise.allSettled()`) instead of sequential `await`s. Each sequential `await` adds the full latency of that call to the critical path.
+When two async operations have no data dependency on each other, run them concurrently. Each sequential `await` adds its full latency to the critical path; `Promise.all` collapses them to the maximum, not the sum.
 
-**Incorrect (sequential — 3 round trips on the critical path):**
+This is the single most common waterfall pattern. If a profiler shows multiple sequential network calls in the same function, this rule applies.
 
-```ts
-const user = await fetchUser()
-const posts = await fetchPosts()
-const comments = await fetchComments()
-```
-
-Total time ≈ `t(user) + t(posts) + t(comments)`.
-
-**Correct (parallel — 1 round trip on the critical path):**
+**Incorrect — sequential awaits even though the calls are independent:**
 
 ```ts
-const [user, posts, comments] = await Promise.all([
-  fetchUser(),
-  fetchPosts(),
-  fetchComments(),
-])
+async function loadDashboard(userId: string) {
+  const profile      = await fetchProfile(userId);       // 220 ms
+  const tasks        = await fetchTasks(userId);         // 180 ms
+  const notifications = await fetchNotifications(userId); // 240 ms
+  return { profile, tasks, notifications };              // total: 640 ms
+}
 ```
 
-Total time ≈ `max(t(user), t(posts), t(comments))`.
+The browser waits 640 ms to render. Nothing in `fetchTasks` or `fetchNotifications` needs the result of `fetchProfile`.
 
-### `Promise.all` vs `Promise.allSettled` — pick the right one
-
-`Promise.all` rejects as soon as **any** input rejects. The other in-flight requests are not cancelled, but their results are discarded. For UI work this is usually wrong — you almost never want a single failed sidebar widget to throw away the user's main content.
-
-Prefer `Promise.allSettled` when **partial success is acceptable**:
+**Correct — Promise.all (or destructured):**
 
 ```ts
-const [userResult, postsResult, commentsResult] = await Promise.allSettled([
-  fetchUser(),
-  fetchPosts(),
-  fetchComments(),
-])
-
-const user = userResult.status === 'fulfilled' ? userResult.value : null
-const posts = postsResult.status === 'fulfilled' ? postsResult.value : []
-const comments = commentsResult.status === 'fulfilled' ? commentsResult.value : []
+async function loadDashboard(userId: string) {
+  const [profile, tasks, notifications] = await Promise.all([
+    fetchProfile(userId),         // 220 ms
+    fetchTasks(userId),           // 180 ms ┐
+    fetchNotifications(userId),   // 240 ms │ in parallel
+  ]);                                       // ┘
+  return { profile, tasks, notifications }; // total: 240 ms (max of 3)
+}
 ```
 
-Use `Promise.all` only when **all** results are strictly required (e.g., the page literally cannot render without every value) and you want the failure to bubble up.
+Three round-trips, one round-trip cost.
 
-### When operations have partial dependencies
+## When one failure shouldn't kill the others
 
-If `fetchComments()` needs the `user.id`, restructure so the part that *doesn't* need the user runs in parallel:
+`Promise.all` rejects as soon as any call fails — the other (already-running) responses are discarded. If partial success is acceptable, use `Promise.allSettled`:
 
 ```ts
-// Bad: comments waits even though posts could run in parallel
-const user = await fetchUser()
-const comments = await fetchComments(user.id)
-const posts = await fetchPosts()
+async function loadDashboardPartial(userId: string) {
+  const results = await Promise.allSettled([
+    fetchProfile(userId),
+    fetchTasks(userId),
+    fetchNotifications(userId),
+  ]);
 
-// Better: posts runs in parallel with the user fetch
-const [user, posts] = await Promise.all([fetchUser(), fetchPosts()])
-const comments = await fetchComments(user.id)
+  return {
+    profile:       results[0].status === 'fulfilled' ? results[0].value : null,
+    tasks:         results[1].status === 'fulfilled' ? results[1].value : [],
+    notifications: results[2].status === 'fulfilled' ? results[2].value : [],
+  };
+}
 ```
 
-### In React: prefer letting the query library parallelize
+`allSettled` always resolves — each item carries its own success/failure. Use it for dashboards where a degraded view is better than no view.
 
-If you're using TanStack Query, SWR, or similar, the library already runs independent `useQuery` calls in parallel — you usually don't need explicit `Promise.all`. The trap to avoid is awaiting one query result before starting the next, which forces a waterfall the library cannot eliminate.
+## When NOT to apply
+
+- **Sequential dependency** — if `B` needs `A`'s id, you can't parallelize them. Refactor the API instead (return both in one call), or `Promise.all` only the truly-independent calls.
+- **Rate-limited APIs** — three calls hitting the same upstream can trip a per-IP rate limiter. Run a queue or batch instead.
+- **Memory-heavy responses** — three 50 MB downloads in parallel use 150 MB of RAM transiently. Sequence on resource-constrained clients (mobile).
+
+## In React
+
+Inside a component, parallel fetches usually take the form of multiple `useQuery` calls on the same render:
+
+```tsx
+function Dashboard({ userId }: { userId: string }) {
+  // All three queries fire on mount in parallel — TanStack Query handles concurrency.
+  const profile       = useQuery({ queryKey: ['profile', userId],       queryFn: () => fetchProfile(userId) });
+  const tasks         = useQuery({ queryKey: ['tasks', userId],         queryFn: () => fetchTasks(userId) });
+  const notifications = useQuery({ queryKey: ['notifications', userId], queryFn: () => fetchNotifications(userId) });
+
+  if (profile.isLoading) return <Skeleton />;
+  return <DashboardLayout profile={profile.data} tasks={tasks.data} notifications={notifications.data} />;
+}
+```
+
+No manual `Promise.all` needed — the library kicks off all three concurrently on mount.
+
+## Related
+
+- [`defer-await`](./defer-await.md) — when only one of N is sometimes-needed, defer instead of parallelize.
+- [`suspense-boundaries`](./suspense-boundaries.md) — when each part should *render* independently as it arrives, not just *fetch* in parallel.

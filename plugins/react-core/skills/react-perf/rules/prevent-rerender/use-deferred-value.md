@@ -1,59 +1,68 @@
 ---
-title: Use useDeferredValue for Expensive Derived Renders
+title: `useDeferredValue` for Lagging Derived Renders
 impact: MEDIUM
-impactDescription: keeps input responsive during heavy computation
-tags: rerender, useDeferredValue, optimization, concurrent
+impactDescription: like startTransition but you don't need to own both state pieces — derives a "stale-OK" version of a value that lags behind the live one
+tags: prevent-rerender, useDeferredValue, transition, concurrent
 ---
 
-## Use useDeferredValue for Expensive Derived Renders
+## `useDeferredValue` for Lagging Derived Renders
 
-When user input triggers expensive computations or renders, use `useDeferredValue` to keep the input responsive. The deferred value lags behind, allowing React to prioritize the input update and render the expensive result when idle.
+`useDeferredValue` is `startTransition` for the receiving side. Given a value, it returns a copy that lags the original — React updates the deferred value at lower priority, interrupting if a higher-priority update arrives.
 
-**Incorrect (input feels laggy while filtering):**
+Use it when you have one value (typically a controlled input or a prop) and want to derive a slow-rendering downstream from it, **without** having to own the lower-priority state piece.
+
+**Incorrect — both renders fire on every keystroke, slow one blocks fast one:**
 
 ```tsx
-function Search({ items }: { items: Item[] }) {
-  const [query, setQuery] = useState('')
-  const filtered = items.filter(item => fuzzyMatch(item, query))
-
+function App({ query }: { query: string }) {
+  // Both inputs see the same query; the slow list blocks the fast metadata.
   return (
     <>
-      <input value={query} onChange={e => setQuery(e.target.value)} />
-      <ResultsList results={filtered} />
+      <Metadata query={query} />              {/* cheap */}
+      <ExpensiveList query={query} />          {/* slow */}
     </>
-  )
+  );
 }
 ```
 
-**Correct (input stays snappy, results render when ready):**
+**Correct — defer the value that drives the slow render:**
 
 ```tsx
-function Search({ items }: { items: Item[] }) {
-  const [query, setQuery] = useState('')
-  const deferredQuery = useDeferredValue(query)
-  const filtered = useMemo(
-    () => items.filter(item => fuzzyMatch(item, deferredQuery)),
-    [items, deferredQuery]
-  )
-  const isStale = query !== deferredQuery
+function App({ query }: { query: string }) {
+  const deferredQuery = useDeferredValue(query);   // lags behind `query`
+  const isStale       = query !== deferredQuery;
 
   return (
     <>
-      <input value={query} onChange={e => setQuery(e.target.value)} />
-      <div style={{ opacity: isStale ? 0.7 : 1 }}>
-        <ResultsList results={filtered} />
-      </div>
+      <Metadata query={query} />                            {/* always uses fresh */}
+      <ExpensiveList query={deferredQuery} className={isStale ? 'opacity-50' : ''} />
     </>
-  )
+  );
 }
 ```
 
-**When to use:**
+`<Metadata>` re-renders with the fresh query on every keystroke. `<ExpensiveList>` re-renders with the lagging value at lower priority. When typing is faster than the list can render, the list shows the stale result with a visual cue (`opacity-50`) instead of blocking.
 
-- Filtering/searching large lists
-- Expensive visualizations (charts, graphs) reacting to input
-- Any derived state that causes noticeable render delays
+## `useTransition` vs `useDeferredValue`
 
-**Note:** Wrap the expensive computation in `useMemo` with the deferred value as a dependency, otherwise it still runs on every render.
+| Use | When |
+|---|---|
+| `useTransition` | You own both state pieces (urgent input value + downstream query). |
+| `useDeferredValue` | You receive a value from above (prop, context) and just want to derive a slow render from it without re-architecting state ownership. |
 
-Reference: [React useDeferredValue](https://react.dev/reference/react/useDeferredValue)
+They produce similar UX. The choice is structural: do you control the urgent state or not?
+
+## Stale indicator
+
+`useDeferredValue` doesn't expose an `isPending` flag. Derive it manually: `const isStale = query !== deferredQuery;`. Use it to dim or skeleton the slow region while it catches up.
+
+## When NOT to apply
+
+- **The downstream is cheap** — no perceived benefit; adds a stale state to reason about.
+- **You can hoist `startTransition` into the input handler** — when you own the input, that's the preferred shape (see [`transitions`](./transitions.md)).
+- **The deferred value drives navigation or other side effects** — `useDeferredValue` is for *render output* only. Don't put it on a route param.
+
+## Related
+
+- [`transitions`](./transitions.md) — the alternative shape when you own both state pieces.
+- [`render-output/usetransition-loading`](../render-output/usetransition-loading.md) — the loading-indicator UX layer.

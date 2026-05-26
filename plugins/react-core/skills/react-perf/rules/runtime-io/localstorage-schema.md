@@ -1,71 +1,103 @@
 ---
-title: Version and Minimize localStorage Data
+title: Version Your localStorage Shapes
 impact: MEDIUM
-impactDescription: prevents schema conflicts, reduces storage size
-tags: client, localStorage, storage, versioning, data-minimization
+impactDescription: prevents the day a shipped change deserializes old payloads into broken state, crashing returning users
+tags: runtime, localstorage, storage, schema, versioning
 ---
 
-## Version and Minimize localStorage Data
+## Version Your localStorage Shapes
 
-Add version prefix to keys and store only needed fields. Prevents schema conflicts and accidental storage of sensitive data.
+`localStorage` persists across sessions and across app versions. The user's browser may carry data from a build six months old. If your code reads it assuming today's shape, you'll get runtime errors on returning users — often without crash reporting picking them up (the parse failure can corrupt state silently).
 
-**Incorrect:**
+The fix has two parts:
+
+1. **Include a `version` field** in every JSON payload you write.
+2. **Validate on read** — match the version, migrate or discard.
+
+A schema validator like Zod makes step 2 mechanical.
+
+**Incorrect — naive read/write:**
 
 ```ts
-// No version, stores everything, no error handling
-localStorage.setItem('userConfig', JSON.stringify(fullUserObject))
-const data = localStorage.getItem('userConfig')
+// On save
+localStorage.setItem('filters', JSON.stringify(state));
+
+// On read — assumes today's shape forever
+const stored = localStorage.getItem('filters');
+const filters = stored ? JSON.parse(stored) : defaultFilters;
+// filters.searchTerm.trim() may throw if the old shape didn't have searchTerm
 ```
 
-**Correct:**
+Three months from now you'll add `searchTerm`. Returning users will hit the `undefined.trim()` crash.
+
+**Correct — versioned envelope + Zod validation:**
 
 ```ts
-const VERSION = 'v2'
+import { z } from 'zod';
 
-function saveConfig(config: { theme: string; language: string }) {
+const FiltersV1 = z.object({
+  status: z.enum(['all', 'active', 'archived']),
+  sortBy: z.enum(['name', 'created_at']),
+});
+
+const FiltersV2 = z.object({
+  status:     z.enum(['all', 'active', 'archived']),
+  sortBy:     z.enum(['name', 'created_at']),
+  searchTerm: z.string(),
+});
+
+const Envelope = z.discriminatedUnion('version', [
+  z.object({ version: z.literal(1), data: FiltersV1 }),
+  z.object({ version: z.literal(2), data: FiltersV2 }),
+]);
+
+const CURRENT_VERSION = 2;
+type Filters = z.infer<typeof FiltersV2>;
+const DEFAULT_FILTERS: Filters = { status: 'all', sortBy: 'name', searchTerm: '' };
+
+export function loadFilters(): Filters {
+  const raw = localStorage.getItem('filters');
+  if (!raw) return DEFAULT_FILTERS;
+
   try {
-    localStorage.setItem(`userConfig:${VERSION}`, JSON.stringify(config))
+    const parsed = Envelope.parse(JSON.parse(raw));
+    if (parsed.version === 2) return parsed.data;
+    // Migrate v1 -> v2 by adding the new field with a default.
+    return { ...parsed.data, searchTerm: '' };
   } catch {
-    // Throws in incognito/private browsing, quota exceeded, or disabled
+    // Unrecognized shape — discard and start fresh.
+    localStorage.removeItem('filters');
+    return DEFAULT_FILTERS;
   }
 }
 
-function loadConfig() {
-  try {
-    const data = localStorage.getItem(`userConfig:${VERSION}`)
-    return data ? JSON.parse(data) : null
-  } catch {
-    return null
-  }
-}
-
-// Migration from v1 to v2
-function migrate() {
-  try {
-    const v1 = localStorage.getItem('userConfig:v1')
-    if (v1) {
-      const old = JSON.parse(v1)
-      saveConfig({ theme: old.darkMode ? 'dark' : 'light', language: old.lang })
-      localStorage.removeItem('userConfig:v1')
-    }
-  } catch {}
+export function saveFilters(filters: Filters) {
+  localStorage.setItem(
+    'filters',
+    JSON.stringify({ version: CURRENT_VERSION, data: filters }),
+  );
 }
 ```
 
-**Store minimal fields from server responses:**
+Three guarantees: known-old shapes are migrated; unknown shapes are discarded; current-shape reads are typed.
 
-```ts
-// User object has 20+ fields, only store what UI needs
-function cachePrefs(user: FullUser) {
-  try {
-    localStorage.setItem('prefs:v1', JSON.stringify({
-      theme: user.preferences.theme,
-      notifications: user.preferences.notifications
-    }))
-  } catch {}
-}
-```
+## When to bump the version
 
-**Always wrap in try-catch:** `getItem()` and `setItem()` throw in incognito/private browsing (Safari, Firefox), when quota exceeded, or when disabled.
+Bump on **any breaking change** to the schema:
 
-**Benefits:** Schema evolution via versioning, reduced storage size, prevents storing tokens/PII/internal flags.
+- Removing a field
+- Renaming a field
+- Changing a type (`string` → `number`)
+- Tightening validation (`z.string()` → `z.string().email()`)
+
+Adding an *optional* field at the end is technically non-breaking — the migration is a no-op — but bumping anyway makes the data trail self-documenting.
+
+## When NOT to apply
+
+- **Truly ephemeral state** — UI scroll positions, single-session preferences. If you'd be happy clearing it on every visit, skip the envelope.
+- **Server-synced state** — if the source of truth is the backend and localStorage is a cache, just `removeItem` and refetch when the shape changes. Don't migrate; sync.
+
+## Related
+
+- **`sessionStorage`** has the same issue but a smaller blast radius (single tab). Apply the same pattern when the data outlives a single navigation.
+- **`IndexedDB`** is best wrapped with a library (Dexie, idb-keyval) that already enforces versioning. Don't roll your own.

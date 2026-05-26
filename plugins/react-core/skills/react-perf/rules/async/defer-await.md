@@ -1,82 +1,61 @@
 ---
-title: Defer Await Until Needed
+title: Defer Awaits to Where the Value Is Used
 impact: HIGH
-impactDescription: avoids blocking unused code paths
-tags: async, await, conditional, optimization
+impactDescription: moves expensive awaits out of the common code path so callers that never reach the branch don't pay for the network call
+tags: async, latency, lazy-evaluation, hot-path
 ---
 
-## Defer Await Until Needed
+## Defer Awaits to Where the Value Is Used
 
-Move `await` operations into the branches where they're actually used to avoid blocking code paths that don't need them.
+Resolve a Promise at the moment you need its value, not at the top of the function. Top-of-function awaits force every caller to wait for the result — even callers that take an early branch and never read it.
 
-**Incorrect (blocks both branches):**
+The fix is a refactor, not a configuration: pass the Promise down, and `await` it only inside the branch that consumes it.
+
+**Incorrect — awaits up front, even when the branch may not need the value:**
 
 ```ts
-async function handleRequest(userId: string, skipProcessing: boolean) {
-  const userData = await fetchUserData(userId)
+async function renderEmployeeCard(id: string, mode: 'compact' | 'detail') {
+  const employee = await fetchEmployee(id);          // ALWAYS paid
+  const role     = await fetchRoleHierarchy(id);     // ALWAYS paid
 
-  if (skipProcessing) {
-    // Returns immediately but still waited for userData
-    return { skipped: true }
+  if (mode === 'compact') {
+    return { name: employee.name };                  // didn't need `role` at all
   }
-
-  // Only this branch uses userData
-  return processUserData(userData)
+  return { name: employee.name, role };
 }
 ```
 
-**Correct (only blocks when needed):**
+The `compact` path pays a network round-trip for `role` it discards.
+
+**Correct — kick off both fetches in parallel, but only await `role` in the branch that uses it:**
 
 ```ts
-async function handleRequest(userId: string, skipProcessing: boolean) {
-  if (skipProcessing) {
-    // Returns immediately without waiting
-    return { skipped: true }
-  }
+async function renderEmployeeCard(id: string, mode: 'compact' | 'detail') {
+  const employeePromise = fetchEmployee(id);         // start, don't await
+  const rolePromise     = fetchRoleHierarchy(id);    // start, don't await
 
-  // Fetch only when needed
-  const userData = await fetchUserData(userId)
-  return processUserData(userData)
+  const employee = await employeePromise;            // always needed
+
+  if (mode === 'compact') {
+    return { name: employee.name };                  // rolePromise garbage-collected
+  }
+  const role = await rolePromise;                    // only paid in detail branch
+  return { name: employee.name, role };
 }
 ```
 
-**Another example (early return optimization):**
+Starting the Promise (without awaiting) lets it run concurrently with the other work. The `await` happens only where the consumer reads the value. Branches that don't read it never block on it.
 
-```ts
-// Incorrect: always fetches permissions
-async function updateResource(resourceId: string, userId: string) {
-  const permissions = await fetchPermissions(userId)
-  const resource = await getResource(resourceId)
+## When the Promise hangs forever
 
-  if (!resource) {
-    return { error: 'Not found' }
-  }
+A Promise that's started but never awaited isn't a leak — once it's unreachable, JS garbage-collects it. The request still hits the wire and resolves; the result is just ignored. For HTTP this is acceptable; for expensive server-side work (sending an SMS, charging a card), don't start operations whose side effects you'll discard — use a real predicate first.
 
-  if (!permissions.canEdit) {
-    return { error: 'Forbidden' }
-  }
+## When NOT to apply
 
-  return await updateResourceData(resource, permissions)
-}
+- **Sequential dependency** — if call B needs the result of call A as input, you can't defer A past B's `await`. The await order is fixed by the dependency.
+- **Error handling** — an unawaited rejected Promise can warn ("unhandled promise rejection") in Node. In a browser, it's logged but doesn't crash. If error reporting matters and you may not await, attach a `.catch(() => {})` at start time.
 
-// Correct: fetches only when needed
-async function updateResource(resourceId: string, userId: string) {
-  const resource = await getResource(resourceId)
+## Related
 
-  if (!resource) {
-    return { error: 'Not found' }
-  }
-
-  const permissions = await fetchPermissions(userId)
-
-  if (!permissions.canEdit) {
-    return { error: 'Forbidden' }
-  }
-
-  return await updateResourceData(resource, permissions)
-}
-```
-
-This optimization is especially valuable when the skipped branch is frequently taken, or when the deferred operation is expensive.
-
-For `await getFlag()` combined with a cheap synchronous guard (`flag && someCondition`), see [Check Cheap Conditions Before Async Flags](./cheap-condition-before-await.md).
+- [`parallel-promises`](./parallel-promises.md) — when both promises are *always* needed, hoist them with `Promise.all`.
+- [`cheap-condition-before-await`](./cheap-condition-before-await.md) — gate awaits behind synchronous checks before starting them at all.

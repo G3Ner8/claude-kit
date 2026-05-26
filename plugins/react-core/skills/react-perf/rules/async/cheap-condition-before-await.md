@@ -1,37 +1,60 @@
 ---
-title: Check Cheap Conditions Before Async Flags
-impact: HIGH
-impactDescription: avoids unnecessary async work when a synchronous guard already fails
-tags: async, await, feature-flags, short-circuit, conditional
+title: Gate Awaits Behind Cheap Sync Checks
+impact: CRITICAL
+impactDescription: skips an entire network round-trip whenever a synchronous check could have answered the question first
+tags: async, latency, waterfall, short-circuit
 ---
 
-## Check Cheap Conditions Before Async Flags
+## Gate Awaits Behind Cheap Sync Checks
 
-When a branch uses `await` for a flag or remote value and also requires a **cheap synchronous** condition (local props, request metadata, already-loaded state), evaluate the cheap condition **first**. Otherwise you pay for the async call even when the compound condition can never be true.
+Every `await` on a network call adds the full round-trip to the user's critical path — even when the result will be discarded. Before committing to that latency, ask whether a cheap synchronous check can rule the request out entirely.
 
-This is a specialization of [Defer Await Until Needed](./defer-await.md) for `flag && cheapCondition` style checks.
+The pattern is mechanical: put the cheap check first, return early, and only `await` when you're actually going to use the value.
 
-**Incorrect:**
+**Incorrect — fires the request unconditionally, then discards:**
 
 ```ts
-const someFlag = await getFlag()
-
-if (someFlag && someCondition) {
-  // ...
+async function loadEmployeeDetail(id: string, viewer: Viewer) {
+  const employee = await fetchEmployee(id);          // network round-trip
+  if (viewer.role === 'guest') return null;          // could have known this from the prop
+  if (id.length !== 36) return null;                 // could have known this from the argument
+  return employee;
 }
 ```
 
-**Correct:**
+Every guest visitor pays the round-trip cost of a request they were never allowed to see.
+
+**Correct — sync filters first, network only when needed:**
 
 ```ts
-if (someCondition) {
-  const someFlag = await getFlag()
-  if (someFlag) {
-    // ...
-  }
+async function loadEmployeeDetail(id: string, viewer: Viewer) {
+  if (viewer.role === 'guest')   return null;
+  if (id.length !== 36)          return null;
+  return await fetchEmployee(id);
 }
 ```
 
-This matters when `getFlag` hits the network, a feature-flag service, or any cached remote work: skipping it when `someCondition` is false removes that cost on the cold path.
+The check order matters: arrange by cost, ascending. Constant-time scalar checks before object-property checks before array/object scans before any IO.
 
-Keep the original order if `someCondition` is expensive, depends on the flag, or you must run side effects in a fixed order.
+## When NOT to apply
+
+- **The cheap check depends on the network result** — if `viewer.canView` requires the employee record to evaluate, you can't gate on it.
+- **Speculative prefetch** — if you're warming a cache that may serve other call sites later, the early bail-out wastes the cache fill. That's a deliberate trade-off; mark it in a comment.
+- **Race-free invariants you're trying to *verify*** — if the point of fetching is to confirm the sync check was right (e.g., revalidating an authorization claim against the server), don't skip the fetch.
+
+## In React
+
+Inside a query hook, the equivalent is the `enabled` flag:
+
+```ts
+function useEmployee(id: string) {
+  const { viewer } = useViewer();
+  return useQuery({
+    queryKey: ['employee', id],
+    queryFn: () => fetchEmployee(id),
+    enabled: viewer.role !== 'guest' && id.length === 36,
+  });
+}
+```
+
+`enabled: false` prevents the query from running at all — the hook still returns a stable shape with `isLoading: false, data: undefined`.

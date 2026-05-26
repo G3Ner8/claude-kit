@@ -128,9 +128,9 @@ Read-only output. User reads, decides, no edit.
 - Bumps are tracked per plugin in [CHANGELOG.md](./CHANGELOG.md).
 - For active development, pin to `main`. For stability, install at a tag (`/plugin install react-core@claude-kit@v0.1.0`).
 
-## Provenance & license
+## License
 
-`react-perf` is a curated fork of [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) (MIT). All other skills and agents are project-internal. Full attribution: [NOTICES.md](./NOTICES.md).
+MIT — all skills and agents authored in this repository. See [LICENSE](./LICENSE) and [NOTICES.md](./NOTICES.md).
 
 Kit code: **MIT**, see [LICENSE](./LICENSE).
 

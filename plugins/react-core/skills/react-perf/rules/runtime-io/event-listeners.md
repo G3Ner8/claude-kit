@@ -1,74 +1,111 @@
 ---
-title: Deduplicate Global Event Listeners
-impact: LOW
-impactDescription: single listener for N components
-tags: client, swr, event-listeners, subscription
+title: Share One Global Listener Across Subscribers
+impact: MEDIUM
+impactDescription: avoids attaching a listener-per-component, which becomes O(N) work on every event for N components
+tags: runtime, dom-events, listener, subscribers, cleanup
 ---
 
-## Deduplicate Global Event Listeners
+## Share One Global Listener Across Subscribers
 
-Use `useSWRSubscription()` to share global event listeners across component instances.
+When many components react to the same browser event (`resize`, `scroll`, `keydown`, online/offline), don't attach a fresh listener per component. Each component's `useEffect` adds a new listener; on every event the browser fires N callbacks; teardown adds N more attach/detach calls during navigation.
 
-**Incorrect (N instances = N listeners):**
+Better: maintain **one** listener at module level that fans out to a list of subscribers. Components subscribe/unsubscribe from the list — the global listener stays attached as long as anyone is subscribed.
+
+**Incorrect — listener-per-component:**
 
 ```tsx
-function useKeyboardShortcut(key: string, callback: () => void) {
+function useWindowSize() {
+  const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === key) {
-        callback()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [key, callback])
+    const onResize = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  return size;
 }
 ```
 
-When using the `useKeyboardShortcut` hook multiple times, each instance will register a new listener.
+If 30 components use `useWindowSize`, the browser invokes 30 callbacks on every `resize` event. During a slow resize, that's 100s of callbacks per second.
 
-**Correct (N instances = 1 listener):**
+**Correct — module-level singleton listener:**
 
-```tsx
-import useSWRSubscription from 'swr/subscription'
+```ts
+// useWindowSize.ts
+type Size = { w: number; h: number };
+type Listener = (size: Size) => void;
 
-// Module-level Map to track callbacks per key
-const keyCallbacks = new Map<string, Set<() => void>>()
+let current: Size = { w: window.innerWidth, h: window.innerHeight };
+const subscribers = new Set<Listener>();
 
-function useKeyboardShortcut(key: string, callback: () => void) {
-  // Register this callback in the Map
+function notify() {
+  current = { w: window.innerWidth, h: window.innerHeight };
+  subscribers.forEach((cb) => cb(current));
+}
+
+let attached = false;
+function ensureAttached() {
+  if (attached) return;
+  window.addEventListener('resize', notify);
+  attached = true;
+}
+function maybeDetach() {
+  if (subscribers.size > 0) return;
+  window.removeEventListener('resize', notify);
+  attached = false;
+}
+
+export function useWindowSize() {
+  const [size, setSize] = useState(current);
+
   useEffect(() => {
-    if (!keyCallbacks.has(key)) {
-      keyCallbacks.set(key, new Set())
-    }
-    keyCallbacks.get(key)!.add(callback)
-
+    subscribers.add(setSize);
+    ensureAttached();
     return () => {
-      const set = keyCallbacks.get(key)
-      if (set) {
-        set.delete(callback)
-        if (set.size === 0) {
-          keyCallbacks.delete(key)
-        }
-      }
-    }
-  }, [key, callback])
+      subscribers.delete(setSize);
+      maybeDetach();
+    };
+  }, []);
 
-  useSWRSubscription('global-keydown', () => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.metaKey && keyCallbacks.has(e.key)) {
-        keyCallbacks.get(e.key)!.forEach(cb => cb())
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  })
-}
-
-function Profile() {
-  // Multiple shortcuts will share the same listener
-  useKeyboardShortcut('p', () => { /* ... */ }) 
-  useKeyboardShortcut('k', () => { /* ... */ })
-  // ...
+  return size;
 }
 ```
+
+One DOM listener, N React subscribers. Detach when the last consumer unmounts.
+
+## Even cleaner with `useSyncExternalStore`
+
+React 19's `useSyncExternalStore` is purpose-built for this pattern:
+
+```ts
+function subscribe(callback: () => void) {
+  subscribers.add(callback);
+  ensureAttached();
+  return () => {
+    subscribers.delete(callback);
+    maybeDetach();
+  };
+}
+
+function getSnapshot() {
+  return current;
+}
+
+export function useWindowSize() {
+  return useSyncExternalStore(subscribe, getSnapshot);
+}
+```
+
+Same singleton listener; `useSyncExternalStore` handles the React-side subscription bookkeeping and is safe across concurrent renders.
+
+## When NOT to apply
+
+- **One listener per page** — if only one component listens, the singleton machinery is overkill. Just attach in `useEffect`.
+- **Component-scoped events** — `onScroll` on a specific scrollable container belongs in JSX as `onScroll={...}` or attached to that container's ref, not as a global window listener.
+- **High-frequency events that *all* subscribers need synchronously** — `mousemove` during a drag-resize, where each subscriber computes layout differently. The fanout overhead may exceed the per-listener cost.
+
+## Related
+
+- [`passive-event-listeners`](./passive-event-listeners.md) — for `scroll` and `touchmove`, also pass `{ passive: true }`.
+- [`prevent-rerender/use-ref-transient-values`](../prevent-rerender/use-ref-transient-values.md) — when the subscriber doesn't need a re-render on every event (e.g. throttled).

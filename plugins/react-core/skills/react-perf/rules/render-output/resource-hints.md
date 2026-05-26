@@ -1,72 +1,77 @@
 ---
-title: Use React DOM Resource Hints
-impact: HIGH
-impactDescription: starts loading critical resources earlier in the request lifecycle
-tags: rendering, preload, preconnect, prefetch, resource-hints, react-19
+title: React 19 Resource Hints — `preload` / `preconnect` / `preinit`
+impact: MEDIUM
+impactDescription: tells the browser to warm connections and fetch critical resources in parallel with parse — saves 100-500 ms on hero images, fonts, and API endpoints
+tags: render-output, resource-hints, react19, preload, preconnect
 ---
 
-## Use React DOM Resource Hints
+## React 19 Resource Hints — `preload` / `preconnect` / `preinit`
 
-React 19's `react-dom` exposes APIs that emit resource hints into the document head from anywhere in your component tree. The browser starts DNS resolution, TCP/TLS handshake, or resource fetch in parallel with the rest of your render.
+React 19 ships first-class DOM-hook helpers for resource hints. Call them from components (or from a root layout); React injects the appropriate `<link>` tag into the document head, deduped across the tree.
 
-| API | Use case |
-|-----|----------|
-| `prefetchDNS(href)` | Resolve DNS for a domain you might connect to later |
-| `preconnect(href)` | Establish DNS + TCP + TLS to a server you'll fetch from immediately |
-| `preload(href, options)` | Fetch a resource (stylesheet, font, script, image) you'll use soon |
-| `preloadModule(href)` | Fetch an ES module you'll use soon |
-| `preinit(href, options)` | Fetch **and evaluate** a stylesheet or script |
-| `preinitModule(href)` | Fetch **and evaluate** an ES module |
+Three hooks, three jobs:
 
-These calls are idempotent — calling them multiple times during a render is safe; React dedupes them.
+| Hook | Equivalent `<link>` | Use for |
+|---|---|---|
+| `preconnect(url)` | `<link rel="preconnect" href={url}>` | Origins you'll fetch from soon (API host, image CDN). |
+| `preload(url, opts)` | `<link rel="preload" href={url} as={opts.as}>` | Specific files you know will be needed in the next few hundred ms (fonts, hero image, route chunk). |
+| `preinit(url, opts)` | `<link rel="modulepreload"\|"preload">` + executes | Scripts and stylesheets that should download AND execute eagerly. |
 
-**Example — preconnect to API and analytics domains as the app boots:**
+Together they shave the connection handshake + the round-trip from the critical path.
 
-```tsx
-import { preconnect, prefetchDNS } from 'react-dom'
-
-export function App() {
-  preconnect('https://api.example.com')          // we'll fetch from here right away
-  prefetchDNS('https://analytics.example.com')   // we'll fetch from here later
-
-  return <Routes />
-}
-```
-
-**Example — preload a critical font:**
+**Incorrect — browser waits to discover what it needs as it parses:**
 
 ```tsx
-import { preload } from 'react-dom'
-
-export function App() {
-  preload('/fonts/inter.woff2', {
-    as: 'font',
-    type: 'font/woff2',
-    crossOrigin: 'anonymous',
-  })
-
-  return <Layout>...</Layout>
-}
-```
-
-**Example — preload a lazy route's module on hover:**
-
-```tsx
-import { preloadModule } from 'react-dom'
-
-function NavLink({ to, chunkHref }: { to: string; chunkHref: string }) {
+function HeroSection() {
   return (
-    <a
-      href={to}
-      onMouseEnter={() => preloadModule(chunkHref, { as: 'script' })}
-      onFocus={() => preloadModule(chunkHref, { as: 'script' })}
-    >
-      Go
-    </a>
-  )
+    <section>
+      <img src="https://cdn.example.com/hero.jpg" />     {/* CDN connection cold */}
+      <Greeting fontFamily="Inter" />                    {/* font discovered late */}
+    </section>
+  );
 }
 ```
 
-For dynamic `import()` preloading without specifying a chunk URL, see [Preload Based on User Intent](../bundle/preload.md).
+The browser only learns about `cdn.example.com` and the Inter font when it parses these elements. The TCP/TLS handshake to the CDN delays the image; the font triggers a Flash of Invisible Text.
 
-Reference: [React DOM Resource Preloading APIs](https://react.dev/reference/react-dom#resource-preloading-apis)
+**Correct — hints in the layout above:**
+
+```tsx
+import { preconnect, preload, preinit } from 'react-dom';
+
+function RootLayout({ children }: { children: ReactNode }) {
+  // Warm the CDN connection ASAP — handshake happens in parallel with HTML parse.
+  preconnect('https://cdn.example.com', { crossOrigin: 'anonymous' });
+
+  // Preload the hero image with high priority.
+  preload('https://cdn.example.com/hero.jpg', { as: 'image' });
+
+  // Preload + execute the font CSS.
+  preinit('https://fonts.example.com/inter.css', { as: 'style' });
+
+  return <div>{children}</div>;
+}
+```
+
+By the time the parser hits `<img src="…/hero.jpg">`, the connection is warm and the file is in the browser's preload cache. The render is instant.
+
+## When to call
+
+- **`preconnect`** — as early as possible, ideally in the topmost layout. Cheap; safe to over-call.
+- **`preload`** — when you're confident the resource will be used within ~1 second. Don't preload speculatively.
+- **`preinit`** — for above-the-fold CSS and critical scripts. Same caveat as preload: only when you're sure.
+
+## When NOT to apply
+
+- **Resources you're not sure you'll need** — preload + unused = wasted bandwidth, lower priority for the things you *do* need. The lighthouse audit "preload key requests" specifically flags this.
+- **More than ~6 preloads on a page** — browsers cap parallel high-priority fetches. Over-preloading causes contention with other resources.
+- **Same-origin resources** — `preconnect` is a no-op for your own origin (the connection is already open). `preload` may still help for above-the-fold resources.
+
+## Verify
+
+Network tab → check the "Initiator" column. Preloaded resources show "preload" or the call site. Check the "Priority" column — preloaded resources should be "High."
+
+## Related
+
+- [`bundle/preload`](../bundle/preload.md) — preload as a way to warm lazy chunks the user is likely to need.
+- [`bundle/defer-third-party`](../bundle/defer-third-party.md) — for scripts you can defer; use `preconnect` to warm their hosts.

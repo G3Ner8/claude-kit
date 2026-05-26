@@ -1,98 +1,108 @@
 ---
-title: Dynamic Imports for Heavy Components
-impact: CRITICAL
-impactDescription: keeps heavy editors/charts/PDF readers out of the main chunk
-tags: bundle, dynamic-import, code-splitting, react-lazy, suspense
+title: React.lazy + Suspense for Heavy Components
+impact: HIGH
+impactDescription: route-level or modal-level code splitting can shrink the main bundle by 30-70% with no UX cost
+tags: bundle, lazy, suspense, code-splitting, react
 ---
 
-## Dynamic Imports for Heavy Components
+## `React.lazy` + Suspense for Heavy Components
 
-Use `React.lazy()` + `<Suspense>` to load large components on demand. Editors (Monaco, CodeMirror), chart libraries (Recharts, ApexCharts), PDF viewers, rich-text editors, image croppers, and date pickers can each be hundreds of KB — keeping them in the initial chunk delays Time to Interactive across every route, even ones that don't use them.
+When a component (or a whole subtree) isn't needed on first paint, wrap it in `React.lazy`. The bundler emits the subtree as a separate chunk; the chunk loads only when the component is about to render.
 
-**Incorrect (heavy component bundles with main chunk):**
+The pattern requires three pieces:
 
-```tsx
-import { MonacoEditor } from './monaco-editor'
+1. `lazy(() => import('./Component'))` — the dynamic boundary.
+2. A `<Suspense fallback={...}>` somewhere above it — to show during the chunk fetch.
+3. **Default export** in the lazy-loaded module — `React.lazy` only works on default exports.
 
-function CodePanel({ code }: { code: string }) {
-  return <MonacoEditor value={code} />
-}
-```
+The two best places to split: **routes** (every route is a separate chunk) and **modals/dialogs** (loaded on open, never on initial render).
 
-`monaco-editor` is ~300KB+ gzipped. Every user pays the parse and download cost on first load, even if they never open the editor.
-
-**Correct (Monaco loads on demand):**
+**Incorrect — heavy admin panel imported eagerly:**
 
 ```tsx
-import { lazy, Suspense } from 'react'
+import AdminPanel from './pages/AdminPanel';  // 200 KB, 99% of visitors never see it
 
-const MonacoEditor = lazy(() =>
-  import('./monaco-editor').then(m => ({ default: m.MonacoEditor }))
-)
-
-function CodePanel({ code }: { code: string }) {
+function App() {
   return (
-    <Suspense fallback={<EditorSkeleton />}>
-      <MonacoEditor value={code} />
-    </Suspense>
-  )
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/admin/*" element={<AdminPanel />} />
+    </Routes>
+  );
 }
 ```
 
-> `React.lazy` requires the dynamically imported module to have a `default` export. If the heavy component is a named export, wrap with `.then(m => ({ default: m.NamedExport }))` as shown.
+Every visitor pays the 200 KB cost even on the home page.
 
-### Lazy route loading (most common application)
-
-Always lazy-load routes — the bundler emits one chunk per route, and only the active route is fetched:
+**Correct — `React.lazy` per route:**
 
 ```tsx
-import { lazy, Suspense } from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { lazy, Suspense } from 'react';
 
-const Dashboard = lazy(() => import('./routes/Dashboard'))
-const Settings = lazy(() => import('./routes/Settings'))
-const Reports = lazy(() => import('./routes/Reports'))
+const Home       = lazy(() => import('./pages/Home'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 
-const router = createBrowserRouter([
-  {
-    path: '/',
-    element: (
-      <Suspense fallback={<PageSkeleton />}>
-        <RootLayout />
-      </Suspense>
-    ),
-    children: [
-      { path: 'dashboard', element: <Dashboard /> },
-      { path: 'settings', element: <Settings /> },
-      { path: 'reports', element: <Reports /> },
-    ],
-  },
-])
-
-export function App() {
-  return <RouterProvider router={router} />
+function App() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <Routes>
+        <Route path="/"        element={<Home />} />
+        <Route path="/admin/*" element={<AdminPanel />} />
+      </Routes>
+    </Suspense>
+  );
 }
 ```
 
-### Naming chunks for easier debugging
+Visiting `/` loads only the Home chunk. Visiting `/admin` loads the admin chunk on demand.
 
-Vite and Webpack accept a `webpackChunkName` magic comment that becomes the chunk filename, which makes bundle analysis (`vite build --sourcemap`, `rollup-plugin-visualizer`) much easier to read:
+## Modal-level splitting
+
+Modals are usually heavy (forms, calendars, rich text) and almost never opened. Lazy-load them:
+
+```tsx
+const EmployeeFormDialog = lazy(() => import('./EmployeeFormDialog'));
+
+function EmployeeList() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Add employee</button>
+      {open && (
+        <Suspense fallback={<DialogSkeleton />}>
+          <EmployeeFormDialog onClose={() => setOpen(false)} />
+        </Suspense>
+      )}
+    </>
+  );
+}
+```
+
+The dialog chunk doesn't even appear in the network tab until the user clicks Add.
+
+## Naming chunks for analyzer clarity
+
+Bundlers sometimes name lazy chunks generically (`chunk-1.js`, `chunk-2.js`). For a readable bundle analyzer output:
 
 ```ts
-const MonacoEditor = lazy(() =>
-  import(/* webpackChunkName: "monaco" */ './monaco-editor')
-    .then(m => ({ default: m.MonacoEditor }))
-)
+const AdminPanel = lazy(() =>
+  import(/* webpackChunkName: "admin-panel" */ './pages/AdminPanel')
+);
 ```
 
-### Pairing with intent-based preload
+Vite respects the `webpackChunkName` magic comment; Rollup honors `manualChunks` config.
 
-Lazy chunks don't load until React renders the component. To remove the loading flash, kick off the `import()` ahead of time on hover or focus — see [Preload Based on User Intent](./preload.md).
+## When NOT to apply
 
-### When NOT to lazy-load
+- **Above-the-fold components** — putting your hero or initial layout behind `lazy` shows a skeleton for the first paint. That's worse, not better.
+- **Tiny components** — splitting a 5 KB component creates an extra HTTP round-trip to save 5 KB. Net loss.
+- **Components that always render together** — splitting `<HeaderLogo>` from `<HeaderNav>` makes the analyzer noisier without saving any bytes.
 
-- The component is small (< 20KB gzipped). The chunk metadata + fetch round trip is more expensive than just shipping it.
-- The component is rendered on every page load (e.g., the app shell). Lazy-loading it just delays first paint.
-- The component is below-the-fold but always rendered. Use `content-visibility: auto` (see [Content Visibility](../rendering/content-visibility.md)) instead — it skips render work without breaking the bundle.
+## Verify
 
-Reference: [React – lazy](https://react.dev/reference/react/lazy), [Vite – Code Splitting](https://vite.dev/guide/features.html#code-splitting)
+Bundle analyzer: each `lazy()` boundary should produce its own chunk file. Network tab on a real navigation: the new route's chunk should arrive on click, not on initial load.
+
+## Related
+
+- [`conditional-load`](./conditional-load.md) — same pattern for non-component code (PDF generators, image processors).
+- [`preload`](./preload.md) — when you can predict which lazy chunk the user will need next, preload it.
