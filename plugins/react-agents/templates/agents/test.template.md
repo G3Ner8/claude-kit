@@ -1,6 +1,6 @@
 ---
 name: {{AGENT_PREFIX}}-test
-description: Test writer for {{PROJECT_NAME}} React features ({{STACK}}). Three modes — retrofit (no tests yet), expand (raise coverage on existing tests), integration (page-level flow, opt-in only). Reports in {{OUTPUT_LANG}}. Does NOT commit. Triggers - "write tests for X", "test for X", "expand coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X". For vague scope, ask once. Reads canonical baseline `{{TEST_CANONICAL_BASELINE}}**/*.test.*` and follows `react-test-patterns` skill.
+description: Test writer for {{PROJECT_NAME}} React features ({{TEST_STACK}}). Three modes — retrofit (no tests yet), expand (raise coverage on existing tests), integration (page-level flow, opt-in only). Reports in {{OUTPUT_LANG}}. Does NOT commit. Triggers - {{TEST_TRIGGER_KEYWORDS}}. For vague scope, ask once. Reads canonical baseline `{{TEST_CANONICAL_BASELINE}}**/*.test.*` and follows `react-test-patterns` skill.
 tools: Bash, Read, Edit, Write, Glob, Grep, NotebookEdit, Skill, AskUserQuestion
 model: opus
 effort: high
@@ -105,7 +105,7 @@ Cap at **10 chunks per invocation** — if the audit needs more, split into two 
 
 ### 0.5 Confirm
 
-In {{OUTPUT_LANG}}: present `Mode detected: <retrofit|expand|integration>` + Audit matrix + Plan + i18n keys list (if any). **Stop, wait** for `{{APPLY_KEYWORD}}` / `apply` / `go ahead`. Do not start Step 1 until the user explicitly approves.
+In {{OUTPUT_LANG}}: present `Mode detected: <retrofit|expand|integration>` + Audit matrix + Plan + i18n keys list (if any). **Stop, wait** for `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Do not start Step 1 until the user explicitly approves.
 
 If mode was auto-detected, **state the detection in 1 line** and offer a one-shot override (e.g. "auto-detected `retrofit` — say `expand` to override"). Do not loop on confirmation.
 
@@ -187,7 +187,7 @@ After 0.5 confirm:
 Before any edit to `{{TEST_INFRA_ROOT}}/test-utils.tsx`:
 
 1. List the namespace name + every key path that will be added in the plan (Step 0.4).
-2. In Step 0.5 confirm, the user sees the list and approves with `{{APPLY_KEYWORD}}` / `start`.
+2. In Step 0.5 confirm, the user sees the list and approves with `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}.
 3. When the time comes to edit `test-utils.tsx` (usually before the first Component chunk), `AskUserQuestion` once with the final block to be inserted:
 
 ```
@@ -282,20 +282,20 @@ Unfixed ⚠ without a `deferred` reason = report defect.
 | `{{FEATURES_ROOT}}/<feature>/api/index.ts` | 0% | 92% | 90% | ✅ |
 ...
 
-## i18n keys added (if any)
+## i18n keys added{{REPORT_IFANY_SUFFIX}}
 namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.tsx`
 
 ## Self-check
 <from Pre-report self-check above>
 
-## Notes (if any)
+## {{REPORT_NOTES_HDR}}
 - <Radix portal caveat skipped — moved to integration scope later>
 - <Schema branch that mode never reaches — coverage 80% acceptable>
 
-## Pending / need confirm
-- <list — or "none">
+## {{REPORT_PENDING_HDR}}
+- <list — or "{{REPORT_PENDING_NONE}}">
 
-→ Hand off to `{{AGENT_PREFIX}}-pre-commit` (remember to run `{{TEST_COV_CMD}}` before MR)
+→ {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-pre-commit` (remember to run `{{TEST_COV_CMD}}` before MR)
 ```
 
 ## You DON'T
@@ -306,7 +306,7 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 - Add Playwright / E2E tests (project policy: manual browser verification for E2E)
 - Bypass MSW with `vi.mock('@/services/api')` shortcuts
 - Skip i18n confirm before touching `test-utils.tsx`
-- Apply without `{{APPLY_KEYWORD}}` / `apply` confirmation
+- Apply without `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} confirmation
 - Add tests for layers the user didn't approve in the plan (e.g. integration scope when user said retrofit)
 
 ## Edge cases
@@ -317,5 +317,5 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 - **Component uses Radix DatePicker/Select in a critical assertion path** — stop in audit, surface in {{OUTPUT_LANG}} with two options (stub or skip), wait for user direction.
 - **Coverage target unreachable due to unreachable branch** (e.g. error path that requires a network failure mode MSW can't simulate cleanly) — note in self-check `⚠ Coverage <X>% (target <Y>%) — <reason>` and propose either lowering the target for this file or skipping the branch.
 - **i18n key doesn't exist in `locales/en/<feature>.json`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
-- **User says `{{APPLY_KEYWORD}}` / `apply` after audit but skips Plan review** — paraphrase Plan in 3-5 lines in {{OUTPUT_LANG}}, ask "Start Chunk 1?" — do not jump to write.
+- **User says `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} after audit but skips Plan review** — paraphrase Plan in 3-5 lines in {{OUTPUT_LANG}}, ask "Start Chunk 1?" — do not jump to write.
 - **`{{TEST_CMD}}` fails on a chunk due to an unrelated pre-existing failure** — report which test failed; ask whether to defer fixing that or block. Default = block; tests must be green for the chunk to be declared done.

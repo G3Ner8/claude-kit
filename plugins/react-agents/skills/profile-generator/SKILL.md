@@ -122,8 +122,10 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 |---|---|---|
 | `{{PROJECT_NAME}}` | answer 1 | |
 | `{{AGENT_PREFIX}}` | answer 2 | |
-| `{{STACK}}` | answer 3 | |
+| `{{STACK}}` | answer 3 | implement + polish description only |
+| `{{TEST_STACK}}` | answer 3b (test-stack one-liner, e.g. `Vitest 4 + React Testing Library 16 + @testing-library/user-event 14 + MSW 2`) | default: `Vitest + React Testing Library + MSW` |
 | `{{OUTPUT_LANG}}` | answer 4 | |
+| `{{BACKEND_NAME}}` | answer 4b (backend project/repo name; default `backend`) | rendered backticked inline; if user types `none` keep template wording `backend` |
 | `{{CONVENTIONS_DOC}}` | answer 5 | |
 | `{{MC_MAX}}` | answer 6 | |
 | `{{STRUCTURE_DOC}}` | answer 7 (or `<conventions-doc>` if empty — keep references coherent) | |
@@ -138,21 +140,42 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{TEST_CMD}}` | answer 14 | |
 | `{{LINT_STRUCTURE_CMD}}` | answer 15 | |
 | `{{LINT_STRUCTURE_CMD_STRICT}}` | answer 16 | |
-| `{{POLISH_AUDIT_SCRIPT_REF}}` | ` + skim ` + answer 17 + ` (PAGE_STATUS map)` (empty string if answer 17 empty) | |
+| `{{POLISH_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + `` ` ``+ answer 17 +` ` `` ` + ` (` + `` ` ``+`PAGE_STATUS`+`` ` ``+` map)` (empty string if answer 17 empty) | backtick-wrap both the script path AND `PAGE_STATUS` |
 | `{{POLISH_STATUS_CHECK_SECTION}}` | render full Polish-status block (see below) if answer 17 non-empty; else empty string | |
 | `{{POLISH_AUDIT_CMD}}` | `cd <project> && node <relative-path-from-project-root>` derived from answer 17 (empty if answer 17 empty) | only referenced inside `{{POLISH_STATUS_CHECK_SECTION}}` |
 | `{{POLISH_AUDIT_SOURCE}}` | answer 17 verbatim (empty if answer 17 empty) | |
 | `{{SWAGGER_URL}}` | answer 18 | |
 | `{{BE_KEYWORDS_PRIMARY}}` | answer 19 first half | |
 | `{{BE_KEYWORDS_SECONDARY}}` | answer 19 second half | split at commas, group |
-| `{{API_SERVICES_PATHS}}` | answer 20 (empty if FE-only project — Swagger drift gate then lists feature `api/*` files only) | |
+| `{{API_SERVICES_PATHS}}` | answer 20 with each path backtick-wrapped (e.g. `` `a`, `b`, `c` ``); empty if FE-only | gate then lists feature `api/*` files only |
 | `{{TEST_COV_CMD}}` | answer 21 | |
 | `{{TEST_INFRA_ROOT}}` | answer 22 | |
 | `{{TEST_CANONICAL_BASELINE}}` | answer 23 (empty → template renders an empty "Canonical baseline" section; agent falls back to in-repo conventions) | trailing `/` preserved |
 | `{{TEST_CANONICAL_FILES}}` | answer 24 (multi-line markdown bullet list, indentation = 0 spaces, one `- \`path\`` per line) | |
 | `{{APPLY_KEYWORD}}` | answer 25 | |
+| `{{APPLY_KEYWORD_ALIASES}}` | answer 25b — trailing alias suffix beginning with ` / `, default ` / `` `apply` `` ` / `` `go ahead` ``  | comma-separated alias list user types → render each backticked, joined by ` / `, prefixed with ` / ` |
+| `{{POLISH_TRIGGER_KEYWORDS}}` | answer 25c — comma-separated quoted triggers for polish description (multi-language allowed) | default: `"clean up", "DRY up X", "align features X, Y, Z", "polish diff"` |
+| `{{POLISH_SCOPE_NOTE}}` | answer 25d — optional parenthetical clarifier in polish description (or empty) | default empty |
+| `{{TEST_TRIGGER_KEYWORDS}}` | answer 25e — comma-separated quoted triggers for test description (multi-language allowed) | default: `"write tests for X", "test for X", "expand coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"` |
 | `{{UI_INVENTORY_SKILL}}` | answer 26 | wrap in backticks: `` `<name>` `` |
 | `{{UI_INVENTORY_REF}}` | `, ` + UI_INVENTORY_SKILL if non-empty; else empty string | inline list separator |
+| Report-block headers (`{{REPORT_NOTES_HDR}}`, `{{REPORT_PENDING_HDR}}`, `{{REPORT_HANDOFF_VERB}}`, `{{REPORT_BUILD_VERB}}`, `{{REPORT_OR_REASON}}`, `{{REPORT_FILES_HDR}}`, `{{REPORT_SKIP_HDR}}`, `{{REPORT_IFANY_SUFFIX}}`, `{{REPORT_PENDING_NONE}}`) | derived from `{{OUTPUT_LANG}}` — see "Report-header derivation" below | |
+
+### Report-header derivation (OUTPUT_LANG-driven)
+
+For each of the 9 Report-header placeholders, look up the value from this table. If `OUTPUT_LANG` is not English or Thai, prompt the user once for each value during the summary step; never silently fall back to English (the result would mix languages in the rendered Report block).
+
+| Placeholder | English | Thai |
+|---|---|---|
+| `{{REPORT_NOTES_HDR}}` | `Notes (if any)` | `Notes (ถ้ามี)` |
+| `{{REPORT_PENDING_HDR}}` | `Pending / need confirm` | `ค้าง / ต้อง confirm` |
+| `{{REPORT_HANDOFF_VERB}}` | `Hand off to` | `ส่งต่อ` |
+| `{{REPORT_BUILD_VERB}}` | `passed` | `ผ่าน` |
+| `{{REPORT_OR_REASON}}` | `or ❌ + reason` | `หรือ ❌ + เหตุผล` |
+| `{{REPORT_FILES_HDR}}` | `Files touched` | `ไฟล์ที่แตะ` |
+| `{{REPORT_SKIP_HDR}}` | `Skip (if any)` | `Skip (ถ้ามี)` |
+| `{{REPORT_IFANY_SUFFIX}}` | ` (if any)` | ` (ถ้ามี)` |
+| `{{REPORT_PENDING_NONE}}` | `none` | `ไม่มี` |
 
 ### POLISH_STATUS_CHECK_SECTION template
 

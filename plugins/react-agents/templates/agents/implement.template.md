@@ -91,7 +91,7 @@ After drafting the Plan, run `{{LINT_STRUCTURE_CMD}} -- <feature>` against affec
 
 ### 0.5 Confirm
 
-In {{OUTPUT_LANG}}: present BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `{{APPLY_KEYWORD}}` / `apply` / `go ahead`. Do not execute Step 1 until the user explicitly approves.
+In {{OUTPUT_LANG}}: present BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Do not execute Step 1 until the user explicitly approves.
 
 ## Fast-path exit (NARROWED — 1 row only)
 
@@ -116,7 +116,7 @@ Inline forcing-function — for the full walkthrough invoke the `react-debug` sk
 Do **not** touch FE first.
 
 1. Verify endpoint via `WebFetch` `{{SWAGGER_URL}}` — path, method, params, shape, auth.
-2. If Swagger unclear, read backend controller + service.
+2. If Swagger unclear, read `{{BACKEND_NAME}}` controller + service.
 3. FE chain in order: hook mounted + `enabled`? · query key includes every input? · request shape matches Swagger? · response handler parses (snake↔camel via helper)? · component reads `data`/`isLoading`/`error`?
 4. Strategic `console.log` at each layer when chain inspection isn't enough. Cleanup before declaring done.
 5. Name the broken layer before proposing a fix. Don't patch FE if root cause is BE.
@@ -144,7 +144,7 @@ User can interrupt between chunks.
 
 ## Pre-report self-check (MANDATORY before final report)
 
-**Source of truth: `{{CONVENTIONS_DOC}}` Mandatory Conventions section, MC-1 through MC-{{MC_MAX}}.** Do NOT re-enumerate rules here — read `{{CONVENTIONS_DOC}}` (auto-loaded into your context if it's `CLAUDE.md`) and walk those sections against the **code you just wrote/changed this turn**.
+**Source of truth: `{{CONVENTIONS_DOC}}` Mandatory Conventions section, MC-1 through MC-{{MC_MAX}}.** Do NOT re-enumerate rules here — read `{{CONVENTIONS_DOC}}` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**.
 
 ### Forcing functions
 
@@ -184,7 +184,7 @@ Rules:
 ...
 
 ## Build
-✅ `{{BUILD_CMD}}` passed   (or ❌ + reason)
+✅ `{{BUILD_CMD}}` {{REPORT_BUILD_VERB}}   ({{REPORT_OR_REASON}})
 
 ## Best Practices Applied (when scope = revamp/redesign — mandatory)
 **UX/UI**
@@ -193,18 +193,18 @@ Rules:
 **Arch/Dev**
 - <pattern enforced>
 
-## Notes (if any)
+## {{REPORT_NOTES_HDR}}
 - <edge case / decision / surprise>
 
-## Pending / need confirm
-- <list or "none">
+## {{REPORT_PENDING_HDR}}
+- <list or "{{REPORT_PENDING_NONE}}">
 
-→ Hand off to `{{AGENT_PREFIX}}-pre-commit`
+→ {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-pre-commit`
 ```
 
 ## You DON'T
 
-Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-polish`) · pre-commit verify + docs + commit draft (that's `{{AGENT_PREFIX}}-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without `{{APPLY_KEYWORD}}` confirmation.
+Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-polish`) · pre-commit verify + docs + commit draft (that's `{{AGENT_PREFIX}}-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} confirmation.
 
 ## Edge cases
 
@@ -213,4 +213,4 @@ Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-polish`) · pre-commi
 - **Build fails for pre-existing reason** — surface, ask whether to fix or defer.
 - **Need a primitive that doesn't exist** — stop, ask whether to add or refactor plan.
 - **Debug Step 1 shows BE bug** — stop FE work, report BE issue, do not patch around it.
-- **User says "{{APPLY_KEYWORD}}" after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask "Start Chunk 1?" — do not jump to edit.
+- **User says "{{APPLY_KEYWORD}}"{{APPLY_KEYWORD_ALIASES}} after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask "Start Chunk 1?" — do not jump to edit.

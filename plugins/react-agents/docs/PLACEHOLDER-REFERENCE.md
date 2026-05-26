@@ -8,8 +8,10 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 |---|---|---|
 | `{{PROJECT_NAME}}` | Project slug used in agent descriptions and conventions text | `pps-web` |
 | `{{AGENT_PREFIX}}` | Short prefix for agent names (becomes `<prefix>-implement`, etc.) | `web` |
-| `{{STACK}}` | One-line stack summary for agent `description:` frontmatter | `React 19 / TS / Vite / Tailwind / Radix` |
-| `{{OUTPUT_LANG}}` | Language for `implement` + `polish` reports (`pre-commit` is always English) | `Thai` |
+| `{{STACK}}` | One-line stack summary for `implement` + `polish` agent `description:` frontmatter | `React 19 / TS / Vite / Tailwind / Radix` |
+| `{{TEST_STACK}}` | Test-stack one-liner for `test` agent description (Vitest/RTL/MSW + versions) | `Vitest 4 + React Testing Library 16 + @testing-library/user-event 14 + MSW 2` |
+| `{{OUTPUT_LANG}}` | Language for `implement` + `polish` + `test` reports (`pre-commit` is always English) | `Thai` |
+| `{{BACKEND_NAME}}` | Backend project / repo name (used in implement Debug Protocol) | `pps-api` |
 
 ## Paths
 
@@ -57,11 +59,43 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{TEST_CANONICAL_FILES}}` | Multi-line markdown bullet list of specific baseline test files to read in full (one per line, backtick-wrapped) | `- `pps-web/src/features/holiday/schemas/holiday.schema.test.ts`<br>- `pps-web/src/features/holiday/api/index.test.ts`<br>- ... (3 more) |
 | `{{TEST_INFRA_ROOT}}` | Folder holding shared test infra (`setup`, `test-utils`, `server`, `handlers`, `factories`) | `pps-web/src/test` |
 
+## Triggers (per-agent description lines)
+
+| Placeholder | What it is | Example |
+|---|---|---|
+| `{{POLISH_TRIGGER_KEYWORDS}}` | Comma-separated quoted triggers for `polish` agent description (multi-language allowed) | `"clean up", "DRY up X", "ทำไม X หน้าตาไม่เหมือนกันข้ามหน้า", "align features X, Y, Z", "polish diff"` |
+| `{{POLISH_SCOPE_NOTE}}` | Optional parenthetical clarifier in `polish` description (or empty) | ` (distinct from user-global \`polish\` design skill)` |
+| `{{TEST_TRIGGER_KEYWORDS}}` | Comma-separated quoted triggers for `test` agent description (multi-language allowed) | `"เขียน test ให้ X", "test ให้ X", "write tests for X", "เพิ่ม coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"` |
+
+## Apply keyword
+
+| Placeholder | What it is | Example |
+|---|---|---|
+| `{{APPLY_KEYWORD}}` | Primary single-word greenlight | `เริ่ม` (`apply` is the English default) |
+| `{{APPLY_KEYWORD_ALIASES}}` | Trailing alias suffix appended after `{{APPLY_KEYWORD}}` (begins with ` / `) | `` ` / `start` / `apply` / `go ahead` `` (Thai); `` ` / `go ahead` `` (English default) |
+
+## Report-block headers (OUTPUT_LANG-derived)
+
+The Report block in `implement` / `polish` / `test` agents uses small placeholders so headers translate with `{{OUTPUT_LANG}}`. `pre-commit` always English — these are not used there.
+
+| Placeholder | English default | Thai value |
+|---|---|---|
+| `{{REPORT_NOTES_HDR}}` | `Notes (if any)` | `Notes (ถ้ามี)` |
+| `{{REPORT_PENDING_HDR}}` | `Pending / need confirm` | `ค้าง / ต้อง confirm` |
+| `{{REPORT_HANDOFF_VERB}}` | `Hand off to` | `ส่งต่อ` |
+| `{{REPORT_BUILD_VERB}}` | `passed` | `ผ่าน` |
+| `{{REPORT_OR_REASON}}` | `or ❌ + reason` | `หรือ ❌ + เหตุผล` |
+| `{{REPORT_FILES_HDR}}` | `Files touched` | `ไฟล์ที่แตะ` |
+| `{{REPORT_SKIP_HDR}}` | `Skip (if any)` | `Skip (ถ้ามี)` |
+| `{{REPORT_IFANY_SUFFIX}}` | ` (if any)` | ` (ถ้ามี)` |
+| `{{REPORT_PENDING_NONE}}` | `none` | `ไม่มี` |
+
+The generator must ship a built-in derivation map for `English` and `Thai`. For other languages, prompt the user to supply each value during Round 5; do not silently fall back to English.
+
 ## Other
 
 | Placeholder | What it is | Example |
 |---|---|---|
-| `{{APPLY_KEYWORD}}` | Single word the user types to greenlight apply | `เริ่ม` / `start` (`apply` is the English default) |
 | `{{UI_INVENTORY_SKILL}}` | Backtick-wrapped name of the project's UI inventory skill | `` `pps-ui` `` |
 | `{{UI_INVENTORY_REF}}` | Comma-separated extension for skill-list tables | `, `` `pps-ui` `` |
 

@@ -200,7 +200,7 @@ Only what the change invalidates. Terse bullets, existing doc style, English onl
 | `{{ARCHITECTURE_DOCS_GLOB}}` | Moves an architectural rule |
 | `{{COMPONENT_DOCS_GLOB}}` | Modifies a documented component's props/variants |
 | `{{FEATURE_DOCS_GLOB}}` | Adds/removes/significantly changes a feature |
-| `{{PROGRESS_DOC}}` + polish audit script | Only after user confirms a status flip — never preemptive |
+| `{{PROGRESS_DOC}}` + `{{POLISH_AUDIT_SOURCE}}` | Only after user confirms a status flip — never preemptive |
 | Repo-root CLAUDE.md | Moves a project-wide fact |
 
 Nothing invalidated → skip.
