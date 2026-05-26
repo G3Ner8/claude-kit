@@ -20,12 +20,16 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{CONVENTIONS_DOC}}` | Path to your project's Mandatory Conventions doc | `pps-web/CLAUDE.md` |
 | `{{MC_MAX}}` | Highest MC-N section number in your conventions doc | `7` |
 | `{{STRUCTURE_DOC}}` | Path to feature/folder structure rules doc | `pps-web/docs/architecture/feature-structure.md` |
+| `{{STRUCTURE_PREWRITE_TABLE}}` | (Optional) Project-specific "new file kind → required sections to Read" table + worked example, inserted into `implement` Step 0.1 Structure pre-write check. Empty if generic | (multi-line table; see PROFILE-GENERATOR.md crib sheet) |
+| `{{STRUCTURE_EXTRACT_MAPPING}}` | (Optional) Project-specific extraction-kind → section bullet list for `polish` Structure check when extracting. Empty if generic | `- Schema extraction → Section 4.1 + 4.4 + 9`<br>`- Component split / extract → Section 4.2 + 6` |
 | `{{PROGRESS_DOC}}` | Path to the doc that lists Polished baseline pages | `pps-web/docs/progress.md` |
 | `{{FEATURES_ROOT}}` | Root path for feature folders | `src/features` |
 | `{{POLISHED_PAGE_EXAMPLES}}` | Comma-separated examples of canonical baseline pages | `PayrollListPage, EmployeeListPage, EmployeeDetailPage` |
 | `{{ARCHITECTURE_DOCS_GLOB}}` | Glob of architectural docs (drives pre-commit doc-sync gate) | `pps-web/docs/architecture/*` |
 | `{{COMPONENT_DOCS_GLOB}}` | Glob of per-component docs | `pps-web/docs/components/*` |
 | `{{FEATURE_DOCS_GLOB}}` | Glob of per-feature docs | `pps-web/docs/features/*` |
+| `{{PLAN_FILE_PATTERN}}` | (Optional) Trailing parenthetical hint for Plan-file path convention in `implement` Mode table | ` (\`session-working-space/tasks/*-plan.md\`)` |
+| `{{MC_WALK_INCIDENT_REF}}` | (Optional) Trailing sentence cited as motivation for the MC-walk forcing functions (typically a past incident). Empty if no incident | ` A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.` |
 
 ## Commands
 

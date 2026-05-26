@@ -49,7 +49,7 @@ Trust the `{{AGENT_PREFIX}}-pre-commit` Swagger drift gate to catch contract dri
 **Structure pre-write check (when plan creates new files in `{{FEATURES_ROOT}}/*`):**
 
 If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `{{STRUCTURE_DOC}}`. Cite the section number that justifies each new file's placement/name in the Plan (`Section ref:` line).
-
+{{STRUCTURE_PREWRITE_TABLE}}
 The `Section ref:` line is mandatory for **new** files. For edits to existing files, it's optional but encouraged when the edit touches a structural concern (rename, move, split).
 
 ### 0.2 Audit invocation (pick ONE — most specific trigger wins)
@@ -105,7 +105,7 @@ In {{OUTPUT_LANG}}: present BE-scope decision + audit summary + Mockup + Plan. *
 |---|---|---|
 | Direct | Concrete, scoped, named change | Full Step 0 (BE-scope + Recon + Mockup-if-visual + Plan + Confirm) |
 | Propose-first | Vague / "revamp" / "redesign" / "align" / "review ui" | Full Step 0 with **mandatory** audit skill invocation (0.2) |
-| Continuation | Plan file or skill output from earlier turn | Read in full, paraphrase 1 line/step, wait `apply` |
+| Continuation | Plan file{{PLAN_FILE_PATTERN}} or skill output from earlier turn | Read in full, paraphrase 1 line/step, wait `apply` |
 
 Ambiguous → ask once in {{OUTPUT_LANG}} with what you think the task is.
 
@@ -144,7 +144,7 @@ User can interrupt between chunks.
 
 ## Pre-report self-check (MANDATORY before final report)
 
-**Source of truth: `{{CONVENTIONS_DOC}}` Mandatory Conventions section, MC-1 through MC-{{MC_MAX}}.** Do NOT re-enumerate rules here — read `{{CONVENTIONS_DOC}}` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**.
+**Source of truth: `{{CONVENTIONS_DOC}}` Mandatory Conventions section, MC-1 through MC-{{MC_MAX}}.** Do NOT re-enumerate rules here — read `{{CONVENTIONS_DOC}}` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**.{{MC_WALK_INCIDENT_REF}}
 
 ### Forcing functions
 

@@ -63,7 +63,7 @@ Surgical · Pick a winner from **Polished** pages in `{{PROGRESS_DOC}}` (e.g. {{
 
 ## Micro-conventions walk (MANDATORY in every mode)
 
-**Source of truth: `{{CONVENTIONS_DOC}}` Mandatory Conventions section, MC-1 through MC-{{MC_MAX}}.** Architecture-level findings (DRY, file-size, consistency, single Save anchor) are **not enough**. After your mode's audit, walk MC-1..MC-{{MC_MAX}} from `{{CONVENTIONS_DOC}}` against every changed file. Do NOT re-enumerate rules in this agent — read `{{CONVENTIONS_DOC}}` (auto-loaded into context).
+**Source of truth: `{{CONVENTIONS_DOC}}` Mandatory Conventions section, MC-1 through MC-{{MC_MAX}}.** Architecture-level findings (DRY, file-size, consistency, single Save anchor) are **not enough**{{MC_WALK_INCIDENT_REF}}. After your mode's audit, walk MC-1..MC-{{MC_MAX}} from `{{CONVENTIONS_DOC}}` against every changed file. Do NOT re-enumerate rules in this agent — read `{{CONVENTIONS_DOC}}` (auto-loaded into context).
 
 ### Forcing functions
 
@@ -97,7 +97,9 @@ Rules:
 - Every MC-N must appear in exactly one of the two lines.
 - `⚠ findings:` line appears **only when violations exist**.
 
-**Structure check when extracting:** If any picked row creates a new file (extracting an inline schema, splitting a 400+ line component), `Read` the relevant section(s) of `{{STRUCTURE_DOC}}` first and cite the section number in the execution plan.
+**Structure check when extracting:** If any picked row creates a new file (e.g., extracting an inline schema into `schemas/`, extracting a section into `sections/`, splitting a 400+ line component into a folder), `Read` the relevant section(s) of `{{STRUCTURE_DOC}}` first:
+{{STRUCTURE_EXTRACT_MAPPING}}
+Cite the section number in the execution plan for any new-file row. Same logic as `{{AGENT_PREFIX}}-implement` Step 0.1 structure pre-write check, scoped to extraction.
 
 ## Workflow
 
