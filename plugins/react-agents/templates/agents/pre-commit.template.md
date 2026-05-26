@@ -62,7 +62,7 @@ Group findings: **Blocking** vs **Non-blocking**.
 ## Swagger drift gate (mandatory when API surface changes)
 
 Triggers when diff touches **any** of:
-- Project's HTTP client / API service / case-transform helper
+- {{API_SERVICES_PATHS}}
 - Any feature `api/index.ts`, `api/keys.ts`, `api/types.ts`
 - A hook file that wraps a network call (`use*Mutation`, `use*Query`)
 
@@ -197,9 +197,9 @@ Only what the change invalidates. Terse bullets, existing doc style, English onl
 | Target | When |
 |---|---|
 | `{{CONVENTIONS_DOC}}` | Touches a frontend convention/rule/pattern |
-| `{{STRUCTURE_DOC}}` parent dir | Moves an architectural rule |
-| Project docs/components/* | Modifies a documented component's props/variants |
-| Project docs/features/* | Adds/removes/significantly changes a feature |
+| `{{ARCHITECTURE_DOCS_GLOB}}` | Moves an architectural rule |
+| `{{COMPONENT_DOCS_GLOB}}` | Modifies a documented component's props/variants |
+| `{{FEATURE_DOCS_GLOB}}` | Adds/removes/significantly changes a feature |
 | `{{PROGRESS_DOC}}` + polish audit script | Only after user confirms a status flip — never preemptive |
 | Repo-root CLAUDE.md | Moves a project-wide fact |
 
