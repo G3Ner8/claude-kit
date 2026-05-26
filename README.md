@@ -1,5 +1,7 @@
 # claude-kit
 
+[![validate](https://github.com/G3Ner8/claude-kit/actions/workflows/validate.yml/badge.svg)](https://github.com/G3Ner8/claude-kit/actions/workflows/validate.yml)
+
 A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace for React 19 SPA work. Ships three installable plugins:
 
 | Plugin | What | Portable? |

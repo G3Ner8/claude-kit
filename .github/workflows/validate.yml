@@ -1,0 +1,32 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontmatter:
+    name: Frontmatter (per-file)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run validate-frontmatter.sh
+        run: ./scripts/validate-frontmatter.sh
+
+  contract:
+    name: Public/Hidden contract (cross-file)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run validate-contract.sh --strict
+        run: ./scripts/validate-contract.sh --strict
+
+  list-skills:
+    name: Marketplace catalog sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run list-skills.sh
+        run: ./scripts/list-skills.sh
