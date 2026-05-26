@@ -5,3 +5,11 @@ node_modules/
 *.log
 .idea/
 .vscode/
+
+# Working documents — design WIP, audit findings, exploration notes.
+# Public kit ships finished docs only (CLAUDE.md, README.md, SKILL.md per
+# skill). Use these patterns for local scratch that should never reach
+# the marketplace.
+_scratch/
+*.wip.md
+*.draft.md

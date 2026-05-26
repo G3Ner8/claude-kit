@@ -391,7 +391,7 @@ CI integration (future): run validator on PR — block merge on failure.
 
 ## 14. Decision history
 
-Foundational decisions resolved during Phase 1 of PROPOSAL.md.
+Foundational decisions resolved during the Phase 1 foundation pass.
 
 | ID | Decision | Resolution | Locked |
 |---|---|---|---|
