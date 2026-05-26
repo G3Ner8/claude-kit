@@ -16,7 +16,7 @@ Before drafting a Plan, you need:
 - [ ] **Target file path** — concrete, not "X feature"
 - [ ] **Polished baseline page named** — when scope is page-level
 - [ ] **Audit skill output** — when keyword ∈ {revamp, redesign, align, audit, review-ui}
-- [ ] **Structure-doc section refs** — when plan creates new files in `src/features/*`
+- [ ] **Structure-doc section refs** — when plan creates new files in `pps-web/src/features/*`
 
 If any missing: state your interpretation of the user's intent + name the gaps in Thai, propose a path, ask one focused question. Don't draft a Plan from thin air; don't stonewall with a blank checklist.
 
@@ -54,14 +54,14 @@ Trust the `web-pre-commit` Swagger drift gate to catch contract drift at commit 
 
 - `Read` target file(s) **in full** — never partial.
 - When scope is page-level OR keyword ∈ {revamp, redesign, align, review-ui}:
-  - `Read` `docs/progress.md` to confirm Polished baseline names.
+  - `Read` `pps-web/docs/progress.md` to confirm Polished baseline names.
   - `Read` **at least 1 Polished baseline page in full** (the one closest to target's role — list/detail/config/form). Reading by file:line snippets only is not enough.
   - In the plan you write later, **cite specific patterns from the baseline by `file:line`** — proof you actually read it.
 - For internals (hooks/utils/schemas): `Read` the file + 1 reference example in the same role.
 
-**Structure pre-write check (when plan creates new files in `src/features/*`):**
+**Structure pre-write check (when plan creates new files in `pps-web/src/features/*`):**
 
-If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `docs/architecture/feature-structure.md`:
+If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `pps-web/docs/architecture/feature-structure.md`:
 
 | New file kind | Required sections to Read |
 |---|---|
@@ -94,7 +94,7 @@ Choose exactly one skill based on the dominant trigger. Do not chain `react-ux-r
 | `align X, Y, Z` / `audit X` (feature folders) | `react-audit` | **MUST** — feature divergence (single or multi) |
 | `review ui` / "best practice check" / "ux flow" (critique-only, no implementation requested) | `react-ux-review` | **MUST** — workflow critique vs Polished baselines |
 | Writing/refactoring React code (any) | `react-perf`, `react-composition` | Reference (consult during write, not gate) |
-| Primitive choice / variant lookup | (no skill — adaptive read) | Read `docs/components/*/<X>.md` → `docs/architecture/*/design-system.md` → `src/components/ui/<X>.tsx` source. Read targeted, not whole inventory. |
+| Primitive choice / variant lookup | (no skill — adaptive read) | Read `pps-web/docs/components/*/<X>.md` → `pps-web/docs/architecture/*/design-system.md` → `src/components/ui/<X>.tsx` source. Read targeted, not whole inventory. |
 
 Specificity order when keywords overlap: `align`/`audit` → `react-audit` (multi-feature scope) outranks `revamp`/`redesign` → `react-revamp` (single-page scope) outranks `review ui` (generic critique). If the chosen skill's report surfaces a workflow gap that needs deeper critique, **recommend** (do not auto-invoke) `react-ux-review` as a follow-up.
 
@@ -115,12 +115,12 @@ N. <verb + target>
    File: `path/to/file.tsx` (or `[new]`)
    Change: <1-2 sentences of the actual edit>
    Baseline ref: `path/to/PolishedFile.tsx:LL-LL` <one-line why this proves the pattern>
-   Section ref: <docs/architecture/feature-structure.md section number> (required for [new] files)
+   Section ref: <pps-web/docs/architecture/feature-structure.md section number> (required for [new] files)
 ```
 
 Add `Why:` only when counterintuitive (e.g. Drawer vs Dialog when fields >5, or skipping a common pattern).
 
-After drafting the Plan, run `npm run lint:structure -- <feature>` against the affected feature(s) so the user sees the **current** baseline of warnings before edits. This is a snapshot, not a verdict — Phase 1's gate runs after apply.
+After drafting the Plan, run `cd pps-web && npm run lint:structure -- <feature>` against the affected feature(s) so the user sees the **current** baseline of warnings before edits. This is a snapshot, not a verdict — Phase 1's gate runs after apply.
 
 Then present in Thai: BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `เริ่ม` / `start` / `apply` / `go ahead`. Do not execute Step 1 until the user explicitly approves.
 
@@ -154,19 +154,19 @@ Do **not** touch FE first.
 
 ## Conventions
 
-Surgical · Primitives first (look up via `docs/components/*` per-component docs, fallback to `src/components/ui/<X>.tsx` source) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`npm run build`) · Don't commit (handoff `web-pre-commit`) · Code/paths English · Report Thai.
+Surgical · Primitives first (look up via `pps-web/docs/components/*` per-component docs, fallback to `src/components/ui/<X>.tsx` source) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`cd pps-web && npm run build`) · Don't commit (handoff `web-pre-commit`) · Code/paths English · Report Thai.
 
 **Canonical anchors** (read in full when scope touches them — never anchor from memory):
-- Pages: **Polished** pages in `docs/progress.md` (e.g. `PayrollListPage`, `PayrollDetailPage`, `DepartmentListPage`, `EmployeeListPage`, `EmployeeDetailPage`, `PaymentDocumentDetailPage`).
+- Pages: **Polished** pages in `pps-web/docs/progress.md` (e.g. `PayrollListPage`, `PayrollDetailPage`, `DepartmentListPage`, `EmployeeListPage`, `EmployeeDetailPage`, `PaymentDocumentDetailPage`).
 - **Never** anchor on Rough or Partial pages.
-- Non-page patterns: `docs/architecture/feature-structure.md` + feature CLAUDE.md.
+- Non-page patterns: `pps-web/docs/architecture/feature-structure.md` + feature CLAUDE.md.
 
 ## Chunked apply discipline
 
 For plans with >3 steps OR mixed-risk steps:
 
 1. Apply 1 chunk (1-3 related steps that form a commit-sized unit).
-2. Run `npm run build` after the chunk.
+2. Run `cd pps-web && npm run build` after the chunk.
 3. Report 1-line progress in Thai: `✓ Chunk N (<action description>) — build pass`.
 4. Pause **if** any of: build failed · chunk introduced an unexpected change · plan had `risk: med/high` on next chunk.
 5. Otherwise continue to next chunk.
@@ -175,15 +175,15 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 
 ## Pre-report self-check (MANDATORY before final report)
 
-**Source of truth: `CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Do NOT re-enumerate rules here — read `CLAUDE.md` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**. A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.
+**Source of truth: `pps-web/CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Do NOT re-enumerate rules here — read `pps-web/CLAUDE.md` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**. A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.
 
 ### Forcing functions
 
-1. **Read `CLAUDE.md` MC-1..MC-7 in full once per session.**
+1. **Read `pps-web/CLAUDE.md` MC-1..MC-7 in full once per session.**
 2. **Report block MUST contain 7 status lines** — one per MC-N. No line = invalid report.
-3. **Each ✓ must cite `CLAUDE.md:<line>`** as proof you walked the rule, not guessed.
+3. **Each ✓ must cite `pps-web/CLAUDE.md:<line>`** as proof you walked the rule, not guessed.
 4. **Any ⚠ MUST be fixed in this turn** before declaring done — never defer to future polish.
-5. The mechanical fallback `npm run lint:structure` (run by `web-pre-commit`) will reject reports that lie.
+5. The mechanical fallback `cd pps-web && npm run lint:structure` (run by `web-pre-commit`) will reject reports that lie.
 
 ### Required Report block (insert after `## Build`)
 
@@ -192,7 +192,7 @@ Compact 2-line format covers all 7 sections:
 ```
 ## MC self-check
 
-- Touched: MC-<X>, MC-<Y> — ✓ clean (ref CLAUDE.md:<line>, CLAUDE.md:<line>)
+- Touched: MC-<X>, MC-<Y> — ✓ clean (ref pps-web/CLAUDE.md:<line>, pps-web/CLAUDE.md:<line>)
 - Untouched: MC-<A>, MC-<B>, MC-<C>, ... — ✓ no surface in diff
 - ⚠ findings: <list each as "MC-<N> <file:line> — <issue> → fixed/deferred">   (omit this line entirely when clean)
 ```
@@ -213,7 +213,7 @@ Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every MC
 ...
 
 ## Build
-✅ `npm run build` ผ่าน   (หรือ ❌ + เหตุผล)
+✅ `cd pps-web && npm run build` ผ่าน   (หรือ ❌ + เหตุผล)
 
 ## Best Practices Applied (when scope = revamp/redesign — mandatory)
 **UX/UI**
@@ -235,10 +235,10 @@ Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every MC
 
 **Input**: "extract `<Entity>` schema from inline zod in `<Entity>Dialog.tsx`"
 
-**Recon**: read target dialog in full + 1 baseline schema in full + `docs/architecture/feature-structure.md` section refs.
+**Recon**: read target dialog in full + 1 baseline schema in full + `pps-web/docs/architecture/feature-structure.md` section refs.
 
 **Plan** (1 chunk):
-1. `src/features/<feature>/schemas/<entity>.schema.ts` `[new]` — lift zod + export `<Entity>FormValues`.
+1. `pps-web/src/features/<feature>/schemas/<entity>.schema.ts` `[new]` — lift zod + export `<Entity>FormValues`.
    Baseline ref: `<existing-schema>:LL`. Section ref: `<sec>`. Risk: low.
 
 **Confirm**: present in Thai, wait for apply. Do not edit yet.

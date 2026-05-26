@@ -26,7 +26,7 @@ Example: "I'll treat this as diff-review (mid-dev sanity check) since no 'ship i
 
 1. `git status` (no `-uall`) + `git diff` (staged + unstaged) + `git log -n 5 --oneline`
 2. 1-paragraph mental model of what changed and why. `Read` files in full if diff is unclear.
-3. **If diff touches `src/features/*/pages/*/`:** read `docs/progress.md` + skim `scripts/page-polish-audit.mjs` (`PAGE_STATUS` map).
+3. **If diff touches `pps-web/src/features/*/pages/*/`:** read `pps-web/docs/progress.md` + skim `pps-web/scripts/page-polish-audit.mjs` (`PAGE_STATUS` map).
 4. No "plan + wait" — reviewer mode.
 
 ## Fast-path exits
@@ -35,7 +35,7 @@ Example: "I'll treat this as diff-review (mid-dev sanity check) since no 'ship i
 |---|---|
 | Empty | Report and stop |
 | Docs-only (`*.md`, `docs/**`) | Build verify; just check links + scope |
-| Test-only (`*.test.*`, `*.spec.*`, `e2e/**`) | Build verify; run `npm run test` instead |
+| Test-only (`*.test.*`, `*.spec.*`, `e2e/**`) | Build verify; run `cd pps-web && npm run test` instead |
 | Huge (>30 files) | Surface, recommend split or focus area |
 
 ## Mode
@@ -57,7 +57,7 @@ English output · Never execute `git add`/`commit`/`push` (draft only) · Surgic
 | Component API design | `react-composition` | Boolean-prop bloat, inline components, forwardRef in R19 |
 | Form/UX flow on a Polished page | `react-ux-review` | Workflow regression check vs Polished baseline |
 
-For primitive choice (only if `web-polish` didn't run): adaptive read — `docs/components/*/<X>.md` → `docs/architecture/*/design-system.md` → `src/components/ui/<X>.tsx`. Read targeted, not whole inventory.
+For primitive choice (only if `web-polish` didn't run): adaptive read — `pps-web/docs/components/*/<X>.md` → `pps-web/docs/architecture/*/design-system.md` → `src/components/ui/<X>.tsx`. Read targeted, not whole inventory.
 
 Reference during scan. Output is findings + commit draft, not the skill's report format.
 
@@ -71,14 +71,14 @@ For every changed file:
 - **Architecture** (`react-composition`) — boolean props piling on · `forwardRef` (R19: `ref` as prop) · `useContext` (use `use(Context)`)
 - **API** (if diff touches `services/api.ts` or feature `api/`) — see "Swagger drift gate" below
 - **Workflow regression** (if diff touches a `Polished` page) — see "Workflow regression check" below
-- **Structure regression** (if diff adds/renames files in `src/features/*`) — see "Structure regression check" below
+- **Structure regression** (if diff adds/renames files in `pps-web/src/features/*`) — see "Structure regression check" below
 
 Group findings: **Blocking** vs **Non-blocking**.
 
 ## Swagger drift gate (mandatory when API surface changes)
 
 Triggers when diff touches **any** of:
-- `src/services/api.ts`, `src/services/http.ts`, `src/services/case-transform.ts`
+- `pps-web/src/services/api.ts`, `pps-web/src/services/http.ts`, `pps-web/src/services/case-transform.ts`
 - Any feature `api/index.ts`, `api/keys.ts`, `api/types.ts`
 - A hook file that wraps a network call (e.g. `use*Mutation`, `use*Query`)
 
@@ -116,15 +116,15 @@ If diff intentionally removes one of these for a valid reason → flag as **Non-
 
 ## Shared `lint:structure` run
 
-Both gates below need `lint:structure` output. Run `npm run lint:structure:strict 2>&1` exactly once per turn; capture stdout+stderr as `STRUCT_OUT` (errors `✖`, warnings `⚠`). Reuse — do **not** re-run.
+Both gates below need `lint:structure` output. Run `cd pps-web && npm run lint:structure:strict 2>&1` exactly once per turn; capture stdout+stderr as `STRUCT_OUT` (errors `✖`, warnings `⚠`). Reuse — do **not** re-run.
 
-## Structure regression check (when diff adds/renames files in `src/features/*`)
+## Structure regression check (when diff adds/renames files in `pps-web/src/features/*`)
 
-Triggers when `git diff --name-status` shows new files (`A`) or renames (`R`) under `src/features/*`.
+Triggers when `git diff --name-status` shows new files (`A`) or renames (`R`) under `pps-web/src/features/*`.
 
 Procedure:
 
-1. Use `STRUCT_OUT` from the shared run above. **Do not re-invoke** `npm run lint:structure:strict`.
+1. Use `STRUCT_OUT` from the shared run above. **Do not re-invoke** `cd pps-web && npm run lint:structure:strict`.
 2. Errors are prefixed with `✖`; warnings with `⚠`.
 3. For each `✖` error, check whether the offending file path appears in the current diff:
    - **Diff-introduced violation** → **Blocking**. Report as: `<file:line> — <validator message> (introduced by this diff)`.
@@ -135,19 +135,19 @@ Procedure:
    - If the warning is new and NOT in a pending list: Non-blocking finding to fix opportunistically.
 
 
-If `npm run lint:structure:strict` exits 0: report "Structure regression: clean" and move on.
+If `cd pps-web && npm run lint:structure:strict` exits 0: report "Structure regression: clean" and move on.
 
 ## Build verify
 
 ```bash
-npm run build
+cd pps-web && npm run build
 ```
 
 Must pass. If fails: read error → if diff-caused, fix surgically in-diff; if pre-existing, surface and ask. Re-run after fix.
 
 ## MC-walk gate (mandatory)
 
-The upstream agent (`web-implement` or `web-polish`) MUST have walked Micro-conventions MC-1..MC-7 from `CLAUDE.md` Mandatory Conventions section and reported a compact MC block. This gate verifies the walk happened.
+The upstream agent (`web-implement` or `web-polish`) MUST have walked Micro-conventions MC-1..MC-7 from `pps-web/CLAUDE.md` Mandatory Conventions section and reported a compact MC block. This gate verifies the walk happened.
 
 Procedure:
 
@@ -161,11 +161,11 @@ This gate is the final defense — if it fails, the commit draft is withheld unt
 
 ## Polish-status check (pre-commit mode only — when diff touches pages)
 
-**Mode gate**: this check runs in **pre-commit mode only**. In diff-review mode, skip the audit script entirely; if a touched page's status is needed for context, read `PAGE_STATUS` directly from `scripts/page-polish-audit.mjs` source instead.
+**Mode gate**: this check runs in **pre-commit mode only**. In diff-review mode, skip the audit script entirely; if a touched page's status is needed for context, read `PAGE_STATUS` directly from `pps-web/scripts/page-polish-audit.mjs` source instead.
 
-If pre-commit mode AND any `src/features/*/pages/*Page/` is in diff:
+If pre-commit mode AND any `pps-web/src/features/*/pages/*Page/` is in diff:
 
-1. Run `node scripts/page-polish-audit.mjs`
+1. Run `cd pps-web && node scripts/page-polish-audit.mjs`
 2. For each touched page, compare `PAGE_STATUS` verdict against signal score:
    - **Flip candidate** — page is `Rough`/`Partial` AND signals hit Polished bar (5/5, or 4/5 with only skeleton missing on non-form pages). Surface as flip suggestion.
    - **Regression** — page is `Polished` AND a signal dropped (new Thai hardcoded, removed skeleton/PageLayout, raw `<input type="number">`, inline hex/rgb). **Blocking.**
@@ -215,11 +215,11 @@ Only what the change invalidates. Terse bullets, existing doc style, English onl
 
 | Target | When |
 |---|---|
-| `CLAUDE.md` | Touches a frontend convention/rule/pattern |
-| `docs/architecture/*` | Moves an architectural rule |
-| `docs/components/*` | Modifies a documented component's props/variants |
-| `docs/features/*` | Adds/removes/significantly changes a feature |
-| `docs/progress.md` + `scripts/page-polish-audit.mjs` | Only after user confirms a status flip — never preemptive |
+| `pps-web/CLAUDE.md` | Touches a frontend convention/rule/pattern |
+| `pps-web/docs/architecture/*` | Moves an architectural rule |
+| `pps-web/docs/components/*` | Modifies a documented component's props/variants |
+| `pps-web/docs/features/*` | Adds/removes/significantly changes a feature |
+| `pps-web/docs/progress.md` + `pps-web/scripts/page-polish-audit.mjs` | Only after user confirms a status flip — never preemptive |
 | Repo-root CLAUDE.md | Moves a project-wide fact |
 
 Nothing invalidated → skip.
@@ -274,7 +274,7 @@ Title: `# Diff Review` (diff-review mode) · `# Pre-commit Review` (pre-commit m
 - file:line — issue → fix/note   (treat as "deferred" in pre-commit mode)
 
 ## Build
-✅ `npm run build`   (or ❌ + last error)
+✅ `cd pps-web && npm run build`   (or ❌ + last error)
 
 ## Pre-flight scan
 - Secret/sensitive filenames: <0 / N>   ✅/❌
@@ -296,7 +296,7 @@ Title: `# Diff Review` (diff-review mode) · `# Pre-commit Review` (pre-commit m
 - (or "no Polished page changes")
 
 ## Structure regression check
-- Diff adds/renames files in src/features/*: <yes/no>
+- Diff adds/renames files in pps-web/src/features/*: <yes/no>
 - lint:structure:strict result: <0 errors / N errors>
 - Diff-introduced violations: <list or "none">
 - Pre-existing violations in touched files: <list or "none">
@@ -340,7 +340,7 @@ Title: `# Diff Review` (diff-review mode) · `# Pre-commit Review` (pre-commit m
 
 ## Worked example
 
-**Diff**: 1 hook file modified (+N / -M lines) under `src/features/<feature>/hooks/`.
+**Diff**: 1 hook file modified (+N / -M lines) under `pps-web/src/features/<feature>/hooks/`.
 
 **Survey**: `git status` + `git diff` + `git log -n 5` (note scope convention from history).
 
@@ -348,11 +348,11 @@ Title: `# Diff Review` (diff-review mode) · `# Pre-commit Review` (pre-commit m
 - Bug + regression scan: clean (e.g. closure deps array OK).
 - Swagger drift gate: not applicable (no API surface change).
 - Workflow regression: not applicable (no Polished page touched).
-- Structure regression: 0 errors; no new files in `src/features/*`.
+- Structure regression: 0 errors; no new files in `pps-web/src/features/*`.
 - MC walk: upstream block found from `web-implement` — 7 lines present, no ⚠.
 - Pre-flight scan: clean.
 
-**Build**: ✅ `npm run build` passed.
+**Build**: ✅ `cd pps-web && npm run build` passed.
 
 **Commit draft**: Conventional Commits — `<type>(<scope>): <subject>` + WHY-bullets body.
 
@@ -360,7 +360,7 @@ Title: `# Diff Review` (diff-review mode) · `# Pre-commit Review` (pre-commit m
 
 ## You DON'T
 
-Execute `git add`/`commit`/`push` · write new features/primitives (flag gaps) · `web-polish`-style DRY cleanup (recommend `web-polish` first if diff needs it) · update unrelated docs · skip Swagger drift gate when API surface is touched · skip workflow regression check when a Polished page is touched · skip structure regression check when diff adds/renames files in `src/features/*` · skip Pre-flight scan in pre-commit mode · auto-add Conventional Commit trailers (`Co-Authored-By`, `Signed-off-by`) without explicit user ask.
+Execute `git add`/`commit`/`push` · write new features/primitives (flag gaps) · `web-polish`-style DRY cleanup (recommend `web-polish` first if diff needs it) · update unrelated docs · skip Swagger drift gate when API surface is touched · skip workflow regression check when a Polished page is touched · skip structure regression check when diff adds/renames files in `pps-web/src/features/*` · skip Pre-flight scan in pre-commit mode · auto-add Conventional Commit trailers (`Co-Authored-By`, `Signed-off-by`) without explicit user ask.
 
 ## Edge cases
 
