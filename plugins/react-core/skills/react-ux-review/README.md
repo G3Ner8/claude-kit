@@ -58,4 +58,4 @@ This list is **extensible**. As the codebase grows new shared workflow patterns,
 
 ## Read-only discipline
 
-This skill **never** edits. The output is a critique + remediation hints. The invoking agent (`web-implement` typically) writes the actual Plan from the report and waits for the user's `ลุย` before any edit.
+This skill **never** edits. The output is a critique + remediation hints. The invoking agent (`web-implement` typically) writes the actual Plan from the report and waits for the user's `เริ่ม` / `start` before any edit.

@@ -145,7 +145,7 @@ This skill is **read-only by design**. After the report:
 - Do not stage / commit / push.
 - End with: `Status: read-only UX review complete. Waiting for "apply" before any edit.`
 
-The invoking agent (or user) says "apply" / "go ahead" / "fix it" / "ลุย" to leave review mode. Even then, the agent — not this skill — performs the edits.
+The invoking agent (or user) says "เริ่ม" / "start" / "apply" / "go ahead" / "fix it" to leave review mode. Even then, the agent — not this skill — performs the edits.
 
 ---
 
@@ -164,6 +164,6 @@ Surface as recommendations in the report, not as additional review work.
 
 ## Notes for the invoking agent
 
-- This skill **does not** decide whether to apply. The invoking agent (`web-implement`) reads the divergence table and writes the actual Plan, which the user then approves with `ลุย`.
+- This skill **does not** decide whether to apply. The invoking agent (`web-implement`) reads the divergence table and writes the actual Plan, which the user then approves with `เริ่ม` / `start`.
 - When invoked from `web-implement` in a `redesign` / `revamp` flow, this skill runs **before** `react-revamp` — workflow gaps shape the flow proposal, not the other way around.
 - The 9 dimensions are a **starter list**. As the codebase grows new shared patterns, this skill should be updated to include them. Treat the dimensions as extensible, not exhaustive.

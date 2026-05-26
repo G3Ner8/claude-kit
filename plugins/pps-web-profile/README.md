@@ -36,7 +36,7 @@ See the agent files for full behavior. High-level flow:
 
 ```
 User: "implement leave-balance widget"   →  web-implement  (recon → plan → STOP)
-User: "ลุย"                              →  web-implement  (apply → build → Thai report)
+User: "เริ่ม" / "start"                  →  web-implement  (apply → build → Thai report)
 User: "ship it"                          →  web-pre-commit (gates → commit draft, English)
 User: git commit                         →  (manual)
 ```

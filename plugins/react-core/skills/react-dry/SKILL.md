@@ -159,7 +159,7 @@ This skill is **read-only by design**. After producing the findings table:
 - Do not jump straight to a detailed execution plan — table is the deliverable, plan comes after user discussion.
 - End the turn with the table and the line `Status: read-only audit complete. Findings ready for discussion.`
 
-The invoking agent (or the user) explicitly indicates which concerns to address and says "plan it" / "apply" / "go ahead" / "ลุย". The detailed plan, then the edits, are separate steps.
+The invoking agent (or the user) explicitly indicates which concerns to address and says "เริ่ม" / "start" / "plan it" / "apply" / "go ahead". The detailed plan, then the edits, are separate steps.
 
 ---
 

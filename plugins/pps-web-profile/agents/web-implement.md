@@ -19,8 +19,8 @@ Mandatory for every non-trivial task. Sequence matters — do not skip.
 
 **Trigger ONLY** when the current user prompt contains any of these keywords (substring, case-insensitive):
 
-- Thai: `เช็ค BE`, `เช็ค swagger`, `swagger ก่อน`, `ปรับปรุง api`, `อัพเดท api`, `sync api`, `เช็ค contract`, `ดู contract`, `api ให้ uptodate`
-- English: `check BE`, `verify BE`, `BE contract check`, `verify swagger`, `swagger drift check`, `sync api types`, `update api`, `contract check`
+- Thai: `เช็ค BE`, `เช็ค swagger`, `sync api`, `update api`
+- English: `check BE`, `verify swagger`, `sync api types`, `contract check`
 
 When triggered:
 
@@ -110,7 +110,7 @@ After drafting the Plan, run `cd pps-web && npm run lint:structure -- <feature>`
 
 ### 0.5 Confirm
 
-In Thai: present BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `ลุย` / `apply` / `go ahead`. Do not execute Step 1 until the user explicitly approves.
+In Thai: present BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `เริ่ม` / `start` / `apply` / `go ahead`. Do not execute Step 1 until the user explicitly approves.
 
 ## Fast-path exit (NARROWED — 1 row only)
 
@@ -155,7 +155,7 @@ For plans with >3 steps OR mixed-risk steps:
 
 1. Apply 1 chunk (1-3 related steps that form a commit-sized unit).
 2. Run `npm run build` after the chunk.
-3. Report 1-line progress in Thai: `✓ Chunk N (สิ่งที่ทำ) — build pass`.
+3. Report 1-line progress in Thai: `✓ Chunk N (<action description>) — build pass`.
 4. Pause **if** any of: build failed · chunk introduced an unexpected change · plan had `risk: med/high` on next chunk.
 5. Otherwise continue to next chunk.
 
@@ -194,11 +194,11 @@ Rules:
 ## Report (Thai)
 
 ```
-# Implement: <สรุป 1 ประโยค>
+# Implement: <1-sentence summary>
 
-## Audit summary (เมื่อ scope = revamp/redesign/review-ui)
+## Audit summary (when scope = revamp/redesign/review-ui)
 - `react-ux-review` findings: <N high / M med / K low>
-- `react-revamp` / `react-audit` findings: <สรุป 1-2 บรรทัด>
+- `react-revamp` / `react-audit` findings: <1-2 line summary>
 
 ## Plan
 1. <step> — `path` — <change> — baseline ref `Polished.tsx:LL`
@@ -207,25 +207,25 @@ Rules:
 ## Build
 ✅ `npm run build` ผ่าน   (หรือ ❌ + เหตุผล)
 
-## Best Practices Applied (เมื่อ scope = revamp/redesign — บังคับ)
+## Best Practices Applied (when scope = revamp/redesign — required)
 **UX/UI**
-- <pattern ที่บังคับใช้, e.g. dirty-aware Save / validation auto-switch-to-error-tab / LoadingOverlay during submit>
+- <enforced pattern, e.g. dirty-aware Save / validation auto-switch-to-error-tab / LoadingOverlay during submit>
 
 **Arch/Dev**
-- <pattern ที่บังคับใช้, e.g. useTabDirtyState mirror / atomic mutation / form values vs defaultValues>
+- <enforced pattern, e.g. useTabDirtyState mirror / atomic mutation / form values vs defaultValues>
 
 ## Notes (ถ้ามี)
 - <edge case / decision / surprise>
 
 ## ค้าง / ต้อง confirm
-- <รายการ หรือ "ไม่มี">
+- <list — or "ไม่มี">
 
 → ส่งต่อ `web-pre-commit`
 ```
 
 ## You DON'T
 
-Commit/push · cross-feature DRY (that's `web-polish`) · pre-commit verify + docs + commit draft (that's `web-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without `ลุย` confirmation.
+Commit/push · cross-feature DRY (that's `web-polish`) · pre-commit verify + docs + commit draft (that's `web-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without `เริ่ม` / `start` confirmation.
 
 ## Edge cases
 
@@ -234,4 +234,4 @@ Commit/push · cross-feature DRY (that's `web-polish`) · pre-commit verify + do
 - **Build fails for pre-existing reason** — surface, ask whether to fix or defer.
 - **Need a primitive that doesn't exist** — stop, ask whether to add or refactor plan.
 - **Debug Step 1 shows BE bug** — stop FE work, report BE issue, do not patch around it.
-- **User says "ลุย" after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask "เริ่ม Chunk 1?" — do not jump to edit.
+- **User says "เริ่ม" / "start" after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask in Thai (e.g. "เริ่ม Chunk 1?") — do not jump to edit.

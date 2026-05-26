@@ -46,7 +46,7 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 
 | Placeholder | What it is | Example |
 |---|---|---|
-| `{{APPLY_KEYWORD}}` | Single word the user types to greenlight apply | `ลุย` (`apply` is the English default) |
+| `{{APPLY_KEYWORD}}` | Single word the user types to greenlight apply | `เริ่ม` / `start` (`apply` is the English default) |
 | `{{UI_INVENTORY_SKILL}}` | Backtick-wrapped name of the project's UI inventory skill | `` `pps-ui` `` |
 | `{{UI_INVENTORY_REF}}` | Comma-separated extension for skill-list tables | `, `` `pps-ui` `` |
 

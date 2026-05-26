@@ -16,7 +16,7 @@ Mandatory.
 1. **Recon** — invoke audit skill (audit modes) or run `git diff` (diff-polish). Read `pps-web/docs/progress.md` if target is a page in `src/features/*/pages/`. **Read in full** any Polished baseline you intend to pick as winner — never anchor on memory.
 2. **Findings** — present table/matrix/list verbatim + 1-2 sentence Thai summary on top rows. Each row carries `file:line` + 1-2 sentence Thai description.
 3. **Mockup** — ASCII Before/After when picked rows change layout/hierarchy (component restructure, section reorder, primitive swap affecting appearance). Skip for token swaps, dead imports, skeleton-only sync, i18n cleanup.
-4. **Confirm** — **stop, wait** for user to pick rows + say `ลุย`. Never auto-apply, even if all rows are Low-risk.
+4. **Confirm** — **stop, wait** for user to pick rows + say `เริ่ม` / `start`. Never auto-apply, even if all rows are Low-risk.
 
 ## Fast-path exit (NARROWED — 2 rows only)
 
@@ -32,7 +32,7 @@ Removed: "single-file ≤10 LOC user named" — tempting auto-apply path that by
 | Mode | Trigger | Skill |
 |---|---|---|
 | Component-audit | "audit Button usages" / "DRY up Card padding" | `react-dry` |
-| **Visual-consistency** (NEW) | "ทำไม Button หน้าตาไม่เหมือนกัน" / "primitive X ข้ามหน้า" / "appearance drift" | `react-audit` mode `visual-consistency` |
+| **Visual-consistency** (NEW) | "ทำไม X ไม่เหมือนกัน" / "appearance drift" / "primitive across pages" | `react-audit` mode `visual-consistency` |
 | Feature-audit | "align leave/attendance/timesheet" | `react-audit` multi-mode |
 | Diff-polish | "clean up my diff" / "polish before review" | (direct `git diff` scan) |
 
@@ -44,7 +44,7 @@ Ambiguous → ask once in Thai.
 2. Present findings verbatim + Thai summary on top 2-3 rows
 3. **Stop** — user picks rows
 4. After pick → commit-sized execution plan (file → change, est. LOC, risk)
-5. Only after `ลุย` → edit
+5. Only after `เริ่ม` / `start` → edit
 
 Never auto-apply all rows. The pause is the whole point — even if "all rows are obvious."
 
@@ -113,7 +113,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 1. Invoke audit skill (its `AskUserQuestion` covers inputs)
 2. Present findings + Thai summary → **stop**
 3. User picks rows → execution plan (chunks: files, change, LOC, risk)
-4. `ลุย` → apply in chunks, build between large chunks, report
+4. `เริ่ม` / `start` → apply in chunks, build between large chunks, report
 
 ### Diff-polish
 1. Survey: `git status` (no `-uall`) + `git diff` + read changed files in full
@@ -122,12 +122,12 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 4. Run `npm run lint:structure` — mechanical catch-all for ~60% of MC violations.
 5. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
 6. i18n — grep changed files for raw string literals in JSX; verify namespace correctness for any file in `src/components/shared/**` (MC-6)
-7. Present list in Thai (1-3 lines/item with `file:line` + reasoning) — group findings by MC-N — → `ลุย` → apply → build → report (must include the 7-line MC walk block)
+7. Present list in Thai (1-3 lines/item with `file:line` + reasoning) — group findings by MC-N — → `เริ่ม` / `start` → apply → build → report (must include the 7-line MC walk block)
 
 ## Report (Thai)
 
 ```
-# Polish: <สรุป 1 ประโยค>
+# Polish: <1-sentence summary>
 
 ## Mode
 <Component-audit | Visual-consistency | Feature-audit | Diff-polish>
@@ -136,7 +136,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 - <row/item>
 
 ## ไฟล์ที่แตะ
-- `path` — <สิ่งที่ทำ>
+- `path` — <what was done>
 
 ## Build
 ✅ `npm run build` ผ่าน   (หรือ ❌ + เหตุผล)
@@ -145,7 +145,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 - <edge case / decision>
 
 ## Skip (ถ้ามี)
-- <row> — <เหตุผล>
+- <row> — <reason>
 
 → ส่งต่อ `web-pre-commit`
 ```
@@ -160,4 +160,4 @@ Add features/primitives/entities (that's `web-implement`) · pre-commit verify +
 - **Skill returns, user silent** — wait.
 - **Picked row needs a new primitive** — stop, ask whether to add or refactor differently.
 - **Build fails pre-existing** — surface, ask whether to fix this turn.
-- **User says "all rows ลุย"** — still surface the execution plan (chunks + LOC + risk) and wait one more turn — do not jump from findings to edit in one go.
+- **User says "all rows เริ่ม"** — still surface the execution plan (chunks + LOC + risk) and wait one more turn — do not jump from findings to edit in one go.

@@ -325,7 +325,7 @@ This skill is **read-only by design**. After producing the report:
 - Do not stage / commit / push.
 - End the turn with the report and the line `Status: read-only audit complete. Waiting for "apply" before any edit.`
 
-The invoking agent (or the user) explicitly says "apply" / "go ahead" / "fix it" / "ลุย" to leave audit mode. Even then, the agent — not this skill — performs the edits.
+The invoking agent (or the user) explicitly says "เริ่ม" / "start" / "apply" / "go ahead" / "fix it" to leave audit mode. Even then, the agent — not this skill — performs the edits.
 
 ---
 

@@ -241,7 +241,7 @@ This skill is **read-only by design**. After producing the proposal:
 - Do not stage / commit / push.
 - End the turn with the proposal and the line `Status: read-only proposal complete. Waiting for "apply" before any edit.`
 
-The invoking agent (or the user) explicitly says "apply" / "go ahead" / "fix it" / "ลุย" to leave proposal mode. Even then, the agent — not this skill — performs the edits.
+The invoking agent (or the user) explicitly says "เริ่ม" / "start" / "apply" / "go ahead" / "fix it" to leave proposal mode. Even then, the agent — not this skill — performs the edits.
 
 ---
 
