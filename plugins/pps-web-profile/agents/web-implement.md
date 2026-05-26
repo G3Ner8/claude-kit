@@ -132,6 +132,8 @@ Ambiguous → ask once in Thai with what you think the task is.
 
 ## Debug Protocol (when "API not called / no data / no error")
 
+Inline forcing-function — for the full walkthrough invoke the `react-debug` skill.
+
 Do **not** touch FE first.
 
 1. Verify endpoint via `WebFetch` `https://payroll-dev-api.aware.co.th/swagger-ui/index.html` — path, method, params, shape, auth.
