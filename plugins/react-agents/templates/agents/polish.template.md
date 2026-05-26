@@ -29,10 +29,7 @@ Mandatory.
 
 | Mode | Trigger | Skill |
 |---|---|---|
-| Component-audit | "audit Button usages" / "DRY up Card padding" | `react-dry` |
-| Visual-consistency | "primitive X looks different across pages" / "appearance drift" | `react-audit` mode `visual-consistency` |
-| Feature-audit | "align X, Y, Z" | `react-audit` multi-mode |
-| Diff-polish | "clean up my diff" / "polish before review" | (direct `git diff` scan) |
+{{POLISH_MODE_ROWS}}
 
 Ambiguous → ask once in {{OUTPUT_LANG}}.
 

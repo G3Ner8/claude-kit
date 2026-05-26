@@ -48,7 +48,7 @@ Trust the `{{AGENT_PREFIX}}-pre-commit` Swagger drift gate to catch contract dri
 
 **Structure pre-write check (when plan creates new files in `{{FEATURES_ROOT}}/*`):**
 
-If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `{{STRUCTURE_DOC}}`. Cite the section number that justifies each new file's placement/name in the Plan (`Section ref:` line).
+If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `{{STRUCTURE_DOC}}`:
 {{STRUCTURE_PREWRITE_TABLE}}
 The `Section ref:` line is mandatory for **new** files. For edits to existing files, it's optional but encouraged when the edit touches a structural concern (rename, move, split).
 
@@ -190,10 +190,10 @@ Rules:
 
 ## Best Practices Applied (when scope = revamp/redesign — mandatory)
 **UX/UI**
-- <pattern enforced>
+{{BP_APPLIED_UX}}
 
 **Arch/Dev**
-- <pattern enforced>
+{{BP_APPLIED_ARCH}}
 
 ## {{REPORT_NOTES_HDR}}
 - <edge case / decision / surprise>

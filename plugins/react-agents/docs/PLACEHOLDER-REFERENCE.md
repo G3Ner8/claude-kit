@@ -72,6 +72,11 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{TEST_UTILS_IMPORT}}` | Module path `createTestQueryClient` (or equivalent) is imported from | `@/test/test-utils` (default: same) |
 | `{{I18N_LOCALES_PATH}}` | Glob/path of i18n locale JSON files (used in test agent for key-existence checks) | `src/i18n/locales/en/<feature>.json` (default: same) |
 | `{{WORKFLOW_PATTERNS_TABLE}}` | Markdown table of "Polished page" regression patterns the pre-commit Workflow regression check enforces. Project fills with its specific components/hooks; default = minimal 2-row generic | (see PROFILE-GENERATOR.md crib sheet — table of project's canonical components / hooks / patterns) |
+| `{{BP_APPLIED_UX}}` | UX/UI bullet examples in `implement` Report's "Best Practices Applied" section. Default = `<pattern enforced>` placeholder | `- <enforced pattern, e.g. dirty-aware Save / validation auto-switch-to-error-tab / LoadingOverlay during submit>` |
+| `{{BP_APPLIED_ARCH}}` | Arch/Dev bullet examples in `implement` Report's "Best Practices Applied" section. Default = `<pattern enforced>` placeholder | `- <enforced pattern, e.g. useTabDirtyState mirror / atomic mutation / form values vs defaultValues>` |
+| `{{POLISH_MODE_ROWS}}` | Data rows of `polish` agent's Mode table (4 rows: Component-audit / Visual-consistency / Feature-audit / Diff-polish). Project fills with its trigger phrases | (see PROFILE-GENERATOR.md crib sheet — 4 markdown table rows) |
+| `{{TEST_MODE_ROWS}}` | Data rows of `test` agent's Mode-detection table (3 rows: retrofit / expand / integration). Project fills with its trigger phrases | (see PROFILE-GENERATOR.md crib sheet — 3 markdown table rows) |
+| `{{MSW_URL_PATTERN}}` | One-line description of project's MSW URL matching convention in `test` agent's Conventions section | `` `*/pps/v1/<path>` (wildcard host, matches baseURL `/api` + path) `` (default: `wildcard host + path (matches project baseURL + path)`) |
 
 ## Triggers (per-agent description lines)
 

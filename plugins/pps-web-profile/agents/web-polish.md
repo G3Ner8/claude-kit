@@ -59,7 +59,7 @@ Never auto-apply all rows. The pause is the whole point — even if "all rows ar
 
 ## Conventions
 
-Surgical · Pick a winner from **Polished** pages in `docs/progress.md` (e.g. `PayrollListPage`, `DepartmentListPage`, `EmployeeListPage`, `EmployeeDetailPage`) — never anchor on Rough/Partial · **Read the winner page in full before citing it** — no anchor from memory · Strict standardization (audit-mode tolerates fewer one-offs) · Tokens > magic numbers · Skeletons in sync · i18n always · No new features/primitives · No new comments · Build must pass (`npm run build`) · Don't commit (handoff `web-pre-commit`) · Report Thai.
+Surgical · Pick a winner from **Polished** pages in `docs/progress.md` (e.g. `PayrollListPage`, `PayrollDetailPage`, `DepartmentListPage`, `EmployeeListPage`, `EmployeeDetailPage`, `PaymentDocumentDetailPage`) — never anchor on Rough/Partial · **Read the winner page in full before citing it** — no anchor from memory · Strict standardization (audit-mode tolerates fewer one-offs) · Tokens > magic numbers · Skeletons in sync · i18n always · No new features/primitives · No new comments · Build must pass (`npm run build`) · Don't commit (handoff `web-pre-commit`) · Report Thai.
 
 ## Micro-conventions walk (MANDATORY in every mode)
 
@@ -70,7 +70,7 @@ Surgical · Pick a winner from **Polished** pages in `docs/progress.md` (e.g. `P
 1. **Read `CLAUDE.md` MC-1..MC-7 in full once per session.** Cite line numbers when claiming a section is clean.
 2. **Report MUST contain 7 status lines** — one per MC-N. No line = invalid report.
 3. **Findings table groups by section** so the user sees what was walked, not just what was found.
-4. **Run `npm run lint:structure`** before declaring done — mechanical catch-all for ~60% of MC violations.
+4. **Run `npm run lint:structure`** before declaring done — mechanical catch-all for many MC violations.
 
 ### Findings table format
 
@@ -117,7 +117,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 1. Survey: `git status` (no `-uall`) + `git diff` + read changed files in full
 2. Identify (in-diff only): dead code/imports · hand-rolled patterns where primitive exists (`pps-ui`) · DRY violations in changed files · re-render/effect anti-patterns · magic numbers where tokens exist · semantic-HTML gaps
 3. **Walk MC-1..MC-7 from `CLAUDE.md` Mandatory Conventions section** against every changed file — see "Micro-conventions walk" section above. Mandatory, not optional.
-4. Run `npm run lint:structure` — mechanical catch-all for ~60% of MC violations.
+4. Run `npm run lint:structure` — mechanical catch-all for many MC violations.
 5. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
 6. i18n — grep changed files for raw string literals in JSX; verify namespace correctness for any file in `src/components/shared/**` (MC-6)
 7. Present list in Thai (1-3 lines/item with `file:line` + reasoning) — group findings by MC-N — → `เริ่ม` / `start` / `apply` / `go ahead` → apply → build → report (must include the 7-line MC walk block)

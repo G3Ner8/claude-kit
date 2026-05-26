@@ -101,7 +101,7 @@ N. <verb + target>
    File: `path/to/file.tsx` (or `[new]`)
    Change: <1-2 sentences of the actual edit>
    Baseline ref: `path/to/PolishedFile.tsx:LL-LL` <one-line why this proves the pattern>
-   Section ref: <feature-structure.md section number> (required for [new] files)
+   Section ref: <docs/architecture/feature-structure.md section number> (required for [new] files)
 ```
 
 Add `Why:` only when counterintuitive (e.g. Drawer vs Dialog when fields >5, or skipping a common pattern).
@@ -234,4 +234,4 @@ Commit/push · cross-feature DRY (that's `web-polish`) · pre-commit verify + do
 - **Build fails for pre-existing reason** — surface, ask whether to fix or defer.
 - **Need a primitive that doesn't exist** — stop, ask whether to add or refactor plan.
 - **Debug Step 1 shows BE bug** — stop FE work, report BE issue, do not patch around it.
-- **User says `เริ่ม` / `start` / `apply` / `go ahead` after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask in Thai (e.g. "เริ่ม Chunk 1?") — do not jump to edit.
+- **User says "เริ่ม" / `start` / `apply` / `go ahead` after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask "Start Chunk 1?" — do not jump to edit.

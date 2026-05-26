@@ -72,7 +72,7 @@ Produce this matrix before any plan. Each row = one file in the feature.
 ```
 
 `Risk` callouts to surface:
-- **high** for: mutation hooks (cache invalidation), components with Radix DatePicker/Select/Combobox (portal flake), payroll/auth/payment-handling code
+- **high** for: mutation hooks (cache invalidation), components with Radix DatePicker/Select/Combobox (portal flake), business-critical / auth / payment-handling code
 - **med** for: API clients with case-transform / interceptor coupling, query hooks with tenant-scope gates
 - **low** for: schemas, pure UI components, badges, skeletons
 
@@ -109,7 +109,7 @@ Cap at **10 chunks per invocation** — if the audit needs more, split into two 
 
 ### 0.5 Confirm
 
-In **Thai**: present `Mode detected: <retrofit|expand|integration>` + Audit matrix + Plan + i18n keys list (if any). **Stop, wait** for `เริ่ม` / `start` / `apply` / `go ahead`. Do not start Step 1 until the user explicitly approves.
+In Thai: present `Mode detected: <retrofit|expand|integration>` + Audit matrix + Plan + i18n keys list (if any). **Stop, wait** for `เริ่ม` / `start` / `apply` / `go ahead`. Do not start Step 1 until the user explicitly approves.
 
 If mode was auto-detected, **state the detection in 1 line** and offer a one-shot override (e.g. "auto-detected `retrofit` — say `expand` to override"). Do not loop on confirmation.
 
@@ -214,7 +214,7 @@ If user says no / wants edits → stop, ask which keys to drop or rename. Do not
 - MSW URL pattern: `*/pps/v1/<path>` (wildcard host, matches baseURL `/api` + path)
 - Per-test override: `server.use(http.get(URL, ...))` — `afterEach` resets handlers
 - Hook tests: `tsx` extension (provider wrapper), fresh QueryClient per render, `createTestQueryClient()` from `@/test/test-utils`
-- Mock tenant accessor (`useCurrentCompanyId`) at module level with `vi.mock`; override per test with `vi.mocked(useCurrentCompanyId).mockReturnValue(...)`
+- Mock tenant accessor (e.g. `useCurrentCompanyId`) at module level with `vi.mock`; override per test with `vi.mocked(...).mockReturnValue(...)`
 
 **Canonical anchors** (read in full when scope touches them):
 - All baseline tests in `src/features/holiday/`
@@ -318,6 +318,6 @@ namespace `<feature>` — <N> keys appended to `src/test/test-utils.tsx`
 - **Existing tests use deprecated patterns (`fireEvent`, mocked `@/services/api`)** — flag in audit but **do not** rewrite them unless user explicitly says "modernize existing tests too". Default = leave alone, add new tests next to them.
 - **Component uses Radix DatePicker/Select in a critical assertion path** — stop in audit, surface in Thai with two options (stub or skip), wait for user direction.
 - **Coverage target unreachable due to unreachable branch** (e.g. error path that requires a network failure mode MSW can't simulate cleanly) — note in self-check `⚠ Coverage <X>% (target <Y>%) — <reason>` and propose either lowering the target for this file or skipping the branch.
-- **i18n key doesn't exist in `locales/en/<feature>.json`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
-- **User says `apply` after audit but skips Plan review** — paraphrase Plan in 3-5 lines in Thai, ask in Thai (e.g. "เริ่ม Chunk 1?") — do not jump to write.
+- **i18n key doesn't exist in `src/i18n/locales/en/<feature>.json`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
+- **User says `เริ่ม` / `start` / `apply` / `go ahead` after audit but skips Plan review** — paraphrase Plan in 3-5 lines in Thai, ask "Start Chunk 1?" — do not jump to write.
 - **`npm run test:unit` fails on a chunk due to an unrelated pre-existing failure** — report which test failed; ask whether to defer fixing that or block. Default = block; tests must be green for the chunk to be declared done.

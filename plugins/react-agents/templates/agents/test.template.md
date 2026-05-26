@@ -19,9 +19,7 @@ Detect mode from the user's prompt + the target feature's current state.
 
 | Mode | Trigger keyword | Auto-condition | Layers |
 |---|---|---|---|
-| **retrofit** *(default)* | "write tests for X", "test for X" | `{{FEATURES_ROOT}}/X/` has **0** `*.test.{ts,tsx}` files | Schema → API → Hooks → Component **smoke** |
-| **expand** | "expand coverage X", "expand tests X", "fill test gaps X" | `{{FEATURES_ROOT}}/X/` has **≥1** test files; coverage below per-layer targets | Gap analysis → fill missing scenarios per layer |
-| **integration** | "integration test X", "test flow X" | Must be **explicit** — never auto. Requires existing or planned page in `{{FEATURES_ROOT}}/X/pages/` | Page-level + MSW + flow assertions |
+{{TEST_MODE_ROWS}}
 
 **Ambiguous trigger**:
 - If keyword is generic ("add tests", "more tests") and feature **has** test files → assume `expand`, confirm in 0.5.
@@ -207,7 +205,7 @@ If user says no / wants edits → stop, ask which keys to drop or rename. Do not
 - Surgical · Write tests only · No production code changes (if test exposes a bug, surface to user) · Code/paths English · Report {{OUTPUT_LANG}} · Tests must pass before declaring chunk done · Build must pass at end · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`)
 - Selector hierarchy: `getByRole` > `getByLabelText` > `getByTestId` (last resort)
 - Always `userEvent.setup()` — never `fireEvent.*`
-- MSW URL pattern: wildcard host + path (matches project baseURL + path)
+- MSW URL pattern: {{MSW_URL_PATTERN}}
 - Per-test override: `server.use(http.get(URL, ...))` — `afterEach` resets handlers
 - Hook tests: `tsx` extension (provider wrapper), fresh QueryClient per render, `createTestQueryClient()` from `{{TEST_UTILS_IMPORT}}`
 - Mock tenant accessor (e.g. `useCurrentCompanyId`) at module level with `vi.mock`; override per test with `vi.mocked(...).mockReturnValue(...)`
