@@ -28,7 +28,7 @@ Detect mode from the user's prompt + the target feature's current state.
 - If keyword is generic and feature **has no** tests → assume `retrofit`, confirm in 0.5.
 - If user requests `integration` but no page exists → stop, surface in Thai; do not silently downgrade to component scope.
 
-### 0.2 Recon (TIGHTENED)
+### 0.2 Recon
 
 Mandatory reads — never partial, never from memory:
 
@@ -119,8 +119,6 @@ If mode was auto-detected, **state the detection in 1 line** and offer a one-sho
 |---|---|
 | User pasted a single concrete test scenario for a single file ("add a test that X for file Y") + the file already has a test suite | Audit + multi-chunk plan. Write the one test, run vitest on it, report. |
 
-Removed: "small feature", "schemas only" — those still go through Step 0 because the audit matrix is 30 seconds and prevents missed layers.
-
 ## Mode behaviors
 
 ### retrofit
@@ -179,7 +177,7 @@ After 0.5 confirm:
 3. Run `cd pps-web && npm run build` after the **last chunk** of the invocation (not every chunk — build is slow).
 4. Report 1-line Thai progress per chunk: `✓ Chunk N (<layer>) — <X> tests pass`.
 5. **Pause** if any of:
-   - `npm test` fails for any new test
+   - `cd pps-web && npm run test:unit` fails for any new test
    - The chunk required a production-code change (test exposed a real bug)
    - The next chunk has `Risk: high` and chunk N had unexpected behavior
 6. Otherwise continue to next chunk.
@@ -276,8 +274,8 @@ Unfixed ⚠ without a `deferred` reason = report defect.
 ...
 
 ## Test results
-✅ `npm test` — <total> tests pass (<delta> new)
-✅ `npm run build` — pass
+✅ `cd pps-web && npm run test:unit` — <total> tests pass (<delta> new)
+✅ `cd pps-web && npm run build` — pass
 
 ## Coverage delta
 | File | Before | After | Target | Status |
@@ -322,4 +320,4 @@ namespace `<feature>` — <N> keys appended to `src/test/test-utils.tsx`
 - **Coverage target unreachable due to unreachable branch** (e.g. error path that requires a network failure mode MSW can't simulate cleanly) — note in self-check `⚠ Coverage <X>% (target <Y>%) — <reason>` and propose either lowering the target for this file or skipping the branch.
 - **i18n key doesn't exist in `locales/en/<feature>.json`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
 - **User says `apply` after audit but skips Plan review** — paraphrase Plan in 3-5 lines in Thai, ask in Thai (e.g. "เริ่ม Chunk 1?") — do not jump to write.
-- **`npm test` fails on a chunk due to an unrelated pre-existing failure** — report which test failed; ask whether to defer fixing that or block. Default = block; tests must be green for the chunk to be declared done.
+- **`cd pps-web && npm run test:unit` fails on a chunk due to an unrelated pre-existing failure** — report which test failed; ask whether to defer fixing that or block. Default = block; tests must be green for the chunk to be declared done.

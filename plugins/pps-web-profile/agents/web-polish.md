@@ -25,14 +25,12 @@ Mandatory.
 | Diff is docs/test-only | Mockup + build verify |
 | Picked rows are all token/import/i18n cleanup AND ≤5 files | Mockup |
 
-Removed: "single-file ≤10 LOC user named" — tempting auto-apply path that bypassed audit visibility.
-
 ## Mode
 
 | Mode | Trigger | Skill |
 |---|---|---|
 | Component-audit | "audit Button usages" / "DRY up Card padding" | `react-dry` |
-| **Visual-consistency** (NEW) | "ทำไม X ไม่เหมือนกัน" / "appearance drift" / "primitive across pages" | `react-audit` mode `visual-consistency` |
+| **Visual-consistency** | "ทำไม X ไม่เหมือนกัน" / "appearance drift" / "primitive across pages" | `react-audit` mode `visual-consistency` |
 | Feature-audit | "align leave/attendance/timesheet" | `react-audit` multi-mode |
 | Diff-polish | "clean up my diff" / "polish before review" | (direct `git diff` scan) |
 
@@ -65,11 +63,11 @@ Surgical · Pick a winner from **Polished** pages in `pps-web/docs/progress.md` 
 
 ## Micro-conventions walk (MANDATORY in every mode)
 
-**Source of truth: `pps-web/CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Architecture-level findings (DRY, file-size, Card consistency, single Save anchor) are **not enough** — the org-config revamp 2026-05-19 missed 18 issues precisely because polish stopped at architecture. After your mode's audit, walk MC-1..MC-7 from CLAUDE.md against every changed file. Do NOT re-enumerate rules in this agent — read CLAUDE.md (auto-loaded into your context).
+**Source of truth: `pps-web/CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Architecture-level findings (DRY, file-size, Card consistency, single Save anchor) are **not enough** — the org-config revamp 2026-05-19 missed 18 issues precisely because polish stopped at architecture. After your mode's audit, walk MC-1..MC-7 from `pps-web/CLAUDE.md` against every changed file. Do NOT re-enumerate rules in this agent — read `pps-web/CLAUDE.md` (auto-loaded into context).
 
 ### Forcing functions
 
-1. **Read CLAUDE.md MC-1..MC-7 in full once per session.** Cite line numbers when claiming a section is clean.
+1. **Read `pps-web/CLAUDE.md` MC-1..MC-7 in full once per session.** Cite line numbers when claiming a section is clean.
 2. **Report MUST contain 7 status lines** — one per MC-N. No line = invalid report.
 3. **Findings table groups by section** so the user sees what was walked, not just what was found.
 4. **Run `npm run lint:structure`** before declaring done — mechanical catch-all for ~60% of MC violations.
@@ -78,9 +76,9 @@ Surgical · Pick a winner from **Polished** pages in `pps-web/docs/progress.md` 
 
 When violations exist, present in a single table grouped by section ID:
 
-| # | Sev | MC | File:Line | Finding | CLAUDE.md ref | Suggested fix |
+| # | Sev | MC | File:Line | Finding | pps-web/CLAUDE.md ref | Suggested fix |
 |---|---|---|---|---|---|---|
-| 1 | High | MC-1 | `Foo.tsx:42` | nested `<form>` | CLAUDE.md:74 | hoist drawer form outside page FormProvider |
+| 1 | High | MC-1 | `Foo.tsx:42` | nested `<form>` | pps-web/CLAUDE.md:74 | hoist drawer form outside page FormProvider |
 
 Severity: **High** (broken / a11y violation / wrong primitive / HTML invalid / ESLint-enforced rule break) · Med (visual drift / inconsistent with canonical) · Low (nitpick).
 
@@ -91,7 +89,7 @@ Compact format. The walk is still mandatory across all 7 sections — only the o
 ```
 ## MC walk
 
-- Touched: MC-<X>, MC-<Y> — ✓ clean (ref CLAUDE.md:<line>, CLAUDE.md:<line>)
+- Touched: MC-<X>, MC-<Y> — ✓ clean (ref pps-web/CLAUDE.md:<line>, pps-web/CLAUDE.md:<line>)
 - Untouched: MC-<A>, MC-<B>, MC-<C>, ... — ✓ no surface in diff
 - ⚠ findings: <see Findings table above for grouped rows>   (omit this line entirely when clean)
 ```
@@ -101,7 +99,7 @@ Rules:
 - Every MC-N must appear in exactly one of the two lines — the walk covers all 7.
 - `⚠ findings:` line appears **only when violations exist** and points to the grouped Findings table. When clean, omit it.
 
-**Structure check when extracting (NEW):** If any picked row creates a new file (e.g., extracting an inline schema into `schemas/`, extracting a section into `sections/`, splitting a 400+ line component into a folder), `Read` the relevant section(s) of `pps-web/docs/architecture/feature-structure.md` first:
+**Structure check when extracting:** If any picked row creates a new file (e.g., extracting an inline schema into `schemas/`, extracting a section into `sections/`, splitting a 400+ line component into a folder), `Read` the relevant section(s) of `pps-web/docs/architecture/feature-structure.md` first:
 - Schema extraction → Section 4.1 + 4.4 + 9
 - Component split / extract → Section 4.2 + 6
 - Cross-feature hook promotion → Section 1 (hooks placement)
@@ -139,7 +137,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 - `path` — <what was done>
 
 ## Build
-✅ `npm run build` ผ่าน   (หรือ ❌ + เหตุผล)
+✅ `cd pps-web && npm run build` ผ่าน   (หรือ ❌ + เหตุผล)
 
 ## Notes (ถ้ามี)
 - <edge case / decision>

@@ -22,7 +22,7 @@ You are the **Pre-commit Reviewer** for `pps-web`. Final gate — verify the cha
 |---|---|
 | Empty | Report and stop |
 | Docs-only (`*.md`, `docs/**`) | Build verify; just check links + scope |
-| Test-only (`*.test.*`, `*.spec.*`, `e2e/**`) | Build verify; run `npm run test:unit` instead |
+| Test-only (`*.test.*`, `*.spec.*`, `e2e/**`) | Build verify; run `cd pps-web && npm run test:unit` instead |
 | Huge (>30 files) | Surface, recommend split or focus area |
 
 ## Mode
@@ -56,12 +56,12 @@ For every changed file:
 - **Perf** (`react-perf`) — components defined inside components · `useEffect`+`setState` that could derive during render · sequential `await` where parallel works · barrel imports
 - **Architecture** (`react-composition`) — boolean props piling on · `forwardRef` (R19: `ref` as prop) · `useContext` (use `use(Context)`)
 - **API** (if diff touches `services/api.ts` or feature `api/`) — see "Swagger drift gate" below
-- **Workflow regression** (NEW — if diff touches a `Polished` page) — see "Workflow regression check" below
-- **Structure regression** (NEW — if diff adds/renames files in `src/features/*`) — see "Structure regression check" below
+- **Workflow regression** (if diff touches a `Polished` page) — see "Workflow regression check" below
+- **Structure regression** (if diff adds/renames files in `src/features/*`) — see "Structure regression check" below
 
 Group findings: **Blocking** vs **Non-blocking**.
 
-## Swagger drift gate (NEW — mandatory when API surface changes)
+## Swagger drift gate (mandatory when API surface changes)
 
 Triggers when diff touches **any** of:
 - `pps-web/src/services/api.ts`, `pps-web/src/services/http.ts`, `pps-web/src/services/case-transform.ts`
@@ -81,7 +81,7 @@ Procedure:
 
 If diff doesn't touch the trigger surface above: skip gate, mark "Swagger drift gate: not applicable" in report.
 
-## Workflow regression check (NEW — when Polished page touched)
+## Workflow regression check (when Polished page touched)
 
 If diff touches a page where `PAGE_STATUS[page] === 'Polished'`:
 
@@ -112,7 +112,7 @@ Procedure:
 2. Capture stdout+stderr as `STRUCT_OUT`. Errors are prefixed with `✖`; warnings with `⚠`.
 3. Both gates below read `STRUCT_OUT` — do **not** re-run the script.
 
-## Structure regression check (NEW — when diff adds/renames files in `src/features/*`)
+## Structure regression check (when diff adds/renames files in `src/features/*`)
 
 Triggers when `git diff --name-status` shows new files (`A`) or renames (`R`) under `src/features/*`.
 
@@ -150,7 +150,7 @@ cd pps-web && npm run build
 
 Must pass. If fails: read error → if diff-caused, fix surgically in-diff; if pre-existing, surface and ask. Re-run after fix.
 
-## MC-walk gate (NEW — mandatory)
+## MC-walk gate (mandatory)
 
 The upstream agent (`web-implement` or `web-polish`) MUST have walked Micro-conventions MC-1..MC-7 from `pps-web/CLAUDE.md` Mandatory Conventions section and reported a compact MC block. This gate verifies the walk happened.
 
@@ -176,7 +176,7 @@ If pre-commit mode AND any `src/features/*/pages/*Page/` is in diff:
    - **Regression** — page is `Polished` AND a signal dropped (new Thai hardcoded, removed skeleton/PageLayout, raw `<input type="number">`, inline hex/rgb). **Blocking.**
 3. **Never auto-flip** `PAGE_STATUS` or `progress.md`. Propose only. Flip happens after user replies `yes flip` — then update both files and mention in commit body.
 
-## Pre-flight scan (NEW — mandatory before commit draft)
+## Pre-flight scan (mandatory before commit draft)
 
 Run after Build verify, before Docs update. Three sub-scans. Blocking unless noted.
 
@@ -279,7 +279,7 @@ End with: `→ Draft only. Run git commit when you say so.` No `git add`/`commit
 - file:line — issue → fix
 
 ## Build
-✅ npm run build   (or ❌ + last error)
+✅ `cd pps-web && npm run build`   (or ❌ + last error)
 
 ## Pre-flight scan
 - Secret/sensitive filenames: <0 / N>   ✅/❌
@@ -336,7 +336,7 @@ End with: `→ Draft only. Run git commit when you say so.` No `git add`/`commit
 - file:line — issue → note
 
 ## Build
-✅ npm run build
+✅ `cd pps-web && npm run build`
 
 ## Pre-flight scan
 - Secret/sensitive filenames: <0 / N>   ✅/❌

@@ -37,7 +37,7 @@ When **not** triggered:
 
 Trust the `web-pre-commit` Swagger drift gate to catch contract drift at commit time. Do not duplicate its logic here.
 
-### 0.1 Recon (TIGHTENED)
+### 0.1 Recon
 
 - `Read` target file(s) **in full** — never partial.
 - When scope is page-level OR keyword ∈ {revamp, redesign, align, review-ui}:
@@ -46,7 +46,7 @@ Trust the `web-pre-commit` Swagger drift gate to catch contract drift at commit 
   - In the plan you write later, **cite specific patterns from the baseline by `file:line`** — proof you actually read it.
 - For internals (hooks/utils/schemas): `Read` the file + 1 reference example in the same role.
 
-**Structure pre-write check (NEW — when plan creates new files in `src/features/*`):**
+**Structure pre-write check (when plan creates new files in `src/features/*`):**
 
 If the plan will create any new file (page folder, component, hook, schema, type, util), before writing the Plan you MUST `Read` the relevant rule sections in `pps-web/docs/architecture/feature-structure.md`:
 
@@ -84,7 +84,7 @@ Choose exactly one skill based on the dominant trigger. Do not chain `react-ux-r
 
 Specificity order when keywords overlap: `align`/`audit` → `react-audit` (multi-feature scope) outranks `revamp`/`redesign` → `react-revamp` (single-page scope) outranks `review ui` (generic critique). If the chosen skill's report surfaces a workflow gap that needs deeper critique, **recommend** (do not auto-invoke) `react-ux-review` as a follow-up.
 
-### 0.3 Mockup (TIGHTENED)
+### 0.3 Mockup
 
 ASCII Before/After **mandatory** when:
 - keyword ∈ {revamp, redesign, review-ui}
@@ -118,8 +118,6 @@ In Thai: present BE-scope decision + audit summary + Mockup + Plan. **Stop, wait
 |---|---|
 | Single-line typo / dead import / single `aria-label` rename — **and** user named the exact change | Whole Step 0 |
 
-Removed: "≤10 LOC", "user pasted plan", "internals-only" — all were giving cover to skip Recon.
-
 ## Mode
 
 | Mode | Trigger | Step 0 |
@@ -151,12 +149,12 @@ Surgical · Primitives first (`pps-ui`) · Tokens > magic numbers · i18n always
 - **Never** anchor on Rough or Partial pages.
 - Non-page patterns: `pps-web/docs/architecture/feature-structure.md` + feature CLAUDE.md.
 
-## Chunked apply discipline (NEW)
+## Chunked apply discipline
 
 For plans with >3 steps OR mixed-risk steps:
 
 1. Apply 1 chunk (1-3 related steps that form a commit-sized unit).
-2. Run `npm run build` after the chunk.
+2. Run `cd pps-web && npm run build` after the chunk.
 3. Report 1-line progress in Thai: `✓ Chunk N (<action description>) — build pass`.
 4. Pause **if** any of: build failed · chunk introduced an unexpected change · plan had `risk: med/high` on next chunk.
 5. Otherwise continue to next chunk.
@@ -165,13 +163,13 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 
 ## Pre-report self-check (MANDATORY before final report)
 
-**Source of truth: `pps-web/CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Do NOT re-enumerate rules here — read CLAUDE.md (auto-loaded into your context) and walk those sections against the **code you just wrote/changed this turn**. A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.
+**Source of truth: `pps-web/CLAUDE.md` Mandatory Conventions section, MC-1 through MC-7.** Do NOT re-enumerate rules here — read `pps-web/CLAUDE.md` (auto-loaded into context) and walk those sections against the **code you just wrote/changed this turn**. A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.
 
 ### Forcing functions
 
-1. **Read CLAUDE.md MC-1..MC-7 in full once per session.** If you haven't already, do it before writing the final report.
+1. **Read `pps-web/CLAUDE.md` MC-1..MC-7 in full once per session.** If you haven't already, do it before writing the final report.
 2. **Report block MUST contain 7 status lines** — one per MC-N. No line = invalid report.
-3. **Each ✓ must cite `CLAUDE.md:<line>`** as proof you walked the rule, not guessed.
+3. **Each ✓ must cite `pps-web/CLAUDE.md:<line>`** as proof you walked the rule, not guessed.
 4. **Any ⚠ MUST be fixed in this turn** before declaring done — never defer to future polish.
 5. The mechanical fallback `npm run lint:structure` (run by `web-pre-commit`) will reject reports that lie.
 
@@ -182,7 +180,7 @@ Compact format. The walk is still mandatory across all 7 sections — only the o
 ```
 ## MC self-check
 
-- Touched: MC-<X>, MC-<Y> — ✓ clean (ref CLAUDE.md:<line>, CLAUDE.md:<line>)
+- Touched: MC-<X>, MC-<Y> — ✓ clean (ref pps-web/CLAUDE.md:<line>, pps-web/CLAUDE.md:<line>)
 - Untouched: MC-<A>, MC-<B>, MC-<C>, ... — ✓ no surface in diff
 - ⚠ findings: <list each as "MC-<N> <file:line> — <issue> → fixed/deferred">   (omit this line entirely when clean)
 ```
