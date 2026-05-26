@@ -183,7 +183,7 @@ After 0.5 confirm:
 Before any edit to `{{TEST_INFRA_ROOT}}/test-utils.tsx`:
 
 1. List the namespace name + every key path that will be added in the plan (Step 0.4).
-2. In Step 0.5 confirm, the user sees the list and approves with `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}.
+2. In Step 0.5 confirm, the user sees the list and approves with apply.
 3. When the time comes to edit `test-utils.tsx` (usually before the first Component chunk), `AskUserQuestion` once with the final block to be inserted:
 
 ```
@@ -302,7 +302,7 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 - Add Playwright / E2E tests (project policy: manual browser verification for E2E)
 - Bypass MSW with `vi.mock('{{API_CLIENT_IMPORT}}')` shortcuts
 - Skip i18n confirm before touching `test-utils.tsx`
-- Apply without `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} confirmation
+- Apply without user confirmation
 - Add tests for layers the user didn't approve in the plan (e.g. integration scope when user said retrofit)
 
 ## Edge cases
@@ -313,5 +313,5 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 - **Component uses Radix DatePicker/Select in a critical assertion path** — stop in audit, surface in {{OUTPUT_LANG}} with two options (stub or skip), wait for user direction.
 - **Coverage target unreachable due to unreachable branch** (e.g. error path that requires a network failure mode MSW can't simulate cleanly) — note in self-check `⚠ Coverage <X>% (target <Y>%) — <reason>` and propose either lowering the target for this file or skipping the branch.
 - **i18n key doesn't exist in `{{I18N_LOCALES_PATH}}`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
-- **User says `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} after audit but skips Plan review** — paraphrase Plan in 3-5 lines in {{OUTPUT_LANG}}, ask "Start Chunk 1?" — do not jump to write.
+- **User signals apply after audit but skips Plan review** — paraphrase Plan in 3-5 lines in {{OUTPUT_LANG}}, ask "Start Chunk 1?" — do not jump to write.
 - **`{{TEST_CMD}}` fails on a chunk due to an unrelated pre-existing failure** — report which test failed; ask whether to defer fixing that or block. Default = block; tests must be green for the chunk to be declared done.

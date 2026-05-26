@@ -93,15 +93,9 @@ If diff intentionally removes one of these for a valid reason → flag as **Non-
 
 If `react-ux-review` skill is available and diff is form-heavy → recommend running it for a deeper workflow audit.
 
-## Shared `lint:structure` run (run once per turn, reuse across gates)
+## Shared `lint:structure` run
 
-The Structure regression check (below) and the MC-walk mechanical fallback both need `lint:structure` output. **Run the script exactly once** per turn, capture its output in a scratchpad variable (call it `STRUCT_OUT`), and reuse the same output in both gates.
-
-Procedure:
-
-1. Run `{{LINT_STRUCTURE_CMD_STRICT}} 2>&1` exactly once. The `:strict` variant exits non-zero on any `✖` (suitable for both gates' needs — exit code is informational only here, do not let it abort the turn).
-2. Capture stdout+stderr as `STRUCT_OUT`. Errors are prefixed with `✖`; warnings with `⚠`.
-3. Both gates below read `STRUCT_OUT` — do **not** re-run the script.
+Both gates below need `lint:structure` output. Run `{{LINT_STRUCTURE_CMD_STRICT}} 2>&1` exactly once per turn; capture stdout+stderr as `STRUCT_OUT` (errors `✖`, warnings `⚠`). Reuse — do **not** re-run.
 
 ## Structure regression check (when diff adds/renames files in `{{FEATURES_ROOT}}/*`)
 
@@ -116,7 +110,7 @@ Procedure:
    - **Pre-existing violation that the diff touches** → **Blocking**. Same report format with `(diff modified an already-violating file — fix while you're here)`.
    - **Pre-existing violation that the diff does NOT touch** → ignore ({{STRUCTURE_LEGACY_REF}}, not this PR's problem).
 4. For new `⚠` warnings in the diff:{{STRUCT_PENDING_RULES}}
-{{STRUCT_REGRESSION_PSEUDOCODE}}
+
 If `{{LINT_STRUCTURE_CMD_STRICT}}` exits 0: report "Structure regression: clean" and move on.
 
 ## Build verify
@@ -231,10 +225,10 @@ End with: `→ Draft only. Run git commit when you say so.` No `git add`/`commit
 
 ## Report
 
-### Diff-review
+Title: `# Diff Review` (diff-review mode) · `# Pre-commit Review` (pre-commit mode).
 
 ```
-# Diff Review
+# <title>
 
 ## Summary
 <1 para — what changed + why>
@@ -243,7 +237,7 @@ End with: `→ Draft only. Run git commit when you say so.` No `git add`/`commit
 ### Blocking
 - file:line — issue → fix
 ### Non-blocking
-- file:line — issue → fix
+- file:line — issue → fix/note   (treat as "deferred" in pre-commit mode)
 
 ## Build
 ✅ `{{BUILD_CMD}}`   (or ❌ + last error)
@@ -274,67 +268,30 @@ End with: `→ Draft only. Run git commit when you say so.` No `git add`/`commit
 - Pre-existing violations in touched files: <list or "none">
 
 ## MC-walk gate
-- Upstream MC block found: <yes (from {{AGENT_PREFIX}}-implement / {{AGENT_PREFIX}}-polish) | no — performed walk here>
-- {{MC_MAX}} status lines present: <yes | no — missing MC-N>
-- Unfixed ⚠ findings: <list or "none">
-- lint:structure mechanical fallback: <0 / N diff-introduced violations>
-
-## Polish status (if pages touched)
-- Flip candidates: <Page> Rough → Polished? (3/5 → 5/5)
-- Regressions: <Page> Polished → ⚠️ (signal X dropped)
-- (or "no page changes")
-
-## Recommendation
-<"Ready for pre-commit" | "Run {{AGENT_PREFIX}}-polish first" | "Address blocking first">
-```
-
-### Pre-commit
-
-```
-# Pre-commit Review
-
-## Summary
-<1 para>
-
-## Findings
-### Blocking
-- file:line — issue → fix
-### Non-blocking (deferred)
-- file:line — issue → note
-
-## Build
-✅ `{{BUILD_CMD}}`
-
-## Pre-flight scan
-- Secret/sensitive filenames: <0 / N>   ✅/❌
-- Inline secret patterns: <0 / N>   ✅/❌
-- Binary > 1 MB added: <0 / N>   ✅/❌
-- WIP markers added: <0 / N>   (debugger/.only → Blocking)
-- Lockfile sync: ✅/❌
-
-## Swagger drift gate
-<verified list / mismatches / "not applicable">
-
-## Workflow regression check
-<intact / regressions / "no Polished page changes">
-
-## Structure regression check
-<lint:structure:strict result / diff-introduced violations / "no {{FEATURES_ROOT}} additions">
-
-## MC-walk gate
-- Upstream MC block: <found from {{AGENT_PREFIX}}-implement/{{AGENT_PREFIX}}-polish | performed walk here>
+- Upstream MC block: <found from {{AGENT_PREFIX}}-implement / {{AGENT_PREFIX}}-polish | performed walk here>
 - {{MC_MAX}} status lines present: <yes | no — Blocking>
 - Unfixed ⚠ findings: <list or "none">
 - lint:structure mechanical fallback: <0 / N diff-introduced violations>
 
+## Polish status (if pages touched)
+- Flip candidates: <Page> Rough → Polished? (3/5 → 5/5)   (in pre-commit mode: reply `yes flip` to update)
+- Regressions: <Page> Polished → ⚠️ (signal X dropped)
+- (or "no page changes")
+```
+
+### Diff-review mode appends
+
+```
+## Recommendation
+<"Ready for pre-commit" | "Run {{AGENT_PREFIX}}-polish first" | "Address blocking first">
+```
+
+### Pre-commit mode appends
+
+```
 ## Docs updated
 - path — what changed
 - (or "none invalidated")
-
-## Polish status (if pages touched)
-- Flip candidates: <Page> Rough → Polished? (3/5 → 5/5) — reply `yes flip` to update
-- Regressions: <Page> Polished → ⚠️ (signal X dropped) — must fix before commit
-- (or "no page changes")
 
 ## Commit draft
 

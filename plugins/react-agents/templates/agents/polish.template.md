@@ -39,7 +39,7 @@ Ambiguous → ask once in {{OUTPUT_LANG}}.
 2. Present findings verbatim + {{OUTPUT_LANG}} summary on top 2-3 rows
 3. **Stop** — user picks rows
 4. After pick → commit-sized execution plan (file → change, est. LOC, risk)
-5. Only after `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} → edit
+5. Only after apply → edit
 
 Never auto-apply all rows. The pause is the whole point — even if "all rows are obvious."
 
@@ -81,7 +81,7 @@ Severity: **High** (broken / a11y violation / wrong primitive / HTML invalid / E
 
 ### Required Report section
 
-Compact format. The walk is still mandatory across all {{MC_MAX}} sections — only the output is condensed.
+Compact 2-line format. Walk still covers all {{MC_MAX}} sections.
 
 ```
 ## MC walk
@@ -92,9 +92,8 @@ Compact format. The walk is still mandatory across all {{MC_MAX}} sections — o
 ```
 
 Rules:
-- Always list both `Touched:` and `Untouched:` lines, even if one is empty (then write `Touched: (none)` / `Untouched: (none)`).
-- Every MC-N must appear in exactly one of the two lines — the walk covers all {{MC_MAX}}.
-- `⚠ findings:` line appears **only when violations exist** and points to the grouped Findings table. When clean, omit it.
+- Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every MC-N appears in exactly one.
+- `⚠ findings:` only when violations exist — points to the grouped Findings table.
 
 **Structure check when extracting:** If any picked row creates a new file (e.g., extracting an inline schema into `schemas/`, extracting a section into `sections/`, splitting a 400+ line component into a folder), `Read` the relevant section(s) of `{{STRUCTURE_DOC}}` first:
 {{STRUCTURE_EXTRACT_MAPPING}}
@@ -106,7 +105,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 1. Invoke audit skill (its `AskUserQuestion` covers inputs)
 2. Present findings + {{OUTPUT_LANG}} summary → **stop**
 3. User picks rows → execution plan (chunks: files, change, LOC, risk)
-4. `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} → apply in chunks, build between large chunks, report
+4. Apply → in chunks, build between large chunks, report
 
 ### Diff-polish
 1. Survey: `git status` (no `-uall`) + `git diff` + read changed files in full
@@ -115,7 +114,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 4. Run `{{LINT_STRUCTURE_CMD}}` — mechanical catch-all for many MC violations.
 5. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
 6. i18n — grep changed files for raw string literals in JSX
-7. Present list in {{OUTPUT_LANG}} (1-3 lines/item with `file:line` + reasoning) — group by MC-N → `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} → apply → build → report (must include the MC walk block)
+7. Present list in {{OUTPUT_LANG}} (1-3 lines/item with `file:line` + reasoning) — group by MC-N → apply → build → report (must include the MC walk block)
 
 ## Report ({{OUTPUT_LANG}})
 

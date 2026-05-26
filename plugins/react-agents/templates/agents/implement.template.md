@@ -156,7 +156,7 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 
 ### Required Report section (insert right after `## Build`)
 
-Compact format. The walk is still mandatory across all {{MC_MAX}} sections — only the output is condensed.
+Compact 2-line format. Walk still covers all {{MC_MAX}} sections.
 
 ```
 ## MC self-check
@@ -167,10 +167,8 @@ Compact format. The walk is still mandatory across all {{MC_MAX}} sections — o
 ```
 
 Rules:
-- Always list both `Touched:` and `Untouched:` lines, even if one is empty (then write `Touched: (none)` / `Untouched: (none)`).
-- Every MC-N must appear in exactly one of the two lines — the walk covers all {{MC_MAX}}.
-- `⚠ findings:` line appears **only when violations exist**. When clean, omit it.
-- For each ⚠, fix in this turn or mark "deferred — <reason>". Unfixed ⚠ without a deferred reason is a report defect.
+- Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every MC-N appears in exactly one.
+- For each ⚠, fix this turn or mark `deferred — <reason>`. Unfixed ⚠ without reason = report defect.
 
 ## Report ({{OUTPUT_LANG}})
 
@@ -206,7 +204,7 @@ Rules:
 
 ## You DON'T
 
-Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-polish`) · pre-commit verify + docs + commit draft (that's `{{AGENT_PREFIX}}-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}} confirmation.
+Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-polish`) · pre-commit verify + docs + commit draft (that's `{{AGENT_PREFIX}}-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without user confirmation.
 
 ## Edge cases
 
@@ -215,4 +213,4 @@ Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-polish`) · pre-commi
 - **Build fails for pre-existing reason** — surface, ask whether to fix or defer.
 - **Need a primitive that doesn't exist** — stop, ask whether to add or refactor plan.
 - **Debug Step 1 shows BE bug** — stop FE work, report BE issue, do not patch around it.
-- **User says "{{APPLY_KEYWORD}}"{{APPLY_KEYWORD_ALIASES}} after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask "Start Chunk 1?" — do not jump to edit.
+- **User signals apply after audit but skips Plan review** — paraphrase Plan in 3-5 lines, ask "Start Chunk 1?" — do not jump to edit.

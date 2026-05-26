@@ -35,7 +35,6 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{API_TRIGGER_HINT}}` | Inline phrase in `pre-commit` Bug+regression scan describing what API surface touched looks like | `` `services/api.ts` or feature `api/` `` (default: `network surface`) |
 | `{{STRUCTURE_LEGACY_REF}}` | Phrase used to refer to pre-existing structure violations (project's backlog name, if any) | `Section 17 backlog` (default: `legacy`) |
 | `{{STRUCT_PENDING_RULES}}` | Multi-line block under Structure regression check step 4 — project's pending-list workflow. Empty = single-line generic Non-blocking note | (see PROFILE-GENERATOR.md crib sheet — bullet list referencing project pending-list names) |
-| `{{STRUCT_REGRESSION_PSEUDOCODE}}` | (Optional) Project-specific helper pseudocode block under Structure regression check. Empty if not used | (see PROFILE-GENERATOR.md crib sheet — fenced code block) |
 
 ## Commands
 
