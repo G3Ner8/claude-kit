@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: action
+  status: stable
   derived_from: project-internal
   stack: Claude Code plugin marketplace
   scope: Project profile scaffolding
@@ -13,6 +15,17 @@ metadata:
 # profile-generator
 
 Generate a project-specific Claude Code profile (filled-in agent trio + plugin manifest) from the `react-agents` templates.
+
+## Pre-conditions (refuse if any missing)
+
+This skill mutates the filesystem by writing a new plugin folder. Refuse to proceed unless ALL of the following are confirmed:
+
+1. **`react-agents` plugin is installed** — templates must exist at `plugins/react-agents/templates/agents/*.template.md`. Verify with `Glob` before any prompt.
+2. **Output path is empty or absent** — never overwrite an existing `plugins/<name>-profile/` folder. If it exists, ask user to confirm a different name or explicit overwrite intent.
+3. **All 22 question-round answers collected** — see "Inputs" below. Never write a profile with placeholder defaults silently substituted; surface defaults during the question round.
+4. **PLACEHOLDER-REFERENCE.md exists** — `plugins/react-agents/docs/PLACEHOLDER-REFERENCE.md` is the source of truth for placeholder names. If absent, refuse and surface the broken install.
+
+If any pre-condition fails, list the gap and stop without writing files.
 
 ## When to invoke
 

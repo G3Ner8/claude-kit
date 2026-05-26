@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: gate
+  status: stable
   derived_from: project-internal (companion to react-revamp + react-audit)
   stack: framework-agnostic procedure; examples target React 19 codebases with form-heavy pages
   scope: Read-only workflow critique — single page or small page cluster
@@ -15,6 +17,20 @@ metadata:
 A read-only critic that compares a target page's **user-facing workflow** against canonical Polished baselines in the same codebase. Where `react-audit` focuses on structure/visual tokens and `react-revamp` proposes new flows, this skill answers a narrower question: **does the existing workflow follow the patterns the team's best pages already prove?**
 
 Output is a divergence table — each row a workflow pattern, marked High/Med/Low severity with a remediation hint. **Stops before any edit.** The invoking agent (or user) decides what to apply.
+
+---
+
+## When to use
+
+- "Review UX on page X" / "best-practice check for page X"
+- "Audit the UX flow" — does this page follow team conventions?
+- Mandatory pre-step before `react-revamp` or `web-implement` redesign — workflow gaps shape the redesign
+- Onboarding review: does a new page miss any standard pattern?
+
+Skip this skill for:
+- Visual / token critique (color, spacing, typography) — use `react-audit` or `react-dry`
+- Structural / file-layout critique — use `react-audit`
+- Full redesign proposal — use `react-revamp` (this skill is critique-only)
 
 ---
 

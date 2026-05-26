@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: reference
+  status: stable
   derived_from: vercel-labs/agent-skills/skills/react-best-practices (curated subset)
   stack: React 19, Vite, TanStack Query, TypeScript
   scope: SPA / CSR only
@@ -20,7 +22,7 @@ metadata:
 
 **Does NOT apply to:** Next.js App Router, React Server Components, server actions, SSR/SSG hydration patterns. Server-side rules from the upstream Vercel pack have been removed; rules using Next.js-specific APIs (`next/dynamic`, `next/script`, `next.config.optimizePackageImports`) have been rewritten for Vite + React.lazy.
 
-## When to Apply
+## When to use
 
 Reference these rules when:
 - Writing new React components or hooks
@@ -28,6 +30,11 @@ Reference these rules when:
 - Reviewing PRs for performance regressions
 - Refactoring effects, state, or memoization
 - Optimizing bundle size or chunk strategy
+
+Skip this skill for:
+- Next.js / RSC / SSR work — rules don't apply, use Next.js docs
+- Composition / API design — use `react-composition` instead
+- Initial component implementation when the perf risk is unknown — write it simple first, profile second
 
 ## How to Navigate
 

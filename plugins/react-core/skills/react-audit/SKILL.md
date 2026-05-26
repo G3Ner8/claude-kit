@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: gate
+  status: stable
   derived_from: project-internal (consolidates legacy inspect + align agents)
   stack: framework-agnostic procedure; examples target React 19 codebases
   scope: Read-only audit
@@ -23,6 +25,20 @@ Three modes, detected from the input shape:
 | **Visual-consistency** | A primitive name (e.g. `Button`, `Card`) + a list of pages/files where it's used | Per-usage variant table + winner appearance + migration plan |
 
 Single-feature and Multi-feature share Phases A-D; Multi-feature adds Phase E (cross-feature matrix). Visual-consistency uses its own Phase B' (cross-page primitive scan) instead of A-D — see Step 3 below.
+
+---
+
+## When to use
+
+- Auditing a new feature folder against canonical baselines (e.g. "is `leave` consistent with `employee`?")
+- Aligning 2+ feature folders that drifted (multi-feature divergence matrix)
+- Checking visual consistency of one primitive across many pages (`Button` everywhere)
+- Pre-step before a `react-revamp` proposal — establishes what the baseline actually is
+
+Skip this skill for:
+- Single-file edits or one-component changes — too coarse
+- UX workflow critique — use `react-ux-review` (this skill focuses on structure/visual, not workflow)
+- Cross-codebase comparison — this skill scans one repo at a time
 
 ---
 

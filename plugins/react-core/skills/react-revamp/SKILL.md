@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: gate
+  status: stable
   derived_from: project-internal (was: legacy flow agent)
   stack: framework-agnostic procedure; examples target React 19 codebases
   scope: Read-only proposal — single page only
@@ -17,6 +19,21 @@ Propose a production-grade UX/UI flow revamp for **one** page. The output is a c
 This skill is **frontend-only**. If the backend feels wrong, flag it as a question for the user; don't propose API changes.
 
 Output is a proposal. After producing it, **stop and wait** for explicit "apply" approval before any edit.
+
+---
+
+## When to use
+
+- "Revamp the flow on page X" / "redesign the user flow for X"
+- "Fix the UX flow on page X" — page works but feels wrong
+- Page-level overhaul: layout, navigation, state machine, primitive choice
+- After `react-ux-review` surfaces workflow gaps that justify a full redesign
+
+Skip this skill for:
+- Multi-page redesigns — this skill is single-page only
+- Visual-token-only changes (color, spacing) — use `react-audit` or `react-dry`
+- Critique-only requests ("is this UX OK?") — use `react-ux-review`
+- Backend / API redesign — this skill is frontend-only by contract
 
 ---
 

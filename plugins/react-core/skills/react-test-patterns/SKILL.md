@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: reference
+  status: stable
   stack: React 19 + Vitest 4 + @testing-library/react 16 + @testing-library/user-event 14 + MSW 2 + jsdom
   scope: Read-mostly knowledge; consumed by test-writer agents and human reviewers
   derived_from: Proven on `pps-web/src/features/holiday/**/*.test.*` (54 tests, 8 files, 4 layers — see "Canonical baseline" below)

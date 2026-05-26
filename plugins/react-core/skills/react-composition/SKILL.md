@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: reference
+  status: stable
   derived_from: vercel-labs/agent-skills/skills/composition-patterns (curated, web-React idioms)
   stack: React 19, TypeScript
   scope: framework-agnostic (web React preferred examples)
@@ -20,7 +22,7 @@ The most common cause of unmaintainable React code is **boolean prop proliferati
 
 The fix is composition: smaller building blocks, explicit variants, lifted state, shared context. These patterns are what mature React codebases (Radix, shadcn/ui, Reach UI, Ariakit) settle on.
 
-## When to Apply
+## When to use
 
 Reference these patterns when:
 - Refactoring a component with > 3 boolean props
@@ -29,6 +31,11 @@ Reference these patterns when:
 - Deciding where state should live (component vs provider)
 - Reviewing component architecture
 - Writing React 19 code (don't use `forwardRef` or `useContext`)
+
+Skip this skill for:
+- Non-React code (server logic, build config)
+- Performance tuning — use `react-perf`
+- Testing patterns — use `react-test-patterns`
 
 ## Rule Categories by Priority
 

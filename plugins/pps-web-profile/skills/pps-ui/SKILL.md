@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: reference
+  status: stable
   scope: pps-web only (project-specific)
   component_root: pps-web/src/components/ui/
   category_source: pps-web/src/components/ui/index.ts (auto-grouped)
@@ -15,6 +17,20 @@ metadata:
 The single source of truth for **what's available** in `pps-web/src/components/ui/` and **when to reach for each**. Agents working on pps-web React code should consult this skill before writing new markup — the most common mistake is reimplementing a primitive that already exists.
 
 > **Project scope:** This skill is pps-web-specific. The component list is hard-coded to what exists under `pps-web/src/components/ui/`. Use `react-perf` / `react-composition` / `react-audit` / `react-dry` / `react-revamp` for the framework-agnostic counterparts.
+
+---
+
+## When to use
+
+- Writing any new pps-web React component — check the primitive map before rolling markup
+- Reviewing a pps-web PR for "should this have used `<X>` instead?"
+- Refactoring pps-web code to replace ad-hoc markup with primitives
+- Deciding Modal vs Drawer / Select vs Combobox / Toast vs Alert in pps-web
+
+Skip this skill for:
+- Non-pps-web projects — primitive list won't match
+- Framework-agnostic decisions — use `react-composition` for general API design
+- Visual style audit — use `react-dry` to compare primitive call sites
 
 ---
 

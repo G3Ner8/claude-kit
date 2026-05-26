@@ -5,6 +5,8 @@ license: MIT
 user-invocable: true
 metadata:
   version: "1.0.0"
+  type: gate
+  status: stable
   derived_from: project-internal (was: legacy unify agent)
   stack: framework-agnostic procedure; examples target React 19 + Tailwind codebases
   scope: Read-only component-usage audit
@@ -23,6 +25,20 @@ Output flow:
 3. **Stop and wait** — user discusses, narrows down what they want fixed
 4. Only then propose a detailed execution plan (next round)
 5. Only after user approves the plan does any agent edit code
+
+---
+
+## When to use
+
+- "Audit `Button` usages across the app" — find divergent variants
+- "DRY up our `Card` components" — surface inconsistencies before fixing
+- "Standardize `Table` styles across pages" — list every variant first
+- Pre-step before mass refactor — pick the winner variant from real evidence
+
+Skip this skill for:
+- Single component usage — divergence requires 2+ call sites to be meaningful
+- Behavioral inconsistency (event handling, state shape) — this skill audits style/markup only
+- Cross-feature architecture divergence — use `react-audit` instead
 
 ---
 
