@@ -44,10 +44,10 @@ Rules live under `rules/<section>/<rule>.md`. Each section has a priority:
 |---|---|---|
 | CRITICAL | Eliminating Waterfalls | `rules/async/` |
 | CRITICAL | Bundle Size Optimization | `rules/bundle/` |
-| MEDIUM-HIGH | Client-Side Data Fetching | `rules/client/` |
-| MEDIUM | Re-render Optimization | `rules/rerender/` |
-| MEDIUM | Rendering Performance | `rules/rendering/` |
-| LOW-MEDIUM | JavaScript Performance | `rules/js/` |
+| MEDIUM-HIGH | Browser Runtime I/O | `rules/runtime-io/` |
+| MEDIUM | Preventing Re-renders | `rules/prevent-rerender/` |
+| MEDIUM | Render-Output Optimizations | `rules/render-output/` |
+| LOW-MEDIUM | JS Micro-Optimizations | `rules/js-micro/` |
 | LOW | Advanced Patterns | `rules/advanced/` |
 
 Each rule file has frontmatter (`title`, `impact`, `tags`), a brief rationale, and contrasting **Incorrect / Correct** code examples in TypeScript.
@@ -57,31 +57,31 @@ Each rule file has frontmatter (`title`, `impact`, `tags`), a brief rationale, a
 ### 1. Eliminating Waterfalls (`async/`)
 - `cheap-condition-before-await` — gate awaits behind cheap sync checks
 - `defer-await` — move await into branch that uses the value
-- `parallel` — Promise.all (and allSettled) for independent ops
+- `parallel-promises` — Promise.all (and allSettled) for independent ops
 - `suspense-boundaries` — stream content with Suspense + useSuspenseQuery
 
 ### 2. Bundle Size (`bundle/`)
 - `analyzable-paths` — keep imports statically analyzable
 - `barrel-imports` — Vite optimizeDeps or direct imports for icon/UI libs
-- `conditional` — load feature modules only when activated
+- `conditional-load` — load feature modules only when activated
 - `defer-third-party` — defer analytics/widgets until after first paint
 - `dynamic-imports` — React.lazy + Suspense for heavy components
 - `preload` — modulepreload + router prefetch on hover/focus
 
-### 3. Client-Side Data Fetching (`client/`)
+### 3. Browser Runtime I/O (`runtime-io/`)
 - `query-library-dedup` — use TanStack Query / SWR for automatic dedup
 - `event-listeners` — share one global listener across subscribers
 - `passive-event-listeners` — passive: true for scroll/touch
 - `localstorage-schema` — version your localStorage shape
 
-### 4. Re-render Optimization (`rerender/`)
+### 4. Preventing Re-renders (`prevent-rerender/`)
 - `defer-reads` — subscribe to slices used in render, not slices only read in callbacks
-- `dependencies` — prefer primitive values in effect/memo dependency arrays
+- `narrow-effect-deps` — prefer primitive values in effect/memo dependency arrays
 - `derived-state` — subscribe to derived booleans, not raw values that change often
 - `derived-state-no-effect` — derive during render, not via `useEffect` + `setState`
 - `functional-setstate` — `setX(prev => ...)` keeps callbacks stable and avoids stale closures
 - `lazy-state-init` — pass a function to `useState` for expensive initial values
-- `memo` — extract expensive subtrees into `memo()` to enable early-return
+- `memo-component` — extract expensive subtrees into `memo()` to enable early-return
 - `memo-with-default-value` — hoist non-primitive default props to a module-level constant
 - `move-effect-to-event` — put interaction logic in event handlers, not effects
 - `no-inline-components` — never define components inside components (causes remount)
@@ -90,13 +90,13 @@ Each rule file has frontmatter (`title`, `impact`, `tags`), a brief rationale, a
 - `use-deferred-value` — defer expensive renders to keep typed input responsive
 - `use-ref-transient-values` — refs for high-frequency values that shouldn't trigger renders
 
-### 5. Rendering Performance (`rendering/`)
+### 5. Render-Output Optimizations (`render-output/`)
 - `conditional-render` — ternary over `&&` for non-boolean checks (correctness)
 - `content-visibility` — content-visibility: auto for long off-screen lists
 - `resource-hints` — React 19 `preload`/`preconnect`/`preinit` DOM hooks
 - `usetransition-loading` — prefer useTransition over isLoading flags
 
-### 6. JavaScript Performance (`js/`)
+### 6. JS Micro-Optimizations (`js-micro/`)
 - `flatmap-filter` — `flatMap` replaces `.map().filter(Boolean)` in one pass
 - `hoist-regexp` — move RegExp creation outside loops / hot paths
 - `index-maps` — build a `Map` for O(1) lookups instead of repeated `.find()`

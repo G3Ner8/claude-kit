@@ -61,7 +61,7 @@ Skip this skill for:
 - `explicit-variants` — `<ThreadComposer />` + `<EditComposer />` beats `<Composer isThread isEditing />`
 
 ### 4. React 19 APIs (`react19/`)
-- `no-forwardref` — `ref` is a regular prop now; `use(Context)` replaces `useContext(Context)`
+- `ref-and-context` — `ref` is a regular prop now; `use(Context)` replaces `useContext(Context)`
 
 ## How to Use
 

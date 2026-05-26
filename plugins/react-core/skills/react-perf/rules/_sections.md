@@ -14,22 +14,22 @@ This file defines the seven sections used by `react-perf`, their priority orderi
 **Impact:** CRITICAL
 **Description:** Initial bundle size directly affects Time to Interactive and First Contentful Paint on slow networks and low-end devices. Avoid pulling in large UI libraries via barrel files, lazy-load heavy components, and defer non-critical third-party scripts.
 
-## 3. Client-Side Data Fetching (`client/`)
+## 3. Browser Runtime I/O (`runtime-io/`)
 
 **Impact:** MEDIUM-HIGH
-**Description:** Use a query library (TanStack Query / SWR) for automatic deduplication, cache, and revalidation. Share global event listeners. Use passive listeners on touch/scroll. Version localStorage shapes.
+**Description:** Browser-side runtime concerns: client data fetching (TanStack Query / SWR for automatic dedup, cache, revalidation), shared event listeners, passive listeners on touch/scroll, versioned localStorage shapes.
 
-## 4. Re-render Optimization (`rerender/`)
-
-**Impact:** MEDIUM
-**Description:** Unnecessary re-renders waste CPU and cause jank on interactions. Derive state during render (not in effects), prefer primitive deps, memoize selectively, split combined hooks, avoid inline component definitions.
-
-## 5. Rendering Performance (`rendering/`)
+## 4. Preventing Re-renders (`prevent-rerender/`)
 
 **Impact:** MEDIUM
-**Description:** Reduce the work the browser does during paint. Use `content-visibility` for off-screen content, React 19 resource-hint hooks for early connection setup, and `useTransition` for non-urgent updates.
+**Description:** Stop unnecessary renders from happening. Derive state during render (not in effects), prefer primitive deps, memoize selectively, split combined hooks, avoid inline component definitions.
 
-## 6. JavaScript Performance (`js/`)
+## 5. Render-Output Optimizations (`render-output/`)
+
+**Impact:** MEDIUM
+**Description:** When a render does happen, reduce browser-side work. Use `content-visibility` for off-screen content, React 19 resource-hint hooks for early connection setup, and `useTransition` for non-urgent updates.
+
+## 6. JS Micro-Optimizations (`js-micro/`)
 
 **Impact:** LOW-MEDIUM
 **Description:** Targeted micro-optimizations for hot paths. Index maps for O(1) lookups, hoist RegExp outside loops, prefer `flatMap` over chained `.map().filter()`, use `toSorted()` for immutability.

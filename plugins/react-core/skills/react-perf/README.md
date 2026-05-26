@@ -30,10 +30,10 @@ If your stack differs, individual rules may still apply — read the rationale.
 |---|---|---|
 | `async/` | 4 | 2 light edit, 2 heavy rewrite |
 | `bundle/` | 6 | 4 light edit, 2 heavy rewrite |
-| `client/` | 4 | 3 verbatim, 1 heavy rewrite |
-| `rerender/` | 14 | 14 verbatim |
-| `rendering/` | 4 | 1 verbatim, 2 light edit, 1 heavy rewrite |
-| `js/` | 6 | 6 verbatim |
+| `runtime-io/` | 4 | 3 verbatim, 1 heavy rewrite |
+| `prevent-rerender/` | 14 | 14 verbatim |
+| `render-output/` | 4 | 1 verbatim, 2 light edit, 1 heavy rewrite |
+| `js-micro/` | 6 | 6 verbatim |
 | `advanced/` | 2 | 2 verbatim |
 
 ## Upstream → this skill mapping
@@ -79,22 +79,24 @@ If your stack differs, individual rules may still apply — read the rationale.
 |---|---|
 | `async-cheap-condition-before-await` → `async/cheap-condition-before-await` | Strip Next.js framing |
 | `async-defer-await` → `async/defer-await` | Strip Next.js framing |
-| `async-parallel` → `async/parallel` | + `Promise.allSettled` for UI tolerance |
+| `async-parallel` → `async/parallel-promises` | + `Promise.allSettled` for UI tolerance |
 | `async-suspense-boundaries` → `async/suspense-boundaries` | Rewrite using `useSuspenseQuery` (TanStack Query) |
 | `bundle-analyzable-paths` → `bundle/analyzable-paths` | Vite framing |
 | `bundle-barrel-imports` → `bundle/barrel-imports` | Vite `optimizeDeps` instead of Next.js `optimizePackageImports` |
-| `bundle-conditional` → `bundle/conditional` | Generic dynamic import |
+| `bundle-conditional` → `bundle/conditional-load` | Generic dynamic import |
 | `bundle-defer-third-party` → `bundle/defer-third-party` | Vanilla `<script async>` instead of `next/script` |
 | `bundle-dynamic-imports` → `bundle/dynamic-imports` | `React.lazy` + `<Suspense>` instead of `next/dynamic` |
 | `bundle-preload` → `bundle/preload` | `<link rel="modulepreload">` + router-agnostic prefetch |
-| `client-swr-dedup` → `client/query-library-dedup` | Cover both TanStack Query and SWR |
-| `rendering-conditional-render` → `rendering/conditional-render` | Reframed as correctness rule (not perf) |
-| `rendering-resource-hints` → `rendering/resource-hints` | Keep — React 19 DOM hooks already framework-agnostic |
-| `rendering-usetransition-loading` → `rendering/usetransition-loading` | Strip Next.js refs |
+| `client-swr-dedup` → `runtime-io/query-library-dedup` | Cover both TanStack Query and SWR |
+| `rendering-conditional-render` → `render-output/conditional-render` | Reframed as correctness rule (not perf) |
+| `rendering-resource-hints` → `render-output/resource-hints` | Keep — React 19 DOM hooks already framework-agnostic |
+| `rendering-usetransition-loading` → `render-output/usetransition-loading` | Strip Next.js refs |
+| `rerender-dependencies` → `prevent-rerender/narrow-effect-deps` | Renamed for descriptiveness |
+| `rerender-memo` → `prevent-rerender/memo-component` | Renamed (component-level memo, not `useMemo`) |
 
-### Verbatim (26 rules — framework-agnostic React)
+### Verbatim (24 rules — framework-agnostic React)
 
-All `rerender/*` (14), `js/*` (6), `advanced/*` (2), `client/event-listeners`, `client/passive-event-listeners`, `client/localstorage-schema`, `rendering/content-visibility`.
+All `prevent-rerender/*` (12 of 14, after the 2 renames above), `js-micro/*` (6), `advanced/*` (2), `runtime-io/event-listeners`, `runtime-io/passive-event-listeners`, `runtime-io/localstorage-schema`, `render-output/content-visibility`.
 
 ## Refreshing from upstream
 

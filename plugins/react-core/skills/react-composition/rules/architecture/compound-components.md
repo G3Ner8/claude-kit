@@ -114,7 +114,7 @@ Adding a new piece (e.g., `Dialog.Description` that auto-wires `aria-describedby
 - **Use `createContext(null)` + a throwing `useX()` hook.** Throwing surfaces "rendered outside parent" as a clear error instead of a silent default.
 - **Generate IDs with `useId`** for ARIA wiring (`aria-labelledby`, `aria-describedby`) — never hand-write IDs.
 - **Subcomponents are named static properties** (`Dialog.Trigger`) — not separate named exports — so the relationship is obvious at the import.
-- **React 19**: read context with `use(Context)`, not `useContext(Context)`. `use()` works in conditional branches; `useContext` doesn't. See [`no-forwardref`](../react19/no-forwardref.md).
+- **React 19**: read context with `use(Context)`, not `useContext(Context)`. `use()` works in conditional branches; `useContext` doesn't. See [`ref-and-context`](../react19/ref-and-context.md).
 
 ## When NOT to apply
 
