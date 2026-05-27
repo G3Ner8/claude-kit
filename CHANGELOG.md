@@ -6,6 +6,27 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.1.0 (new plugin)
+- New cross-cutting tier: `scrutinize` (intent-validation diff review) and `post-mortem` (incident RCA) — framework-agnostic, moved out of `react-core` (bare names, no `react-` prefix).
+
+### `react-core` 0.5.0
+- Promote `react-debug` (data-flow debug discipline) from `_in-progress/` to stable; cited by the implement template.
+- Move `scrutinize` + `post-mortem` to the new `dev-core` plugin.
+- Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
+- Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
+
+### `react-agents` 0.2.0
+- Decouple templates from pps-web assumptions: runtime convention-walk (drop `{{MC_MAX}}`), `{{API_CONTRACT_NAME}}` (default `Swagger`), portal-primitive generalization, page-maturity via `{{REFERENCE_PAGE_TERM}}` + `{{ANTI_REFERENCE_CLAUSE}}` + gated `{{POLISH_STATUS_REPORT_BLOCK}}`.
+- Parameterize all four agents' invocation triggers (multi-language); lock git-bound output (commit title/body, PR) to English regardless of trigger/report language.
+- `profile-generator` 1.1.0 — case 1/2/3 conventions-doc resolution + stack-aware `CONVENTIONS.md` seed when none exists; de-jargoned interview.
+- `react-agents` README: mermaid agent→skill chart + per-agent examples.
+
+### Kit-wide
+- Tiered structure (cross-cutting `dev-core` above domain `react-core` / `react-agents`); documented in CLAUDE.md (§1 tier model, §7 naming rule, decision D6).
+- Archive `pps-web-profile` as a worked example (out of the marketplace); remove `NOTICES.md` (no third-party attribution to track).
+- Minimal root README (146 → 44 lines).
+- Fix `validate-contract.sh --strict` unbound-variable when `_in-progress/` is empty.
+
 ### `react-core` 0.4.0
 - **react-perf cleanroom rewrite** — all 40 rule files rewritten from scratch (no upstream consultation). Each rule now states the symptom, a realistic Incorrect → Correct contrast, and an explicit "When NOT to apply" section. `SKILL.md` bumped to v2.0.0; fork-only `README.md` deleted (skill is now standalone).
 - Drop the `vercel-labs/agent-skills` attribution from `react-perf` — content is no longer derived. `NOTICES.md` simplified accordingly; root README and plugin README updated to drop "curated fork" framing.

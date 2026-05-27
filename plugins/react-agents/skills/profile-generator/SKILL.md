@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   type: action
   status: stable
   derived_from: project-internal

@@ -16,13 +16,13 @@
       "name": "react-core",
       "source": "./plugins/react-core",
       "description": "React 19 / Vite SPA skills: perf, composition, audit, revamp, ux-review, dry, test-patterns, debug. Stack-agnostic across any web-React project.",
-      "version": "0.1.0"
+      "version": "0.5.0"
     },
     {
       "name": "react-agents",
       "source": "./plugins/react-agents",
-      "description": "Templates for the build/polish/pre-commit subagent trio + a profile-generator skill that scaffolds a project-specific profile interactively.",
-      "version": "0.1.0"
+      "description": "Templates for the implement/polish/pre-commit/test agent quartet + a profile-generator skill that scaffolds a project-specific profile interactively.",
+      "version": "0.2.0"
     }
   ]
 }
