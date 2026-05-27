@@ -63,7 +63,6 @@ claude-kit/
 ├── _archive/pps-web-profile/           # worked example (not published)
 │   ├── .claude-plugin/plugin.json
 │   └── agents/{web-implement,web-polish,web-pre-commit,web-test}.md
-├── NOTICES.md                          # upstream attribution
 ├── LICENSE                             # MIT
 └── README.md
 ```
@@ -130,7 +129,7 @@ Read-only output. User reads, decides, no edit.
 
 ## License
 
-MIT — all skills and agents authored in this repository. See [LICENSE](./LICENSE) and [NOTICES.md](./NOTICES.md).
+MIT — all skills and agents authored in this repository. See [LICENSE](./LICENSE).
 
 Kit code: **MIT**, see [LICENSE](./LICENSE).
 

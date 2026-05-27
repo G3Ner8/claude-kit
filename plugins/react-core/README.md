@@ -41,4 +41,4 @@ If your stack differs, individual rules may still apply — read the per-skill r
 
 ## License
 
-MIT — all seven skills authored in this repository. See [../../LICENSE](../../LICENSE) and [NOTICES.md](../../NOTICES.md).
+MIT — all seven skills authored in this repository. See [../../LICENSE](../../LICENSE).
