@@ -1,6 +1,6 @@
 {
   "name": "react-agents",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Templates for the implement/polish/pre-commit/test agent quartet + a profile-generator skill that interactively scaffolds a project-specific profile (filled-in agents + plugin.json) for any React 19 / Vite SPA.",
   "author": {
     "name": "Chettawat Phosri"

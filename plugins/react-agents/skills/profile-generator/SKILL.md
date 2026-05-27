@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
   type: action
   status: stable
   derived_from: project-internal
@@ -358,7 +358,7 @@ Add project-specific richness? Pick what applies (skip all = generic):
 ### Round 6 — Output (1 ask, 2 questions)
 
 10. **Output folder** — absolute path to write the profile.
-    - Default: `$HOME/Workspace/<project-name>-profile`
+    - Default: `<PROJECT_ROOT>-profile` (the scanned project path + `-profile` — sits right next to the project, e.g. `…/Aware Payroll/pps-web-profile` for a nested monorepo, `~/Workspace/foo-profile` for a top-level repo). Do **not** hardcode `$HOME/Workspace/`.
 
 11. **Profile description** — one sentence for plugin.json marketplace listing.
     - Default: `<Project> profile: implement/polish/pre-commit/test subagents`
