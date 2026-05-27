@@ -2,13 +2,14 @@
 
 [![validate](https://github.com/G3Ner8/claude-kit/actions/workflows/validate.yml/badge.svg)](https://github.com/G3Ner8/claude-kit/actions/workflows/validate.yml)
 
-A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace for React 19 SPA work. Ships three installable plugins:
+A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace for React 19 SPA work. Ships two installable plugins:
 
 | Plugin | What | Portable? |
 | --- | --- | --- |
 | [`react-core`](./plugins/react-core/) | 7 skills — perf, composition, audit, revamp, ux-review, dry, test-patterns | ✅ Any React 19 / Vite project |
 | [`react-agents`](./plugins/react-agents/) | Templates + `/profile-generator` skill that scaffolds the build/polish/pre-commit trio for your project | ✅ Any React 19 / Vite project |
-| [`pps-web-profile`](./plugins/pps-web-profile/) | Worked example: 1 skill + 4 agents filled in for Aware `pps-web` | ❌ Reference only — fork via `react-agents` for your own project |
+
+A filled-in worked example (the Aware `pps-web` profile) is kept under [`_archive/pps-web-profile/`](./_archive/pps-web-profile/) for reference — read it to see what a generated profile looks like. It is not published to the marketplace.
 
 ## Install
 
@@ -17,9 +18,6 @@ A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace 
 /plugin marketplace add G3Ner8/claude-kit
 /plugin install react-core@claude-kit
 /plugin install react-agents@claude-kit
-
-# Optional: install the pps-web reference profile as a working example
-/plugin install pps-web-profile@claude-kit
 ```
 
 For your own project, after installing `react-agents`:
@@ -32,25 +30,24 @@ For your own project, after installing `react-agents`:
 
 Update later with `/plugin marketplace update`.
 
-## Why three plugins?
+## Why two plugins?
 
 | Plugin | Role | Couples to |
 |---|---|---|
 | `react-core` | Stack-knowledge skills | React 19 / Vite (no project) |
 | `react-agents` | Agent pattern + generator | Same — fully parameterized |
-| `pps-web-profile` | Aware-specific working example | `pps-web` repo |
 
 Splitting them means:
 
 - Portable knowledge stays decoupled from any one repo.
 - The agent **pattern** (build → polish → pre-commit trio) is reusable across projects via templates; the **content** (paths, conventions, Swagger URL) is per-project.
-- `pps-web-profile` becomes a worked example that shows what a filled-in profile looks like — newcomers can read it as documentation.
+- A filled-in profile is project-specific, so it lives in your own repo (generate it with `/profile-generator`). The archived `_archive/pps-web-profile/` shows what one looks like.
 
 ## Plugin layout
 
 ```
 claude-kit/
-├── .claude-plugin/marketplace.json     # catalog (3 plugins)
+├── .claude-plugin/marketplace.json     # catalog (2 plugins)
 ├── plugins/
 │   ├── react-core/                     # 7 portable skills
 │   │   ├── .claude-plugin/plugin.json
@@ -58,20 +55,22 @@ claude-kit/
 │   │   │           react-revamp,react-ux-review,react-dry,
 │   │   │           react-test-patterns}/
 │   │   └── docs/CONVENTIONS.template.md
-│   ├── react-agents/                   # templates + generator
-│   │   ├── .claude-plugin/plugin.json
-│   │   ├── skills/profile-generator/SKILL.md
-│   │   ├── templates/agents/{implement,polish,pre-commit,test}.template.md
-│   │   └── docs/{PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md}
-│   └── pps-web-profile/                # Aware reference profile
+│   └── react-agents/                   # templates + generator
 │       ├── .claude-plugin/plugin.json
-│       └── agents/{web-implement,web-polish,web-pre-commit,web-test}.md
+│       ├── skills/profile-generator/SKILL.md
+│       ├── templates/agents/{implement,polish,pre-commit,test}.template.md
+│       └── docs/{PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md}
+├── _archive/pps-web-profile/           # worked example (not published)
+│   ├── .claude-plugin/plugin.json
+│   └── agents/{web-implement,web-polish,web-pre-commit,web-test}.md
 ├── NOTICES.md                          # upstream attribution
 ├── LICENSE                             # MIT
 └── README.md
 ```
 
-## Workflows (pps-web-profile)
+## Workflows (example, from the archived pps-web profile)
+
+These show how a generated profile's agents drive a feature end-to-end. They reference the archived [`_archive/pps-web-profile/`](./_archive/pps-web-profile/) agents (`web-*`) as a concrete illustration — your own generated profile follows the same pattern with your project's names.
 
 ### Build a feature
 

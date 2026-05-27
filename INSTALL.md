@@ -8,7 +8,6 @@ Three ways to consume claude-kit, in order of recommendation.
 /plugin marketplace add G3Ner8/claude-kit
 /plugin install react-core@claude-kit
 /plugin install react-agents@claude-kit
-/plugin install pps-web-profile@claude-kit   # optional reference profile
 ```
 
 For your own project, after `react-agents` is installed, run `/profile-generator` and answer ~22 questions to scaffold a filled-in agent trio.
@@ -29,18 +28,15 @@ cd "$(git rev-parse --show-toplevel)"
 mkdir -p .claude/skills .claude/agents
 
 # react-core skills
-for skill in react-perf react-composition react-audit react-revamp react-ux-review react-dry; do
+for skill in react-perf react-composition react-audit react-revamp react-ux-review react-dry react-test-patterns; do
   ln -s "$HOME/Workspace/claude-kit/plugins/react-core/skills/$skill" \
         ".claude/skills/$skill"
 done
 
-# pps-web-profile (only for pps-web)
-ln -s "$HOME/Workspace/claude-kit/plugins/pps-web-profile/skills/pps-ui" \
-      ".claude/skills/pps-ui"
-for agent in web-implement web-polish web-pre-commit; do
-  ln -s "$HOME/Workspace/claude-kit/plugins/pps-web-profile/agents/$agent.md" \
-        ".claude/agents/$agent.md"
-done
+# Your own generated profile (run /profile-generator first), e.g.:
+# for agent in web-implement web-polish web-pre-commit web-test; do
+#   ln -s "$HOME/path/to/your-profile/agents/$agent.md" ".claude/agents/$agent.md"
+# done
 ```
 
 Edits to `~/Workspace/claude-kit/` propagate to the project on the next Claude Code session.
@@ -51,16 +47,11 @@ Edits to `~/Workspace/claude-kit/` propagate to the project on the next Claude C
 cd "$(git rev-parse --show-toplevel)"
 mkdir -p .claude/skills .claude/agents
 cp -R "$HOME/Workspace/claude-kit/plugins/react-core/skills/"* .claude/skills/
-cp -R "$HOME/Workspace/claude-kit/plugins/pps-web-profile/skills/pps-ui" .claude/skills/
-cp "$HOME/Workspace/claude-kit/plugins/pps-web-profile/agents/"*.md .claude/agents/
+# Plus your own generated profile's agents, if any.
 ```
 
 No live updates — re-copy when you want a refresh.
 
 ## Verifying
-
-```
-/agents     # web-implement, web-polish, web-pre-commit must appear (if pps-web-profile installed)
-```
 
 Quick functional test: ask "audit Button usages" — response should reference `react-dry`'s table-first findings format.
