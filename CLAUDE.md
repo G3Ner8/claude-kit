@@ -19,7 +19,7 @@ claude-kit is a **tiered** personal kit. Skills/agents are organised by how wide
 
 | Tier | Plugin | Role | Depends on | Status |
 |---|---|---|---|---|
-| **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack (intent review, incident RCA) | — | experimental |
+| **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`) | — | experimental |
 | **Domain** (React 19 / Vite) | **`react-core`** | Portable React knowledge — skills consumed by any React 19 / Vite project | — | stable |
 | **Domain** (React 19 / Vite) | **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | stable |
 
@@ -44,8 +44,15 @@ claude-kit/
 ├── scripts/                     # validators + helpers (Phase 1.4)
 │   ├── list-skills.sh
 │   ├── link-skills.sh
+│   ├── validate-contract.sh
 │   └── validate-frontmatter.sh
 └── plugins/
+    ├── dev-core/                       # cross-cutting tier — stack-agnostic personas
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/
+    │       ├── detective/SKILL.md       # debug discipline
+    │       ├── inspector/SKILL.md       # intent-validation review
+    │       └── archivist/SKILL.md       # incident post-mortem
     ├── react-core/
     │   ├── .claude-plugin/plugin.json
     │   └── skills/
