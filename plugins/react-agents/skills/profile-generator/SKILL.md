@@ -543,13 +543,16 @@ Project-specific agent quartet for `<project>`:
 
 ### Symlink (recommended for active dev)
 
+Run this from the directory you launch Claude Code in — the **monorepo root** if the agents use `cd <prefix>` prefixed commands, otherwise the **project root**. That's where `.claude/agents/` must live for the agents' paths to resolve (not necessarily the git root).
+
 \`\`\`bash
-cd "$(git rev-parse --show-toplevel)"
 mkdir -p .claude/agents
 for a in <prefix>-implement <prefix>-polish <prefix>-pre-commit <prefix>-test; do
   ln -s "<output-path>/agents/$a.md" ".claude/agents/$a.md"
 done
 \`\`\`
+
+> Skills (`react-*`, `scrutinize`, `post-mortem`) aren't part of this profile — they come from the `react-core` / `dev-core` plugins. Install those via the marketplace, or symlink them into `.claude/skills/`.
 
 ### Plugin marketplace (if this folder becomes its own repo)
 
