@@ -1,10 +1,10 @@
 ---
 name: profile-generator
-description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet) for any React 19 / Vite SPA. Auto-scans the project (package.json, filesystem, MD docs) to pre-fill ~25 placeholders, then asks the user only what can't be inferred (~5-12 questions for a typical scaffolded project). Substitutes the result into agent templates from the `react-agents` plugin and writes the filled-in profile to a user-specified path. The output is a self-contained plugin folder ready to symlink into `.claude/agents/` or publish as its own marketplace plugin.
+description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet) for any React 19 / Vite SPA. Auto-scans the project (package.json, filesystem, MD docs) to pre-fill ~25 placeholders, then asks the user only what can't be inferred (~5-12 questions for a typical scaffolded project). Substitutes the result into agent templates from the `react-agents` plugin and writes the filled-in profile to a user-specified path. The output is a self-contained plugin folder ready to copy into `.claude/agents/` or publish as its own marketplace plugin.
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.1.2"
+  version: "1.1.3"
   type: action
   status: stable
   derived_from: project-internal
@@ -545,9 +545,22 @@ Project-specific agent quartet for `<project>`:
 
 ## Install
 
-### Symlink (recommended for active dev)
+Run these from the directory you launch Claude Code in — the **monorepo root** if the agents use `cd <prefix>` prefixed commands, otherwise the **project root**. That's where `.claude/agents/` must live for the agents' paths to resolve (not necessarily the git root).
 
-Run this from the directory you launch Claude Code in — the **monorepo root** if the agents use `cd <prefix>` prefixed commands, otherwise the **project root**. That's where `.claude/agents/` must live for the agents' paths to resolve (not necessarily the git root).
+### Copy (recommended — pairs with the `/tmp` default)
+
+\`\`\`bash
+mkdir -p .claude/agents
+for a in <prefix>-implement <prefix>-polish <prefix>-pre-commit <prefix>-test; do
+  cp "<output-path>/agents/$a.md" ".claude/agents/$a.md"
+done
+\`\`\`
+
+The copies are self-contained — delete `<output-path>` afterward (and `/tmp` is OS-cleared anyway). This is the default flow: gen → copy → discard.
+
+### Symlink (alternative — keep the profile folder as source of truth)
+
+Use a **persistent** `<output-path>` (not `/tmp`), then `ln -s` instead of `cp`. Regenerating in place auto-updates `.claude/agents/` — but deleting the profile folder breaks the agents (they become dangling symlinks).
 
 \`\`\`bash
 mkdir -p .claude/agents
@@ -604,7 +617,7 @@ When invoked:
 
 5. **Write**: if Conventions-doc resolution landed on **case 2**, first write the seeded `<PROJECT_ROOT>/CONVENTIONS.md` (see "Stack-aware conventions seed"). Then read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Polish-status, lint:structure) before writing — strip whole sections when their gate is empty.
 
-6. **Report**: print absolute paths of all created files + symlink install snippet from README. If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
+6. **Report**: print absolute paths of all created files + the copy install snippet from README (symlink is the documented alternative). If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
 
 ### Typical question count (for reference)
 
