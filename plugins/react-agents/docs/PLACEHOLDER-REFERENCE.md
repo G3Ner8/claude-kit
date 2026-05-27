@@ -89,6 +89,8 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from a 
 | `{{POLISH_TRIGGER_KEYWORDS}}` | Comma-separated quoted triggers for `polish` agent description (multi-language allowed) | `"clean up", "DRY up X", "ทำไม X หน้าตาไม่เหมือนกันข้ามหน้า", "align features X, Y, Z", "polish diff"` |
 | `{{POLISH_SCOPE_NOTE}}` | Optional parenthetical clarifier in `polish` description (or empty) | ` (distinct from user-global \`polish\` design skill)` |
 | `{{TEST_TRIGGER_KEYWORDS}}` | Comma-separated quoted triggers for `test` agent description (multi-language allowed) | `"เขียน test ให้ X", "test ให้ X", "write tests for X", "เพิ่ม coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"` |
+| `{{IMPLEMENT_TRIGGER_KEYWORDS}}` | Comma-separated quoted triggers for `implement` agent description (multi-language allowed) | `"implement X", "build Y", "apply this plan", "revamp X"` |
+| `{{PRECOMMIT_TRIGGER_KEYWORDS}}` | Comma-separated quoted triggers for `pre-commit` agent description (multi-language allowed). **Triggers may be localized, but `pre-commit` output — commit title + body, PR / push text — is always English.** | `"review my changes", "ship it", "pre-commit check", "draft commit"` |
 
 ## Apply keyword
 

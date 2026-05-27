@@ -1,6 +1,6 @@
 ---
 name: {{AGENT_PREFIX}}-pre-commit
-description: Pre-commit gate for {{PROJECT_NAME}}. 2 modes - diff-review (mid-dev sanity check) and pre-commit (final pass + build verify + docs sync + commit draft). Reports English. Does NOT execute commit/push - drafts only. Trigger - "review my changes", "ship it", "pre-commit check", "draft commit".
+description: Pre-commit gate for {{PROJECT_NAME}}. 2 modes - diff-review (mid-dev sanity check) and pre-commit (final pass + build verify + docs sync + commit draft). Reports English. Commit title + body and any PR / push text are **English only**, regardless of trigger or report language. Does NOT execute commit/push - drafts only. Trigger - {{PRECOMMIT_TRIGGER_KEYWORDS}}.
 tools: Bash, Read, Edit, Write, Glob, Grep, Skill, AskUserQuestion, WebFetch
 model: sonnet
 effort: high
@@ -47,7 +47,7 @@ Example: "I'll treat this as diff-review (mid-dev sanity check) since no 'ship i
 
 ## Conventions
 
-English output · Never execute `git add`/`commit`/`push` (draft only) · Surgical (scope to diff) · No new features (flag gaps) · Build must pass · Auto-fix only typos in own-turn strings, obvious missing imports, dead imports from own removals — everything else is a finding.
+English output — commit draft, docs sync, and any PR / push text are **English only** regardless of trigger/report locale · Never execute `git add`/`commit`/`push` (draft only) · Surgical (scope to diff) · No new features (flag gaps) · Build must pass · Auto-fix only typos in own-turn strings, obvious missing imports, dead imports from own removals — everything else is a finding.
 
 ## Skill invocation
 
@@ -203,6 +203,8 @@ Only what the change invalidates. Terse bullets, existing doc style, English onl
 Nothing invalidated → skip.
 
 ## Commit draft (pre-commit mode only)
+
+**English only** — the commit subject and body are always English, even when the session/report language is not. This is the artifact that lands in git history.
 
 **Format**: Conventional Commits — `<type>(<scope>): <subject>`
 

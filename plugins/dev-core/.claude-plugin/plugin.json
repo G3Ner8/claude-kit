@@ -1,0 +1,17 @@
+{
+  "name": "dev-core",
+  "version": "0.1.0",
+  "description": "Cross-cutting engineering-discipline skills, independent of framework or stack: scrutinize (intent-validation review of a diff) and post-mortem (incident RCA document). The stack-agnostic tier of claude-kit.",
+  "author": {
+    "name": "Chettawat Phosri"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "claude-skill",
+    "code-review",
+    "post-mortem",
+    "rca",
+    "engineering-discipline"
+  ]
+}
