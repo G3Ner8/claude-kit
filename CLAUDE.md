@@ -266,6 +266,11 @@ matched against user prompts. To support international users:
   `go ahead`, `fix it`, plus locale forms (`เริ่ม` for Thai).
 - **Reports** can be Thai or English per profile config. The agent's body
   text instructs the output language; the kit doesn't enforce one.
+- **Git-bound output is always English.** Triggers and reports may be
+  localized, but anything that lands in version control or a remote — commit
+  title + body, PR text, push/merge artifacts, in-repo docs the agent syncs —
+  is **English only**, regardless of trigger or report language. `pre-commit`
+  (the only commit-drafting agent) has a fixed English output for this reason.
 
 **Example** (web-test description):
 ```

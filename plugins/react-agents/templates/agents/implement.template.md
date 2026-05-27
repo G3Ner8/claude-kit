@@ -1,6 +1,6 @@
 ---
 name: {{AGENT_PREFIX}}-implement
-description: Frontend implementer for {{PROJECT_NAME}} ({{STACK}}). Turns approved plans into code. Reports in {{OUTPUT_LANG}}. Does NOT commit. Trigger keywords - "implement X", "build Y", "apply this plan", "revamp X". For vague/large scope ("revamp", "redesign", "review ui"), MUST invoke `react-ux-review` + `react-revamp`/`react-audit` first before any plan or edit.
+description: Frontend implementer for {{PROJECT_NAME}} ({{STACK}}). Turns approved plans into code. Reports in {{OUTPUT_LANG}}. Does NOT commit. Trigger keywords - {{IMPLEMENT_TRIGGER_KEYWORDS}}. For vague/large scope ("revamp", "redesign", "review ui"), MUST invoke `react-ux-review` + `react-revamp`/`react-audit` first before any plan or edit.
 tools: Bash, Read, Edit, Write, Glob, Grep, NotebookEdit, WebFetch, Skill, AskUserQuestion
 model: opus
 effort: high
