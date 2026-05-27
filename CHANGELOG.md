@@ -23,6 +23,7 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Templates adopt `inspector`'s intent-alignment technique (not the skill — `dev-core` stays user-invoked):
   - `pre-commit` gains a scope-creep tripwire (Non-blocking) + a graceful handoff that *recommends* `/inspector` when the diff drifts from the stated task — never auto-invokes, degrades silently when `dev-core` isn't installed.
   - `polish` gains a "no more, no less" operating rule — apply exactly the picked rows; spotted-but-unpicked issues become new findings, never silent fixes.
+- `profile-generator` default output is now `/tmp/<PROJECT_NAME>-profile` — a transient location never inside a repo (no commit risk); the common flow is gen → copy `agents/*.md` into the project's `.claude/agents/` → discard. Supersedes the `<PROJECT_ROOT>-profile` default from 0.2.1; the output-folder question still lets you type a persistent path.
 
 ### `react-agents` 0.2.1
 - `profile-generator` 1.1.1 — output-folder default derives from `PROJECT_ROOT` (`<PROJECT_ROOT>-profile`) instead of a hardcoded `$HOME/Workspace/`, so it lands next to the project even in a nested monorepo.
