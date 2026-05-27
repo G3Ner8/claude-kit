@@ -74,13 +74,15 @@ Surgical · Pick a winner from **Polished** pages in `pps-web/docs/progress.md` 
 
 ### Findings table format
 
-When violations exist, present in a single table grouped by section ID:
+When violations exist, present in a single table — **one row per finding**:
 
 | # | Sev | MC | File:Line | Finding | pps-web/CLAUDE.md ref | Suggested fix |
 |---|---|---|---|---|---|---|
 | 1 | High | MC-1 | `Foo.tsx:42` | nested `<form>` | pps-web/CLAUDE.md:74 | hoist drawer form outside page FormProvider |
 
 Severity: **High** (broken / a11y violation / wrong primitive / HTML invalid / ESLint-enforced rule break) · Med (visual drift / inconsistent with canonical) · Low (nitpick).
+
+**Completeness rule (non-negotiable):** the table lists **every** finding as its own numbered row — if you found N, the table has N rows. Do **not** add a separate "top rows" / "key findings" / digest section that collapses N findings into a smaller representative set — that reads as hiding rows. If you want to convey priority, sort the table by Severity (High → Med → Low) or add a one-word priority column; never replace rows with grouped prose. The row count in the table must equal the count in your 1-sentence summary (e.g. summary says "12 findings" ⟺ table has 12 rows).
 
 ### Required Report block
 

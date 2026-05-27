@@ -73,7 +73,7 @@ For every changed file:
 - **Workflow regression** (if diff touches a `Polished` page) — see "Workflow regression check" below
 - **Structure regression** (if diff adds/renames files in `pps-web/src/features/*`) — see "Structure regression check" below
 
-Group findings: **Blocking** vs **Non-blocking**.
+Record findings as numbered rows (severity = **Blocking** / **Non-blocking**) for the Report's Findings table — one row per finding, never collapsed.
 
 ## Swagger drift gate (mandatory when API surface changes)
 
@@ -268,10 +268,14 @@ Title: `# Diff Review` (diff-review mode) · `# Pre-commit Review` (pre-commit m
 <1 para — what changed + why>
 
 ## Findings
-### Blocking
-- file:line — issue → fix
-### Non-blocking
-- file:line — issue → fix/note   (treat as "deferred" in pre-commit mode)
+One row per finding — sort Blocking first, then Non-blocking:
+
+| # | Sev | File:Line | Issue | Fix |
+|---|---|---|---|---|
+| 1 | Blocking | `Foo.tsx:42` | unhandled Promise in mutation | await + try/catch → toast |
+| 2 | Non-blocking | `Bar.tsx:88` | barrel import | deep import   (deferred in pre-commit mode) |
+
+**Completeness rule:** every finding is its own numbered row — N findings → N rows. Never collapse into representative bullets or a digest. Convey priority by Sev sort, not by dropping rows. If clean, write "No findings" (no empty table).
 
 ## Build
 ✅ `cd pps-web && npm run build`   (or ❌ + last error)
