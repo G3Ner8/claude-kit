@@ -15,17 +15,16 @@ defaults (see Section 14). Phase 2 (decoupling) next.
 
 ## 1. Plugin map
 
-claude-kit ships **3 plugins** with separated concerns:
+claude-kit publishes **2 plugins** with separated concerns:
 
 | Plugin | Role | Depends on | Status |
 |---|---|---|---|
 | **`react-core`** | Portable knowledge — skills consumed by any React 19 / Vite project | — | stable |
 | **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | stable |
-| **`pps-web-profile`** | Filled-in profile for the Aware pps-web project (build/polish/pre-commit/test agents + a UI inventory skill) | react-core, react-agents | stable |
 
-Dependency direction is **one-way**: `pps-web-profile → react-agents → react-core`. A plugin never depends on something downstream of it.
+Dependency direction is **one-way**: a profile depends on `react-agents`, which depends on `react-core`. A plugin never depends on something downstream of it.
 
-A second profile for a different React project (e.g. `internal-dashboard-profile`) should sit at the same level as `pps-web-profile` and share the same template inputs.
+A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). The Aware `pps-web` profile is kept under `_archive/pps-web-profile/` as a worked example only; it is excluded from the marketplace scan. A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
 
 ---
 
@@ -52,26 +51,26 @@ claude-kit/
     │       │   └── README.md      # optional — only when SKILL.md > 400 lines
     │       └── _in-progress/      # underscore = excluded from default scan
     │           └── react-draft-x/
-    ├── react-agents/
-    │   ├── .claude-plugin/plugin.json
-    │   ├── docs/PLACEHOLDER-REFERENCE.md
-    │   ├── skills/
-    │   │   └── profile-generator/
-    │   └── templates/
-    │       └── agents/
-    │           ├── implement.template.md
-    │           ├── polish.template.md
-    │           ├── pre-commit.template.md
-    │           └── test.template.md      # (added Phase 2)
-    └── pps-web-profile/
+    └── react-agents/
         ├── .claude-plugin/plugin.json
-        ├── agents/                 # generated from react-agents templates
-        │   ├── web-implement.md
-        │   ├── web-polish.md
-        │   ├── web-pre-commit.md
-        │   └── web-test.md
-        └── skills/
-            └── pps-ui/
+        ├── docs/PLACEHOLDER-REFERENCE.md
+        ├── skills/
+        │   └── profile-generator/
+        └── templates/
+            └── agents/
+                ├── implement.template.md
+                ├── polish.template.md
+                ├── pre-commit.template.md
+                └── test.template.md
+
+_archive/                          # kept in repo, excluded from marketplace scan
+└── pps-web-profile/               # worked example of a generated profile
+    ├── .claude-plugin/plugin.json
+    └── agents/                    # generated from react-agents templates
+        ├── web-implement.md
+        ├── web-polish.md
+        ├── web-pre-commit.md
+        └── web-test.md
 ```
 
 **`_in-progress/`** (underscore prefix) holds drafts. The validator and the
@@ -181,7 +180,7 @@ None exist today. When introduced, must include:
 | Type | What it does | Who calls it | Example |
 |---|---|---|---|
 | **gate** | Blocks workflow — runs an audit/review/proposal, then stops; no edits | Agent (Step 0) or user (`/audit`) | `react-audit`, `react-ux-review`, `react-revamp`, `react-dry` |
-| **reference** | Manual that's consulted during work — no workflow, no stop | Agent (during apply) or user (read inline) | `react-perf`, `react-composition`, `react-test-patterns`, `pps-ui` |
+| **reference** | Manual that's consulted during work — no workflow, no stop | Agent (during apply) or user (read inline) | `react-perf`, `react-composition`, `react-test-patterns` |
 | **action** | Mutates code on its own (no agent needed) — refuses unless preconditions met | User (`/skill-name`) or another agent | *none today — reserved* |
 
 Why the distinction matters:
@@ -240,7 +239,7 @@ orchestration in a skill — that's an agent.
 | Asset | Pattern | Example |
 |---|---|---|
 | Portable skill (react-core) | `react-<concern>` | `react-audit`, `react-perf` |
-| Project-specific skill (profile) | `<scope>-<concern>` | `pps-ui` |
+| Project-specific skill (profile) | `<scope>-<concern>` | `dash-ui` (hypothetical) |
 | Generator/meta skill | `<noun>-generator` | `profile-generator` |
 | Agent (profile-bound) | `<scope>-<role>` | `web-implement`, `web-test` |
 | Template file | `<role>.template.md` | `implement.template.md` |

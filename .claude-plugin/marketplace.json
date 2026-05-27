@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "claude-kit",
-  "description": "Claude Code skills + agents for React 19 / Vite SPA work. Three plugins: react-core (portable skills), react-agents (templates + profile-generator), pps-web-profile (Aware reference).",
+  "description": "Claude Code skills + agents for React 19 / Vite SPA work. Two plugins: react-core (portable skills) and react-agents (templates + profile-generator).",
   "owner": {
     "name": "Chettawat Phosri"
   },
@@ -16,12 +16,6 @@
       "name": "react-agents",
       "source": "./plugins/react-agents",
       "description": "Templates for the build/polish/pre-commit subagent trio + a profile-generator skill that scaffolds a project-specific profile interactively.",
-      "version": "0.1.0"
-    },
-    {
-      "name": "pps-web-profile",
-      "source": "./plugins/pps-web-profile",
-      "description": "Aware pps-web project profile: implement/polish/pre-commit/test agents (Thai output) wired to MC-1..MC-7. Adaptive primitive guidance (reads pps-web's own docs/components/ + design-system.md). Depends on react-core + react-agents.",
       "version": "0.1.0"
     }
   ]

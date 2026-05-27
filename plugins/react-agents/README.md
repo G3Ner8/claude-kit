@@ -54,7 +54,7 @@ All three agents:
 
 ## Working reference
 
-The Aware `pps-web` profile is shipped as a separate plugin ([`pps-web-profile`](../pps-web-profile/)) — install or read it as a worked example of a filled-in profile.
+The Aware `pps-web` profile is kept as a worked example under [`_archive/pps-web-profile/`](../../_archive/pps-web-profile/) — read it to see what a filled-in profile looks like. It is not published to the marketplace; generate your own with `/profile-generator`.
 
 ## License
 
