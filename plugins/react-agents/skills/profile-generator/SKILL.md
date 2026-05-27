@@ -358,7 +358,8 @@ Add project-specific richness? Pick what applies (skip all = generic):
 ### Round 6 — Output (1 ask, 2 questions)
 
 10. **Output folder** — absolute path to write the profile.
-    - Default: `<PROJECT_ROOT>-profile` (the scanned project path + `-profile` — sits right next to the project, e.g. `…/Aware Payroll/pps-web-profile` for a nested monorepo, `~/Workspace/foo-profile` for a top-level repo). Do **not** hardcode `$HOME/Workspace/`.
+    - Default: `/tmp/<PROJECT_NAME>-profile` (e.g. `/tmp/pps-web-profile`) — a **transient** location that is never inside a repo, so there's no commit risk. The common flow is: gen → copy `agents/*.md` into your project's `.claude/agents/` (flat — Claude only reads top-level) → discard the folder.
+    - **To keep the profile** (e.g. `git init` + publish it as its own marketplace plugin), type a **persistent** path instead — `/tmp` is cleared by the OS, so don't leave anything you want to keep there.
 
 11. **Profile description** — one sentence for plugin.json marketplace listing.
     - Default: `<Project> profile: implement/polish/pre-commit/test subagents`
@@ -552,7 +553,7 @@ for a in <prefix>-implement <prefix>-polish <prefix>-pre-commit <prefix>-test; d
 done
 \`\`\`
 
-> Skills (`react-*`, `scrutinize`, `post-mortem`) aren't part of this profile — they come from the `react-core` / `dev-core` plugins. Install those via the marketplace, or symlink them into `.claude/skills/`.
+> Skills (`react-*`, `detective`, `inspector`, `archivist`) aren't part of this profile — they come from the `react-core` / `dev-core` plugins. Install those via the marketplace, or symlink them into `.claude/skills/`.
 
 ### Plugin marketplace (if this folder becomes its own repo)
 

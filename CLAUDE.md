@@ -241,7 +241,7 @@ orchestration in a skill — that's an agent.
 
 | Asset | Pattern | Example |
 |---|---|---|
-| Cross-cutting skill (dev-core) | `<concern>` (bare — no domain prefix) | `scrutinize`, `post-mortem` |
+| Cross-cutting skill (dev-core) | `<persona>` (bare — no domain prefix; a role noun, not a verb) | `detective`, `inspector`, `archivist` |
 | Domain skill (react-core) | `<domain>-<concern>` | `react-audit`, `react-perf` |
 | Project-specific skill (profile) | `<scope>-<concern>` | `dash-ui` (hypothetical) |
 | Generator/meta skill | `<noun>-generator` | `profile-generator` |
@@ -416,6 +416,7 @@ Foundational decisions resolved during the Phase 1 foundation pass.
 | D4 | Phase 2 decoupling: wholesale vs duplicate | wholesale templates | ✅ 2026-05-26 |
 | D5 | Public timeline: Phase 1 only vs full Phase 3 | Phase 1 internal → Phase 2 beta → Phase 3 GA | ✅ 2026-05-26 |
 | D6 | Stack-agnostic skills (`scrutinize`, `post-mortem`): keep in `react-core` vs separate tier | new `dev-core` tier (cross-cutting); bare names, no `react-` prefix (see Section 7) | ✅ 2026-05-27 |
+| D7 | dev-core skill names: functional (`scrutinize`/`post-mortem`) vs persona | persona names — `detective` (debug), `inspector` (review, was `scrutinize`), `archivist` (post-mortem). Distinctive + map to lifecycle moments (find → gate → preserve); persona = the opening voice of each SKILL.md. Adds `detective` as the framework-agnostic debug discipline (`react-debug` stays its React-specialized cousin in `react-core`). Supersedes D6 naming. | ✅ 2026-05-27 |
 
 Future decisions append to this table; never edit a resolved row in place —
 add a new row referencing the prior decision instead.

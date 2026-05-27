@@ -74,7 +74,7 @@ flowchart LR
   PRE -.-> COMP
 ```
 
-`==>` invoke (gate — agent picks **one** of implement's audit skills by trigger) · `-.->` reference. `dev-core` skills (`scrutinize`, `post-mortem`) are user-invoked at review / incident time — no agent calls them.
+`==>` invoke (gate — agent picks **one** of implement's audit skills by trigger) · `-.->` reference. `dev-core` skills (`detective`, `inspector`, `archivist`) are user-invoked at debug / review / incident time — no agent calls them.
 
 ## Examples (one per agent)
 

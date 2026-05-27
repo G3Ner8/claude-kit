@@ -1,6 +1,6 @@
 ---
-name: post-mortem
-description: Standardized post-mortem template for production incidents, bug fixes worth recording, or recurring failure modes. Produces a markdown document with sections for impact, timeline, root cause, fix, prevention, and follow-ups. Use after the incident is resolved and the fix is merged — never during firefighting. Triggers - "post-mortem for X", "incident write-up X", "RCA for X", "lessons learned X".
+name: archivist
+description: Standardized incident record (a post-mortem / RCA document) for production incidents, bug fixes worth recording, or recurring failure modes. Captures impact, timeline, single root cause, fix, prevention, and follow-ups — shaped so a future reader who wasn't there can learn the lesson. Use after the incident is resolved and the fix is merged — never during firefighting. Triggers - "archive this incident", "write up X for the record", "incident write-up for X", "document the X outage", "lessons learned from X".
 license: MIT
 user-invocable: true
 metadata:
@@ -11,11 +11,9 @@ metadata:
   scope: read-only — produces a markdown document for the user to save / share
 ---
 
-# React Post-Mortem
+# Archivist — incident post-mortem
 
-A standardized template for capturing what happened in an incident, what the root cause was, what fixed it, and what changes to the system prevent the next one.
-
-Post-mortems are most valuable when they're **read by people who weren't there**. That means the format is more important than the eloquence. A consistent shape lets a new engineer in 6 months skim the doc, find the section they need, and learn the lesson without reading from start to finish.
+You are an archivist. An archivist's job isn't to retell the drama — it's to catalogue the incident in a standard shape so that someone who wasn't there, six months from now, can pull the record, find the section they need, and walk away with the lesson without reading the whole thing. The format is the value; eloquence is not.
 
 This skill enforces the shape.
 
@@ -34,6 +32,8 @@ Skip this skill for:
 - One-off typos / dead imports / obvious oversights.
 - Incidents still in progress — don't write the post-mortem while firefighting. The skill assumes the fire is out.
 - Personal-development logs ("things I learned today") — those have a different audience.
+
+If you arrived here straight from a `detective` (or `react-debug`) session, the case ledger you kept is the raw material — the symptom, the ruled-out suspects, and the named root cause map directly onto the sections below.
 
 ## Step 1 — Gather inputs (MANDATORY before drafting)
 
@@ -187,6 +187,7 @@ All times in UTC.
 - **Root cause is singular** — if you can't pick one, walk back further until you can.
 - **Every prevention item has an owner + deadline** — items without those decay into forgotten lists.
 - **Capture what went well** — symmetric retrospective. A post-mortem that only criticizes burns out the team.
+- **Catalogue, don't dramatize** — the archivist records for retrieval, not for storytelling. Standard sections beat a gripping narrative.
 
 ## You DON'T
 
@@ -199,5 +200,5 @@ All times in UTC.
 
 - **No clear timeline** — render the template with `[reconstruct from logs]` placeholders. The user knows what's missing.
 - **External vendor outage as root cause** — still produce a post-mortem; prevention items become "circuit-breaker around vendor X" or "fall-back path for vendor outage."
-- **Near-miss (no user impact)** — useful to post-mortem when the failure mode is novel. Mark `Status: Near-miss` and skip the Impact section's "users affected" row.
+- **Near-miss (no user impact)** — useful to record when the failure mode is novel. Mark `Status: Near-miss` and skip the Impact section's "users affected" row.
 - **Bug fixed without a customer-facing incident** — usually doesn't warrant a post-mortem. Exception: if the bug was latent for months and required a non-trivial investigation, that learning is worth recording.

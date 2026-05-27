@@ -6,7 +6,7 @@ A tiered [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marke
 
 | Plugin | What | Scope |
 | --- | --- | --- |
-| [`dev-core`](./plugins/dev-core/) | `scrutinize` (intent-validation diff review) · `post-mortem` (incident RCA) | Any stack |
+| [`dev-core`](./plugins/dev-core/) | `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) | Any stack |
 | [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite |
 | [`react-agents`](./plugins/react-agents/) | `/profile-generator` + agent templates (build → polish → pre-commit → test) | React 19 / Vite |
 
@@ -23,7 +23,7 @@ Update later with `/plugin marketplace update`.
 
 ## Use it
 
-Skills work immediately — invoke any with `/<skill>` (`/react-perf`, `/scrutinize`, …) or let your agents call them.
+Skills work immediately — invoke any with `/<skill>` (`/react-perf`, `/detective`, …) or let your agents call them.
 
 For the agent quartet (implement / polish / pre-commit / test), generate a project-specific profile:
 
