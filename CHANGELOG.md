@@ -19,6 +19,9 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
 - Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
 
+### `react-agents` 0.3.2
+- `profile-generator` 1.1.3 — generated README's install snippet now defaults to **copy** (`cp`) instead of symlink, pairing with the `/tmp` output default (a symlink into `/tmp` breaks when the OS clears it). Symlink is kept as the documented alternative for a persistent profile folder used as source of truth.
+
 ### `react-agents` 0.3.1
 - `profile-generator` 1.1.2 — add a **grounding rule** (no fabrication): every written value must come from the scan, a user answer, or a documented default. Specifically guards `{{MC_WALK_INCIDENT_REF}}` against inventing a commit hash — cite one only if supplied or verifiable via `git log`, else describe the incident in prose. (A pps-web gen run produced a hallucinated `f7f05d6`.)
 
