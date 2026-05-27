@@ -2,11 +2,12 @@
 
 [![validate](https://github.com/G3Ner8/claude-kit/actions/workflows/validate.yml/badge.svg)](https://github.com/G3Ner8/claude-kit/actions/workflows/validate.yml)
 
-A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace for React 19 SPA work. Ships two installable plugins:
+A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace, tiered: stack-agnostic disciplines on top, React 19 / Vite tooling below. Three installable plugins:
 
-| Plugin | What | Portable? |
+| Plugin | What | Scope |
 | --- | --- | --- |
-| [`react-core`](./plugins/react-core/) | 10 skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug, scrutinize, post-mortem | ✅ Any React 19 / Vite project |
+| [`dev-core`](./plugins/dev-core/) | 2 cross-cutting disciplines — `scrutinize` (intent-validation diff review), `post-mortem` (incident RCA) | ✅ Any project, any stack |
+| [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | ✅ Any React 19 / Vite project |
 | [`react-agents`](./plugins/react-agents/) | Templates + `/profile-generator` skill that scaffolds the build/polish/pre-commit trio for your project | ✅ Any React 19 / Vite project |
 
 A filled-in worked example (the Aware `pps-web` profile) is kept under [`_archive/pps-web-profile/`](./_archive/pps-web-profile/) for reference — read it to see what a generated profile looks like. It is not published to the marketplace.
@@ -16,6 +17,7 @@ A filled-in worked example (the Aware `pps-web` profile) is kept under [`_archiv
 ```
 # In any Claude Code session
 /plugin marketplace add G3Ner8/claude-kit
+/plugin install dev-core@claude-kit      # optional — stack-agnostic, any project
 /plugin install react-core@claude-kit
 /plugin install react-agents@claude-kit
 ```
@@ -30,14 +32,17 @@ For your own project, after installing `react-agents`:
 
 Update later with `/plugin marketplace update`.
 
-## Why two plugins?
+## Why three plugins (two tiers)?
 
-| Plugin | Role | Couples to |
-|---|---|---|
-| `react-core` | Stack-knowledge skills | React 19 / Vite (no project) |
-| `react-agents` | Agent pattern + generator | Same — fully parameterized |
+| Tier | Plugin | Role | Couples to |
+|---|---|---|---|
+| Cross-cutting | `dev-core` | Stack-agnostic disciplines | Nothing — any stack |
+| Domain | `react-core` | React stack-knowledge skills | React 19 / Vite (no project) |
+| Domain | `react-agents` | Agent pattern + generator | Same — fully parameterized |
 
 Splitting them means:
+
+- `dev-core` skills (intent review, post-mortem) work on any codebase — they don't belong to the React layer.
 
 - Portable knowledge stays decoupled from any one repo.
 - The agent **pattern** (build → polish → pre-commit trio) is reusable across projects via templates; the **content** (paths, conventions, Swagger URL) is per-project.
@@ -47,13 +52,15 @@ Splitting them means:
 
 ```
 claude-kit/
-├── .claude-plugin/marketplace.json     # catalog (2 plugins)
+├── .claude-plugin/marketplace.json     # catalog (3 plugins)
 ├── plugins/
-│   ├── react-core/                     # 7 portable skills
+│   ├── dev-core/                       # cross-cutting (stack-agnostic)
 │   │   ├── .claude-plugin/plugin.json
-│   │   ├── skills/{react-perf,react-composition,react-audit,
-│   │   │           react-revamp,react-ux-review,react-dry,
-│   │   │           react-test-patterns}/
+│   │   └── skills/{scrutinize,post-mortem}/
+│   ├── react-core/                     # 8 React skills
+│   │   ├── .claude-plugin/plugin.json
+│   │   ├── skills/{react-perf,react-composition,react-audit,react-revamp,
+│   │   │           react-ux-review,react-dry,react-test-patterns,react-debug}/
 │   │   └── docs/CONVENTIONS.template.md
 │   └── react-agents/                   # templates + generator
 │       ├── .claude-plugin/plugin.json

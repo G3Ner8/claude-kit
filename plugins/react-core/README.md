@@ -1,6 +1,6 @@
 # react-core
 
-Ten Claude Code skills for React 19 / Vite SPA projects. Stack-agnostic across any web-React codebase — no project-specific bindings.
+Eight Claude Code skills for React 19 / Vite SPA projects. Stack-agnostic across any web-React codebase — no project-specific bindings.
 
 ## Install
 
@@ -24,8 +24,8 @@ From a Claude Code session that has already added the parent marketplace:
 | [`react-dry`](./skills/react-dry/) | Read-only CSS/style/class divergence audit across one or more component usages. Table-first findings. |
 | [`react-test-patterns`](./skills/react-test-patterns/) | Reference manual for Vitest 4 + React Testing Library 16 + MSW 2 test patterns. Layered conventions (schema / API / hook / component) consulted by the `*-test` agent. |
 | [`react-debug`](./skills/react-debug/) | 5-step discipline for "data not flowing" bugs — walk the BE↔FE chain layer by layer instead of patching the symptom. |
-| [`react-scrutinize`](./skills/react-scrutinize/) | Read-only intent-validation review — does a diff do what the task asked, no more / no less? Surfaces scope creep + missed requirements. _(experimental)_ |
-| [`react-post-mortem`](./skills/react-post-mortem/) | Standardized incident post-mortem / RCA document template (impact, timeline, root cause, prevention). _(experimental)_ |
+
+> Stack-agnostic disciplines (`scrutinize`, `post-mortem`) live in the [`dev-core`](../dev-core/) plugin, not here.
 
 All read-only. None modify files. Each skill is self-contained — invoke individually (e.g. `/react-perf`) or let your agents call them via the `Skill` tool.
 
@@ -44,4 +44,4 @@ If your stack differs, individual rules may still apply — read the per-skill r
 
 ## License
 
-MIT — all ten skills authored in this repository. See [../../LICENSE](../../LICENSE).
+MIT — all eight skills authored in this repository. See [../../LICENSE](../../LICENSE).

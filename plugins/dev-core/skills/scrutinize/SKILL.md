@@ -1,5 +1,5 @@
 ---
-name: react-scrutinize
+name: scrutinize
 description: Intent-validation review for a diff (or PR) — does the change actually do what the original task asked for, no more, no less? Compares stated intent against the actual diff and surfaces scope creep, missed requirements, and silent assumptions. Complements `react-audit` (which checks code quality) — scrutinize checks alignment to intent. Use after pre-commit passes but before merge. Triggers - "scrutinize this", "does this diff match the task", "second opinion on this PR", "intent check", "scope creep check".
 license: MIT
 user-invocable: true

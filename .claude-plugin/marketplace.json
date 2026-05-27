@@ -1,15 +1,21 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "claude-kit",
-  "description": "Claude Code skills + agents for React 19 / Vite SPA work. Two plugins: react-core (portable skills) and react-agents (templates + profile-generator).",
+  "description": "Claude Code skills + agents, tiered. dev-core (stack-agnostic disciplines) · react-core (React 19 / Vite skills) · react-agents (templates + profile-generator).",
   "owner": {
     "name": "Chettawat Phosri"
   },
   "plugins": [
     {
+      "name": "dev-core",
+      "source": "./plugins/dev-core",
+      "description": "Cross-cutting, stack-agnostic engineering disciplines: scrutinize (intent-validation diff review) and post-mortem (incident RCA). claude-kit's foundational tier.",
+      "version": "0.1.0"
+    },
+    {
       "name": "react-core",
       "source": "./plugins/react-core",
-      "description": "React 19 / Vite SPA skills: perf, composition, audit, revamp, ux-review, dry, test-patterns, debug, scrutinize, post-mortem. Stack-agnostic across any web-React project.",
+      "description": "React 19 / Vite SPA skills: perf, composition, audit, revamp, ux-review, dry, test-patterns, debug. Stack-agnostic across any web-React project.",
       "version": "0.1.0"
     },
     {

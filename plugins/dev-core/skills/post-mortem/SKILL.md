@@ -1,5 +1,5 @@
 ---
-name: react-post-mortem
+name: post-mortem
 description: Standardized post-mortem template for production incidents, bug fixes worth recording, or recurring failure modes. Produces a markdown document with sections for impact, timeline, root cause, fix, prevention, and follow-ups. Use after the incident is resolved and the fix is merged — never during firefighting. Triggers - "post-mortem for X", "incident write-up X", "RCA for X", "lessons learned X".
 license: MIT
 user-invocable: true

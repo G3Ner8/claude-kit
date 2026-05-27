@@ -15,14 +15,17 @@ defaults (see Section 14). Phase 2 (decoupling) next.
 
 ## 1. Plugin map
 
-claude-kit publishes **2 plugins** with separated concerns:
+claude-kit is a **tiered** personal kit. Skills/agents are organised by how widely they apply — the wider the scope, the higher the tier:
 
-| Plugin | Role | Depends on | Status |
-|---|---|---|---|
-| **`react-core`** | Portable knowledge — skills consumed by any React 19 / Vite project | — | stable |
-| **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | stable |
+| Tier | Plugin | Role | Depends on | Status |
+|---|---|---|---|---|
+| **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack (intent review, incident RCA) | — | experimental |
+| **Domain** (React 19 / Vite) | **`react-core`** | Portable React knowledge — skills consumed by any React 19 / Vite project | — | stable |
+| **Domain** (React 19 / Vite) | **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | stable |
 
-Dependency direction is **one-way**: a profile depends on `react-agents`, which depends on `react-core`. A plugin never depends on something downstream of it.
+**Tier rule:** a skill belongs to the highest tier whose scope it fully fits. If it works on any stack → `dev-core`. If it assumes React/Vite → `react-core`. Future tiers may break domains down further (per-task layers).
+
+Dependency direction is **one-way**: a profile depends on `react-agents` → `react-core`; domain tiers may reference `dev-core` but never the reverse. A plugin never depends on something downstream of it.
 
 A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). The Aware `pps-web` profile is kept under `_archive/pps-web-profile/` as a worked example only; it is excluded from the marketplace scan. A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
 
@@ -238,7 +241,8 @@ orchestration in a skill — that's an agent.
 
 | Asset | Pattern | Example |
 |---|---|---|
-| Portable skill (react-core) | `react-<concern>` | `react-audit`, `react-perf` |
+| Cross-cutting skill (dev-core) | `<concern>` (bare — no domain prefix) | `scrutinize`, `post-mortem` |
+| Domain skill (react-core) | `<domain>-<concern>` | `react-audit`, `react-perf` |
 | Project-specific skill (profile) | `<scope>-<concern>` | `dash-ui` (hypothetical) |
 | Generator/meta skill | `<noun>-generator` | `profile-generator` |
 | Agent (profile-bound) | `<scope>-<role>` | `web-implement`, `web-test` |
@@ -411,6 +415,7 @@ Foundational decisions resolved during the Phase 1 foundation pass.
 | D3 | Agent output language default: English vs Thai | English-primary, Thai alias | ✅ 2026-05-26 |
 | D4 | Phase 2 decoupling: wholesale vs duplicate | wholesale templates | ✅ 2026-05-26 |
 | D5 | Public timeline: Phase 1 only vs full Phase 3 | Phase 1 internal → Phase 2 beta → Phase 3 GA | ✅ 2026-05-26 |
+| D6 | Stack-agnostic skills (`scrutinize`, `post-mortem`): keep in `react-core` vs separate tier | new `dev-core` tier (cross-cutting); bare names, no `react-` prefix (see Section 7) | ✅ 2026-05-27 |
 
 Future decisions append to this table; never edit a resolved row in place —
 add a new row referencing the prior decision instead.
