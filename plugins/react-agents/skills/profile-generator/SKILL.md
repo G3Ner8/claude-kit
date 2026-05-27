@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.1.1"
+  version: "1.1.2"
   type: action
   status: stable
   derived_from: project-internal
@@ -28,6 +28,8 @@ This skill mutates the filesystem by writing a new plugin folder. Refuse to proc
 If any pre-condition fails, list the gap and stop without writing files.
 
 A **missing conventions doc is NOT a refuse condition** — it triggers the case-2 seed (see "Conventions-doc resolution"). The generator guarantees a conventions doc exists post-gen rather than refusing.
+
+**Grounding rule (no fabrication).** Every value written into the profile must come from the scan, a user answer, or a documented generic default — never invented. This matters most for specifics that read as authoritative: **commit hashes, file paths, section numbers, page names**. If a richness follow-up wants a commit hash and none is supplied or verifiable via `git log` (grep the subject to confirm it resolves), **omit the hash and describe the incident in prose** — never fabricate one.
 
 ## When to invoke
 
@@ -320,6 +322,7 @@ Add project-specific richness? Pick what applies (skip all = generic):
 
 [ ] Convention-walk reminder  ({{MC_WALK_INCIDENT_REF}})
     A past bug that justifies walking every rule strictly — shown as a reminder in the agent.
+    Cite a commit ONLY if the user gives one or `git log` confirms it (grep the subject); else describe the incident without a hash. Never invent a hash (see Grounding rule).
 
 [ ] Plan-file path convention  ({{PLAN_FILE_PATTERN}})
     Where draft plans get saved (e.g. `session-working-space/tasks/*-plan.md`).

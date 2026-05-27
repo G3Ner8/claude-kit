@@ -19,6 +19,9 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
 - Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
 
+### `react-agents` 0.3.1
+- `profile-generator` 1.1.2 — add a **grounding rule** (no fabrication): every written value must come from the scan, a user answer, or a documented default. Specifically guards `{{MC_WALK_INCIDENT_REF}}` against inventing a commit hash — cite one only if supplied or verifiable via `git log`, else describe the incident in prose. (A pps-web gen run produced a hallucinated `f7f05d6`.)
+
 ### `react-agents` 0.3.0
 - Templates adopt `inspector`'s intent-alignment technique (not the skill — `dev-core` stays user-invoked):
   - `pre-commit` gains a scope-creep tripwire (Non-blocking) + a graceful handoff that *recommends* `/inspector` when the diff drifts from the stated task — never auto-invokes, degrades silently when `dev-core` isn't installed.
