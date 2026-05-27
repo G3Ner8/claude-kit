@@ -4,9 +4,9 @@ description: A 5-step debug discipline for "data not flowing" bugs in a React SP
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "1.0.0"
   type: reference
-  status: experimental
+  status: stable
   stack: React 19, TanStack Query / SWR, any HTTP backend
   scope: data-fetch debugging (FE chain + BE contract)
 ---
@@ -57,7 +57,7 @@ Common Step-1 findings:
 
 - The endpoint is `POST` but the FE sends `GET`.
 - A required header (auth, tenant) is missing.
-- A query param is named differently (`employee_id` vs `employeeId`) — see Step 2 for case conventions.
+- A query param is named differently (`user_id` vs `userId`) — see Step 2 for case conventions.
 - The endpoint moved to a new path in a recent BE deploy.
 - The response status is 200 but the body is `{ error: ... }` — the FE assumes 200 = success.
 
@@ -84,21 +84,21 @@ If Step 2 can't isolate the layer by reading code (e.g., the request shape *look
 
 ```ts
 // Layer 1: hook actually called?
-console.log('[debug] useEmployee called with', { id, enabled });
+console.log('[debug] useUser called with', { id, enabled });
 
 // Layer 2: query fn fired?
 const queryFn = async () => {
   console.log('[debug] queryFn fired for', id);
-  return fetchEmployee(id);
+  return fetchUser(id);
 };
 
 // Layer 3: API service shape?
-async function fetchEmployee(id: string) {
-  const req = { path: `/employees/${id}` };
-  console.log('[debug] fetchEmployee request', req);
+async function fetchUser(id: string) {
+  const req = { path: `/users/${id}` };
+  console.log('[debug] fetchUser request', req);
   const res = await http.get(req.path);
-  console.log('[debug] fetchEmployee response', res);
-  return parseEmployee(res);
+  console.log('[debug] fetchUser response', res);
+  return parseUser(res);
 }
 ```
 
@@ -120,8 +120,8 @@ Before writing any code change, state out loud (or in chat):
 
 Examples:
 
-- "Broken layer: query key. Fix: add `userId` to `['employee', userId]` so the cache isn't shared across users."
-- "Broken layer: backend contract. Fix: backend ticket — the `roles` field returns `null` instead of `[]` for new employees."
+- "Broken layer: query key. Fix: add `userId` to `['user', userId]` so the cache isn't shared across users."
+- "Broken layer: backend contract. Fix: backend ticket — the `roles` field returns `null` instead of `[]` for new users."
 - "Broken layer: response handler. Fix: the `case-transform` helper needs to recurse into array values."
 
 This step exists to prevent the "patch the symptom" reflex. If you can't name the broken layer cleanly, you don't understand the bug yet — go back to Step 2.
