@@ -14,14 +14,14 @@ The fix is a refactor, not a configuration: pass the Promise down, and `await` i
 **Incorrect — awaits up front, even when the branch may not need the value:**
 
 ```ts
-async function renderEmployeeCard(id: string, mode: 'compact' | 'detail') {
-  const employee = await fetchEmployee(id);          // ALWAYS paid
+async function renderUserCard(id: string, mode: 'compact' | 'detail') {
+  const user = await fetchUser(id);          // ALWAYS paid
   const role     = await fetchRoleHierarchy(id);     // ALWAYS paid
 
   if (mode === 'compact') {
-    return { name: employee.name };                  // didn't need `role` at all
+    return { name: user.name };                  // didn't need `role` at all
   }
-  return { name: employee.name, role };
+  return { name: user.name, role };
 }
 ```
 
@@ -30,17 +30,17 @@ The `compact` path pays a network round-trip for `role` it discards.
 **Correct — kick off both fetches in parallel, but only await `role` in the branch that uses it:**
 
 ```ts
-async function renderEmployeeCard(id: string, mode: 'compact' | 'detail') {
-  const employeePromise = fetchEmployee(id);         // start, don't await
+async function renderUserCard(id: string, mode: 'compact' | 'detail') {
+  const userPromise = fetchUser(id);         // start, don't await
   const rolePromise     = fetchRoleHierarchy(id);    // start, don't await
 
-  const employee = await employeePromise;            // always needed
+  const user = await userPromise;            // always needed
 
   if (mode === 'compact') {
-    return { name: employee.name };                  // rolePromise garbage-collected
+    return { name: user.name };                  // rolePromise garbage-collected
   }
   const role = await rolePromise;                    // only paid in detail branch
-  return { name: employee.name, role };
+  return { name: user.name, role };
 }
 ```
 

@@ -366,6 +366,8 @@ After Round 6: summarize all resolved values in a single markdown block and ask 
 
 Apply these placeholder mappings to each template file. Use Read + Edit (replace_all=true) per placeholder. Whitespace must match exactly.
 
+**Blank-line hygiene (multi-line optional blocks).** When a placeholder that spans multiple lines is substituted (e.g. `{{STRUCT_PENDING_RULES}}`, `{{POLISH_STATUS_CHECK_SECTION}}`, `{{POLISH_STATUS_REPORT_BLOCK}}`, `{{STRUCTURE_PREWRITE_TABLE}}`, `{{WORKFLOW_PATTERNS_TABLE}}`), collapse any resulting run of blank lines to a single blank — both when the block is **filled** (its content may carry a trailing blank) and when it is **empty** (the surrounding blanks would otherwise double up). After writing each agent file, scan for `\n\n\n` and squeeze to `\n\n`.
+
 | Placeholder | Replacement | Notes |
 |---|---|---|
 | `{{PROJECT_NAME}}` | answer 1 | |

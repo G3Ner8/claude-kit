@@ -46,7 +46,7 @@ const activeUsers = users.filter((u) => u.isActive);
 `flatMap` infers correctly when the return type is `T[]`:
 
 ```ts
-const ids = items.flatMap((i): string[] => (i.kind === 'employee' ? [i.id] : []));
+const ids = items.flatMap((i): string[] => (i.kind === 'user' ? [i.id] : []));
 //    ^? string[]
 ```
 

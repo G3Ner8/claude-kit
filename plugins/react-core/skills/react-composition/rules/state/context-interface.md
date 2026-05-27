@@ -28,9 +28,9 @@ Three properties, always present. Three reasons it works:
 **Incorrect — exposing implementation details:**
 
 ```tsx
-interface EmployeesContextValue {
-  employees: Employee[];
-  setEmployees: Dispatch<SetStateAction<Employee[]>>;  // consumer can replace the whole array
+interface UsersContextValue {
+  users: User[];
+  setUsers: Dispatch<SetStateAction<User[]>>;  // consumer can replace the whole array
   selectedId: string | null;
   setSelectedId: Dispatch<SetStateAction<string | null>>;
   isLoading: boolean;
@@ -45,10 +45,10 @@ Consumers can break invariants (`setIsLoading(true)` without actually loading). 
 **Correct — stable `{ state, actions, meta }`:**
 
 ```tsx
-interface EmployeesContextValue {
+interface UsersContextValue {
   state: {
-    employees: Employee[];
-    selectedEmployee: Employee | null;
+    users: User[];
+    selectedUser: User | null;
     searchTerm: string;
   };
   actions: {
@@ -59,62 +59,62 @@ interface EmployeesContextValue {
   meta: {
     isLoading: boolean;
     isError: boolean;
-    isEmpty: boolean;          // derived: !isLoading && employees.length === 0
+    isEmpty: boolean;          // derived: !isLoading && users.length === 0
     isFiltered: boolean;       // derived: searchTerm.length > 0
   };
 }
 
-const EmployeesContext = createContext<EmployeesContextValue | null>(null);
+const UsersContext = createContext<UsersContextValue | null>(null);
 
-function useEmployees() {
-  const ctx = use(EmployeesContext);
-  if (!ctx) throw new Error('useEmployees must be used inside <EmployeesProvider>');
+function useUsers() {
+  const ctx = use(UsersContext);
+  if (!ctx) throw new Error('useUsers must be used inside <UsersProvider>');
   return ctx;
 }
 
-function EmployeesProvider({ children }: { children: ReactNode }) {
-  const query = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees });
+function UsersProvider({ children }: { children: ReactNode }) {
+  const query = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const employees = useMemo(
+  const users = useMemo(
     () => filterBy(query.data ?? [], searchTerm),
     [query.data, searchTerm],
   );
-  const selectedEmployee = useMemo(
-    () => employees.find((e) => e.id === selectedId) ?? null,
-    [employees, selectedId],
+  const selectedUser = useMemo(
+    () => users.find((e) => e.id === selectedId) ?? null,
+    [users, selectedId],
   );
 
-  const value = useMemo<EmployeesContextValue>(
+  const value = useMemo<UsersContextValue>(
     () => ({
-      state:   { employees, selectedEmployee, searchTerm },
+      state:   { users, selectedUser, searchTerm },
       actions: { select: setSelectedId, search: setSearchTerm, refresh: query.refetch },
       meta:    {
         isLoading:  query.isLoading,
         isError:    query.isError,
-        isEmpty:    !query.isLoading && employees.length === 0,
+        isEmpty:    !query.isLoading && users.length === 0,
         isFiltered: searchTerm.length > 0,
       },
     }),
-    [employees, selectedEmployee, searchTerm, query.isLoading, query.isError, query.refetch],
+    [users, selectedUser, searchTerm, query.isLoading, query.isError, query.refetch],
   );
 
-  return <EmployeesContext value={value}>{children}</EmployeesContext>;
+  return <UsersContext value={value}>{children}</UsersContext>;
 }
 ```
 
 A consumer:
 
 ```tsx
-function EmployeesList() {
-  const { state, actions, meta } = useEmployees();
+function UsersList() {
+  const { state, actions, meta } = useUsers();
   if (meta.isLoading) return <Skeleton />;
   if (meta.isError)   return <ErrorState onRetry={actions.refresh} />;
   if (meta.isEmpty)   return <EmptyState filtered={meta.isFiltered} />;
   return (
     <ul>
-      {state.employees.map((e) => (
+      {state.users.map((e) => (
         <li key={e.id} onClick={() => actions.select(e.id)}>{e.name}</li>
       ))}
     </ul>

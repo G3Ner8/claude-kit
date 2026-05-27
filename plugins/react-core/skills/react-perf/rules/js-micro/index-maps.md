@@ -14,29 +14,29 @@ A `Map` (or a plain object index) is O(1) per lookup. The setup cost is one O(N)
 **Incorrect — nested `.find()` is O(N²):**
 
 ```ts
-function joinEmployeesWithRoles(employees: Employee[], roles: Role[]) {
-  return employees.map((e) => ({
+function joinUsersWithRoles(users: User[], roles: Role[]) {
+  return users.map((e) => ({
     ...e,
     role: roles.find((r) => r.id === e.roleId),   // O(N) per row → O(N×M) total
   }));
 }
 ```
 
-For 500 employees × 200 roles, that's 100,000 comparisons.
+For 500 users × 200 roles, that's 100,000 comparisons.
 
 **Correct — Map index, O(N+M):**
 
 ```ts
-function joinEmployeesWithRoles(employees: Employee[], roles: Role[]) {
+function joinUsersWithRoles(users: User[], roles: Role[]) {
   const rolesById = new Map(roles.map((r) => [r.id, r]));    // O(M)
-  return employees.map((e) => ({
+  return users.map((e) => ({
     ...e,
     role: rolesById.get(e.roleId),    // O(1) per row → O(N) total
   }));
 }
 ```
 
-500 employees × 1 lookup each = 500. Plus 200 to build the Map. Total 700 — 142x faster than the original 100k.
+500 users × 1 lookup each = 500. Plus 200 to build the Map. Total 700 — 142x faster than the original 100k.
 
 ## `Map` vs plain object
 

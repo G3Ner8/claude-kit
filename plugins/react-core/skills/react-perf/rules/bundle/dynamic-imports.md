@@ -61,16 +61,16 @@ Visiting `/` loads only the Home chunk. Visiting `/admin` loads the admin chunk 
 Modals are usually heavy (forms, calendars, rich text) and almost never opened. Lazy-load them:
 
 ```tsx
-const EmployeeFormDialog = lazy(() => import('./EmployeeFormDialog'));
+const UserFormDialog = lazy(() => import('./UserFormDialog'));
 
-function EmployeeList() {
+function UserList() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => setOpen(true)}>Add employee</button>
+      <button onClick={() => setOpen(true)}>Add user</button>
       {open && (
         <Suspense fallback={<DialogSkeleton />}>
-          <EmployeeFormDialog onClose={() => setOpen(false)} />
+          <UserFormDialog onClose={() => setOpen(false)} />
         </Suspense>
       )}
     </>

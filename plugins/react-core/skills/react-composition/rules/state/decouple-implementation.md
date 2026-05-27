@@ -21,14 +21,14 @@ When the contract leaks, every implementation change ripples to the consumers.
 **Incorrect — provider that leaks its implementation:**
 
 ```tsx
-function EmployeesProvider({ children }: { children: ReactNode }) {
+function UsersProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();                          // leaks: caller knows TanStack
   const { data, isLoading, refetch } = useQuery({ ... });        // leaks: caller knows useQuery
   const [selectedId, setSelectedId] = useState<string | null>(null); // leaks: caller knows useState
 
   return (
-    <EmployeesContext value={{
-      data,                  // raw `data` (may be undefined!) instead of a safe `employees: []`
+    <UsersContext value={{
+      data,                  // raw `data` (may be undefined!) instead of a safe `users: []`
       isLoading,             // wired straight through; no derived meta
       refetch,               // exposes the TanStack-specific API name
       selectedId,
@@ -36,7 +36,7 @@ function EmployeesProvider({ children }: { children: ReactNode }) {
       queryClient,           // gives consumers cache-mutation powers they should not have
     }}>
       {children}
-    </EmployeesContext>
+    </UsersContext>
   );
 }
 ```
@@ -46,21 +46,21 @@ Any caller can `setSelectedId('not-an-id')` or `queryClient.setQueryData(...)`. 
 **Correct — provider hides its source, exposes only the stable contract:**
 
 ```tsx
-function EmployeesProvider({ children }: { children: ReactNode }) {
+function UsersProvider({ children }: { children: ReactNode }) {
   // Implementation: TanStack Query for data, useState for selection.
   // Nothing past this function knows.
-  const query = useQuery({ queryKey: ['employees'], queryFn: fetchEmployees });
+  const query = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const employees = query.data ?? [];                       // safe default — never undefined
-  const selectedEmployee = useMemo(
-    () => employees.find((e) => e.id === selectedId) ?? null,
-    [employees, selectedId],
+  const users = query.data ?? [];                       // safe default — never undefined
+  const selectedUser = useMemo(
+    () => users.find((e) => e.id === selectedId) ?? null,
+    [users, selectedId],
   );
 
-  const value = useMemo<EmployeesContextValue>(
+  const value = useMemo<UsersContextValue>(
     () => ({
-      state:   { employees, selectedEmployee },
+      state:   { users, selectedUser },
       actions: {
         // Wrapped so the public name is the action verb, not the library noun.
         select:  setSelectedId,
@@ -69,41 +69,41 @@ function EmployeesProvider({ children }: { children: ReactNode }) {
       meta: {
         isLoading: query.isLoading,
         isError:   query.isError,
-        isEmpty:   !query.isLoading && employees.length === 0,
+        isEmpty:   !query.isLoading && users.length === 0,
       },
     }),
-    [employees, selectedEmployee, query.isLoading, query.isError, query.refetch],
+    [users, selectedUser, query.isLoading, query.isError, query.refetch],
   );
 
-  return <EmployeesContext value={value}>{children}</EmployeesContext>;
+  return <UsersContext value={value}>{children}</UsersContext>;
 }
 ```
 
 Now consider swapping TanStack Query for a Zustand store — the provider is the only file that changes:
 
 ```tsx
-function EmployeesProvider({ children }: { children: ReactNode }) {
-  const employees      = useEmployeesStore((s) => s.employees);
-  const isLoading      = useEmployeesStore((s) => s.isLoading);
-  const isError        = useEmployeesStore((s) => s.isError);
-  const refresh        = useEmployeesStore((s) => s.refresh);
+function UsersProvider({ children }: { children: ReactNode }) {
+  const users      = useUsersStore((s) => s.users);
+  const isLoading      = useUsersStore((s) => s.isLoading);
+  const isError        = useUsersStore((s) => s.isError);
+  const refresh        = useUsersStore((s) => s.refresh);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const selectedEmployee = useMemo(
-    () => employees.find((e) => e.id === selectedId) ?? null,
-    [employees, selectedId],
+  const selectedUser = useMemo(
+    () => users.find((e) => e.id === selectedId) ?? null,
+    [users, selectedId],
   );
 
-  const value = useMemo<EmployeesContextValue>(
+  const value = useMemo<UsersContextValue>(
     () => ({
-      state:   { employees, selectedEmployee },
+      state:   { users, selectedUser },
       actions: { select: setSelectedId, refresh },
-      meta:    { isLoading, isError, isEmpty: !isLoading && employees.length === 0 },
+      meta:    { isLoading, isError, isEmpty: !isLoading && users.length === 0 },
     }),
-    [employees, selectedEmployee, isLoading, isError, refresh],
+    [users, selectedUser, isLoading, isError, refresh],
   );
 
-  return <EmployeesContext value={value}>{children}</EmployeesContext>;
+  return <UsersContext value={value}>{children}</UsersContext>;
 }
 ```
 
@@ -114,21 +114,21 @@ Zero consumer changes. The compiler doesn't even notice.
 A decoupled provider also gives you a clean test seam. Wrap units in a deterministic provider:
 
 ```tsx
-function TestEmployeesProvider({ employees, children }: { employees: Employee[]; children: ReactNode }) {
+function TestUsersProvider({ users, children }: { users: User[]; children: ReactNode }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const value: EmployeesContextValue = {
-    state:   { employees, selectedEmployee: employees.find((e) => e.id === selectedId) ?? null },
+  const value: UsersContextValue = {
+    state:   { users, selectedUser: users.find((e) => e.id === selectedId) ?? null },
     actions: { select: setSelectedId, refresh: async () => {} },
-    meta:    { isLoading: false, isError: false, isEmpty: employees.length === 0 },
+    meta:    { isLoading: false, isError: false, isEmpty: users.length === 0 },
   };
-  return <EmployeesContext value={value}>{children}</EmployeesContext>;
+  return <UsersContext value={value}>{children}</UsersContext>;
 }
 
 // In tests:
 render(
-  <TestEmployeesProvider employees={fixture.employees}>
-    <EmployeesList />
-  </TestEmployeesProvider>,
+  <TestUsersProvider users={fixture.users}>
+    <UsersList />
+  </TestUsersProvider>,
 );
 ```
 
@@ -145,6 +145,6 @@ No TanStack Query setup, no MSW intercept, no store reset — the contract is en
 
 - **Trivial state with no foreseeable swap.** A `useToggle()` hook backing `{ open, toggle }` doesn't need `{ state, actions, meta }` framing.
 - **Library-provided contexts** (Router, QueryClient, Suspense boundary). These are already stable interfaces from a third-party — don't rewrap them just to mirror your own convention.
-- **Components, not features.** The pattern targets feature-scope state (employee list, payroll wizard, leave calendar). Component-internal state (a dropdown's open/close) belongs in `useState` inside the component.
+- **Components, not features.** The pattern targets feature-scope state (user list, order wizard, invoice calendar). Component-internal state (a dropdown's open/close) belongs in `useState` inside the component.
 
 The trigger is **a feature whose data source might plausibly change** (local → server, mocked → real, useState → reducer, polling → streaming). At that point, the contract discipline pays its premium.

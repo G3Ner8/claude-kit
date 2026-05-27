@@ -46,7 +46,7 @@ Namespace per feature. Shared `common` namespace policy. en/th (or your locales)
 
 No raw `console.*` in `src/`. Use the project logger (`logger.info` / `logger.error`). All user-facing errors trigger `toast.error`. Persistent log meta uses `{ persist: false }` for transient events.
 
-> Example: "Never `console.log` in src/. Use `logger.error(err, { feature: 'leave' })` + `toast.error(t('errors.failed'))`. Set `persist: false` for events not worth keeping past the session."
+> Example: "Never `console.log` in src/. Use `logger.error(err, { feature: 'orders' })` + `toast.error(t('errors.failed'))`. Set `persist: false` for events not worth keeping past the session."
 
 ---
 

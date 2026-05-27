@@ -14,11 +14,11 @@ The pattern is mechanical: put the cheap check first, return early, and only `aw
 **Incorrect — fires the request unconditionally, then discards:**
 
 ```ts
-async function loadEmployeeDetail(id: string, viewer: Viewer) {
-  const employee = await fetchEmployee(id);          // network round-trip
+async function loadUserDetail(id: string, viewer: Viewer) {
+  const user = await fetchUser(id);          // network round-trip
   if (viewer.role === 'guest') return null;          // could have known this from the prop
   if (id.length !== 36) return null;                 // could have known this from the argument
-  return employee;
+  return user;
 }
 ```
 
@@ -27,10 +27,10 @@ Every guest visitor pays the round-trip cost of a request they were never allowe
 **Correct — sync filters first, network only when needed:**
 
 ```ts
-async function loadEmployeeDetail(id: string, viewer: Viewer) {
+async function loadUserDetail(id: string, viewer: Viewer) {
   if (viewer.role === 'guest')   return null;
   if (id.length !== 36)          return null;
-  return await fetchEmployee(id);
+  return await fetchUser(id);
 }
 ```
 
@@ -38,7 +38,7 @@ The check order matters: arrange by cost, ascending. Constant-time scalar checks
 
 ## When NOT to apply
 
-- **The cheap check depends on the network result** — if `viewer.canView` requires the employee record to evaluate, you can't gate on it.
+- **The cheap check depends on the network result** — if `viewer.canView` requires the user record to evaluate, you can't gate on it.
 - **Speculative prefetch** — if you're warming a cache that may serve other call sites later, the early bail-out wastes the cache fill. That's a deliberate trade-off; mark it in a comment.
 - **Race-free invariants you're trying to *verify*** — if the point of fetching is to confirm the sync check was right (e.g., revalidating an authorization claim against the server), don't skip the fetch.
 
@@ -47,11 +47,11 @@ The check order matters: arrange by cost, ascending. Constant-time scalar checks
 Inside a query hook, the equivalent is the `enabled` flag:
 
 ```ts
-function useEmployee(id: string) {
+function useUser(id: string) {
   const { viewer } = useViewer();
   return useQuery({
-    queryKey: ['employee', id],
-    queryFn: () => fetchEmployee(id),
+    queryKey: ['user', id],
+    queryFn: () => fetchUser(id),
     enabled: viewer.role !== 'guest' && id.length === 36,
   });
 }
