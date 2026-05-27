@@ -17,7 +17,7 @@ The alternative — a single component with `header`, `footer`, `showClose`, `cl
 
 ```tsx
 <Dialog
-  title="Delete employee"
+  title="Delete user"
   description="This will permanently remove the record."
   showClose
   closeLabel="Cancel"
@@ -99,7 +99,7 @@ Consumer code:
 <Dialog>
   <Dialog.Trigger>Delete</Dialog.Trigger>
   <Dialog.Content>
-    <Dialog.Title>Delete employee</Dialog.Title>
+    <Dialog.Title>Delete user</Dialog.Title>
     <p>This will permanently remove the record.</p>
     <Dialog.Close>Cancel</Dialog.Close>
     <button onClick={onConfirm}>Delete</button>

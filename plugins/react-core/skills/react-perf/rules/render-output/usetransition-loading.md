@@ -71,9 +71,9 @@ function Submit() {
   return <button disabled={pending}>{pending ? 'Saving...' : 'Save'}</button>;
 }
 
-function EmployeeForm() {
+function UserForm() {
   return (
-    <form action={async (formData) => { await saveEmployee(formData); }}>
+    <form action={async (formData) => { await saveUser(formData); }}>
       <input name="name" />
       <Submit />
     </form>

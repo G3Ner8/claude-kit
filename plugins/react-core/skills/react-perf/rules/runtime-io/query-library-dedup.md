@@ -58,32 +58,32 @@ Both components mount → one HTTP request. Both read the same cache entry. When
 Query keys are arrays — ordered by specificity, from coarse to fine:
 
 ```ts
-['employees']                              // list endpoint
-['employees', { status: 'active' }]        // list with filters
-['employees', employeeId]                  // single resource
-['employees', employeeId, 'roles']         // nested resource
+['users']                              // list endpoint
+['users', { status: 'active' }]        // list with filters
+['users', userId]                  // single resource
+['users', userId, 'roles']         // nested resource
 ```
 
 This shape lets you invalidate at any level:
 
 ```ts
-queryClient.invalidateQueries({ queryKey: ['employees'] });           // refetch everything employees-related
-queryClient.invalidateQueries({ queryKey: ['employees', employeeId] }); // refetch just one employee
+queryClient.invalidateQueries({ queryKey: ['users'] });           // refetch everything users-related
+queryClient.invalidateQueries({ queryKey: ['users', userId] }); // refetch just one user
 ```
 
 Extract a `queryKey` factory per feature so call sites never hand-roll the array:
 
 ```ts
-// features/employees/api/keys.ts
-export const employeeKeys = {
-  all:        ['employees'] as const,
-  lists:      (filters: Filters) => [...employeeKeys.all, 'list', filters] as const,
-  detail:     (id: string) =>      [...employeeKeys.all, 'detail', id] as const,
-  roles:      (id: string) =>      [...employeeKeys.detail(id), 'roles'] as const,
+// features/users/api/keys.ts
+export const userKeys = {
+  all:        ['users'] as const,
+  lists:      (filters: Filters) => [...userKeys.all, 'list', filters] as const,
+  detail:     (id: string) =>      [...userKeys.all, 'detail', id] as const,
+  roles:      (id: string) =>      [...userKeys.detail(id), 'roles'] as const,
 };
 ```
 
-Now `invalidateQueries({ queryKey: employeeKeys.all })` confidently refreshes the entire employee tree without typos.
+Now `invalidateQueries({ queryKey: userKeys.all })` confidently refreshes the entire user tree without typos.
 
 ## When NOT to apply
 

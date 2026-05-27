@@ -50,7 +50,7 @@ Required:
 
 1. **Components to audit** — accept one or more. Acceptable forms:
    - Component names (`Button`, `Table`, `Dialog`)
-   - Import paths (`@/components/ui/Button`, `src/features/employee/components/EmployeeCard`)
+   - Import paths (`@/components/ui/Button`, `src/features/user/components/UserCard`)
    - Mix of both
 
    If a name maps to multiple components, list candidates back and ask the user which one(s). If only one component is given, ask once: "Want to add more? Cross-component patterns surface better with a wider net." — then proceed regardless of answer.

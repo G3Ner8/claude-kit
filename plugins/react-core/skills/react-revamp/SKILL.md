@@ -43,8 +43,8 @@ Do not Read, Glob, Grep, or fetch anything until you have **all** required input
 
 Required:
 
-1. **Target page path** — page folder + entry file (e.g. `src/features/leave/pages/LeaveListPage/index.tsx`). If the user gives only a feature/page name, resolve to a concrete path and confirm before continuing.
-2. **Reference / canonical page paths** — 1–2 pages that define the project's idioms (e.g. `src/features/employee/pages/EmployeeListPage/index.tsx`). Your proposal must feel like a natural sibling of these.
+1. **Target page path** — page folder + entry file (e.g. `src/features/orders/pages/OrderListPage/index.tsx`). If the user gives only a feature/page name, resolve to a concrete path and confirm before continuing.
+2. **Reference / canonical page paths** — 1–2 pages that define the project's idioms (e.g. `src/features/products/pages/ProductListPage/index.tsx`). Your proposal must feel like a natural sibling of these.
 3. **Design tokens location** — auto-detect (look for `tailwind.config.*`, `tokens.css`, design-system docs) and confirm with user, or accept an explicit path.
 4. **API discovery method** — one of:
    - URL to Swagger / OpenAPI doc (used with `WebFetch` if the agent has it)
@@ -118,15 +118,15 @@ Example sketch shape:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  PageHeader                                              │
-│  Leave Requests                       [+ New Request]   │
-│  Approve, reject, and track leave activity              │
+│  Orders                                 [+ New Order]   │
+│  Review, fulfill, and track order activity              │
 ├─────────────────────────────────────────────────────────┤
 │  Toolbar                                                 │
 │  [ Search ] [ Filter: Status ▾ ] [ Date range ▾ ]       │
 ├─────────────────────────────────────────────────────────┤
 │  Table                                                   │
 │  ┌─────────────────────────────────────────────────┐   │
-│  │ Employee   │ Type    │ Dates    │ Status │ ⋯    │   │
+│  │ Customer   │ Type    │ Dates    │ Status │ ⋯    │   │
 │  │ ...                                                │   │
 │  └─────────────────────────────────────────────────┘   │
 │  ◀ 1 2 3 ▶                       12 of 142             │

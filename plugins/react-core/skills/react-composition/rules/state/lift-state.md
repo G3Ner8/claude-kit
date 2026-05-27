@@ -17,7 +17,7 @@ This pattern underpins the [compound-component](../architecture/compound-compone
 
 ```tsx
 // Page knows about selectedId only to forward it to <Toolbar> and <List>.
-function EmployeesPage() {
+function UsersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   return (
     <PageLayout selectedId={selectedId} onSelect={setSelectedId}>
@@ -69,7 +69,7 @@ function SelectionProvider({ children }: { children: ReactNode }) {
   return <SelectionContext value={value}>{children}</SelectionContext>;
 }
 
-function EmployeesPage() {
+function UsersPage() {
   return (
     <SelectionProvider>
       <PageLayout>
@@ -99,7 +99,7 @@ function List() {
   const { selectedId, select } = useSelection();
   return (
     <ul>
-      {employees.map((e) => (
+      {users.map((e) => (
         <li key={e.id} aria-selected={e.id === selectedId} onClick={() => select(e.id)}>
           {e.name}
         </li>

@@ -30,7 +30,7 @@ Single-feature and Multi-feature share Phases A-D; Multi-feature adds Phase E (c
 
 ## When to use
 
-- Auditing a new feature folder against canonical baselines (e.g. "is `leave` consistent with `employee`?")
+- Auditing a new feature folder against canonical baselines (e.g. "is `orders` consistent with `products`?")
 - Aligning 2+ feature folders that drifted (multi-feature divergence matrix)
 - Checking visual consistency of one primitive across many pages (`Button` everywhere)
 - Pre-step before a `react-revamp` proposal — establishes what the baseline actually is
@@ -52,8 +52,8 @@ First detect mode from the user's framing:
 
 ### Inputs for Single/Multi-feature mode
 
-1. **Target feature folders** — accept 1+ paths or names (e.g. `src/features/leave`, or "leave, attendance, timesheet"). Resolve names to concrete folder paths and confirm the resolved list back to the user before continuing.
-2. **Baseline / reference feature folders** — the source-of-truth features the targets get compared against (e.g. `src/features/employee`, `src/features/payroll`). If the user doesn't know, suggest 1–2 candidates after a quick `Glob` of `src/features/`.
+1. **Target feature folders** — accept 1+ paths or names (e.g. `src/features/orders`, or "orders, invoices, shipments"). Resolve names to concrete folder paths and confirm the resolved list back to the user before continuing.
+2. **Baseline / reference feature folders** — the source-of-truth features the targets get compared against (e.g. `src/features/products`, `src/features/orders`). If the user doesn't know, suggest 1–2 candidates after a quick `Glob` of `src/features/`.
 3. **Check API?** — `yes` or `no`. If yes, also ask for the API doc URL (Swagger / OpenAPI) or local OpenAPI spec path.
 4. **Design tokens location** — auto-detect (look for `tailwind.config.*`, `tokens.css`, design-system docs) and confirm with user, or accept an explicit path.
 

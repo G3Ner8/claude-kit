@@ -40,10 +40,10 @@ Do not `Read`, `Glob`, `Grep` until inputs are answered. Use `AskUserQuestion` t
 
 Required:
 
-1. **Target page path** — page folder + entry file (e.g. `src/features/leave/pages/LeaveListPage/index.tsx`). If only a name given, resolve to a concrete path and confirm.
+1. **Target page path** — page folder + entry file (e.g. `src/features/orders/pages/OrderListPage/index.tsx`). If only a name given, resolve to a concrete path and confirm.
 2. **Baseline page paths** — 1–3 Polished baseline pages **in the same role** as the target (list / detail / config / form). The baselines drive the dimension expectations. Default suggestions if user doesn't know:
-   - List pages → `src/features/payroll/pages/PayrollListPage/index.tsx`, `src/features/organization/pages/DepartmentListPage/index.tsx`
-   - Detail/Form pages → `src/features/employee/pages/EmployeeDetailPage/index.tsx`, `src/features/payroll/pages/PayrollDetailPage/index.tsx`
+   - List pages → `src/features/orders/pages/OrderListPage/index.tsx`, `src/features/catalog/pages/CategoryListPage/index.tsx`
+   - Detail/Form pages → `src/features/products/pages/ProductDetailPage/index.tsx`, `src/features/invoices/pages/InvoiceDetailPage/index.tsx`
 3. **Output language** — `English` or `Thai`. Default to English.
 
 Optional (ask only if scope is ambiguous):
@@ -59,7 +59,7 @@ Stop and wait until inputs are answered.
 Once inputs confirmed:
 
 - `Read` the target page **in full** plus the components it directly composes (form sections, dialogs it owns, page-level skeleton).
-- `Read` each baseline page **in full** plus its shell/wrapper component(s) (e.g. `EmployeeFormShell`, `PayrollDetailHeader`).
+- `Read` each baseline page **in full** plus its shell/wrapper component(s) (e.g. `ProductFormShell`, `InvoiceDetailHeader`).
 - Build a quick mental model: what role each page plays, what user does on it, what data drives it.
 - Identify shared workflow primitives in the codebase by `Grep`:
   - `useUnsavedChangesGuard`, `useKeyboardShortcuts`, `useTabDirtyState` (or equivalent)

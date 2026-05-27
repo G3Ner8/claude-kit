@@ -9,7 +9,7 @@ metadata:
   status: stable
   stack: React 19 + Vitest 4 + @testing-library/react 16 + @testing-library/user-event 14 + MSW 2 + jsdom
   scope: Read-mostly knowledge; consumed by test-writer agents and human reviewers
-  derived_from: Proven on `pps-web/src/features/holiday/**/*.test.*` (54 tests, 8 files, 4 layers — see "Canonical baseline" below)
+  derived_from: A production React feature test suite (54 tests, 8 files across the 5 layers below — see "Canonical baseline")
 ---
 
 # React Test Patterns
@@ -79,20 +79,20 @@ If any are missing, write them once for the project — the rest of this skill a
 
 ## Canonical baseline
 
-Read these files **in full** before writing tests for a new feature in pps-web — they prove every pattern in this skill end-to-end:
+Pick one well-tested feature in your project as the **canonical baseline** and read its files **in full** before writing tests for a new feature — a strong baseline proves every pattern in this skill end-to-end. A complete baseline covers all five layers (swap `<feature>` for yours):
 
-| Layer | File |
+| Layer | Example file |
 |---|---|
-| Schema | `pps-web/src/features/holiday/schemas/holiday.schema.test.ts` |
-| Schema (with optional / transform) | `pps-web/src/features/holiday/schemas/holidayCalendar.schema.test.ts` |
-| API client + case-transform round-trip | `pps-web/src/features/holiday/api/index.test.ts` |
-| Query hook (single fetch + disabled gates) | `pps-web/src/features/holiday/hooks/useHolidayCalendar.test.tsx` |
-| Query hook (list with params) | `pps-web/src/features/holiday/hooks/useHolidayCalendars.test.tsx` |
-| System query (no companyId scope) | `pps-web/src/features/holiday/hooks/useSystemHolidayCalendars.test.tsx` |
-| Mutation hooks (invalidation patterns) | `pps-web/src/features/holiday/hooks/useHolidayMutations.test.tsx` |
-| Component smoke (drawer + RHF + Radix) | `pps-web/src/features/holiday/components/sections/HolidayDrawer.test.tsx` |
+| Schema | `src/features/<feature>/schemas/<feature>.schema.test.ts` |
+| Schema (with optional / transform) | `src/features/<feature>/schemas/<related>.schema.test.ts` |
+| API client + case-transform round-trip | `src/features/<feature>/api/index.test.ts` |
+| Query hook (single fetch + disabled gates) | `src/features/<feature>/hooks/use<Feature>.test.tsx` |
+| Query hook (list with params) | `src/features/<feature>/hooks/use<Feature>s.test.tsx` |
+| System query (no tenant scope) | `src/features/<feature>/hooks/useSystem<Feature>s.test.tsx` |
+| Mutation hooks (invalidation patterns) | `src/features/<feature>/hooks/use<Feature>Mutations.test.tsx` |
+| Component smoke (drawer + RHF + portal primitive) | `src/features/<feature>/components/sections/<Feature>Drawer.test.tsx` |
 
-If you're using this skill outside pps-web, replace these paths with the equivalent canonical files in your project.
+No baseline yet? Build the first feature's suite to this shape, then use it as the reference for the rest.
 
 ---
 
@@ -155,9 +155,9 @@ import { describe, expect, it } from 'vitest'
 import { fooApi } from './index'
 
 describe('fooApi (MSW + case-transform)', () => {
-  it('GETs /pps/v1/foo and unwraps data envelope', async () => {
+  it('GETs /api/v1/foo and unwraps data envelope', async () => {
     server.use(
-      http.get('*/pps/v1/foo', () =>
+      http.get('*/api/v1/foo', () =>
         HttpResponse.json({ data: { foo_id: 'f1', display_name: 'A' } })
       )
     )
@@ -185,7 +185,7 @@ describe('fooApi (MSW + case-transform)', () => {
 // ❌ TS narrows captured.search to `never` after the await
 let capturedSearch: URLSearchParams | null = null
 server.use(
-  http.get('*/pps/v1/foo', ({ request }) => {
+  http.get('*/api/v1/foo', ({ request }) => {
     capturedSearch = new URL(request.url).searchParams
     return HttpResponse.json({ data: {} })
   })
@@ -196,7 +196,7 @@ expect(capturedSearch?.get('year')).toBe('2026')   // TS error
 // ✅ Holder object preserves the union type across closure
 const captured: { search: URLSearchParams | null } = { search: null }
 server.use(
-  http.get('*/pps/v1/foo', ({ request }) => {
+  http.get('*/api/v1/foo', ({ request }) => {
     captured.search = new URL(request.url).searchParams
     return HttpResponse.json({ data: {} })
   })
@@ -252,10 +252,10 @@ beforeEach(() => {
 })
 afterEach(() => client.clear())
 
-it('is disabled when companyId is missing', () => {
+it('is disabled when tenantId is missing', () => {
   vi.mocked(useCurrentCompanyId).mockReturnValue(undefined)
   let hit = false
-  server.use(http.get('*/pps/v1/foo', () => { hit = true; return HttpResponse.json({}) }))
+  server.use(http.get('*/api/v1/foo', () => { hit = true; return HttpResponse.json({}) }))
 
   const { result } = renderHook(() => useFoo(), { wrapper: wrapperFactory(client) })
 
@@ -263,9 +263,9 @@ it('is disabled when companyId is missing', () => {
   expect(hit).toBe(false)
 })
 
-it('fetches and camelCases response when companyId is set', async () => {
+it('fetches and camelCases response when tenantId is set', async () => {
   server.use(
-    http.get('*/pps/v1/foo', () =>
+    http.get('*/api/v1/foo', () =>
       HttpResponse.json({ data: { foo_id: 'f1' } })
     )
   )
@@ -277,11 +277,11 @@ it('fetches and camelCases response when companyId is set', async () => {
 })
 ```
 
-For **mutations**, spy on `client.invalidateQueries` to verify the right keys are touched on success — and **not** touched on error / when companyId is missing:
+For **mutations**, spy on `client.invalidateQueries` to verify the right keys are touched on success — and **not** touched on error / when tenantId is missing:
 
 ```tsx
 it('invalidates list on create success', async () => {
-  server.use(http.post('*/pps/v1/foo', () => HttpResponse.json({ data: {} }, { status: 201 })))
+  server.use(http.post('*/api/v1/foo', () => HttpResponse.json({ data: {} }, { status: 201 })))
   const spy = vi.spyOn(client, 'invalidateQueries')
 
   const { result } = renderHook(() => useCreateFoo(), { wrapper: wrapperFactory(client) })
@@ -292,7 +292,7 @@ it('invalidates list on create success', async () => {
 })
 
 it('does NOT invalidate on server error', async () => {
-  server.use(http.post('*/pps/v1/foo', () => HttpResponse.json({}, { status: 500 })))
+  server.use(http.post('*/api/v1/foo', () => HttpResponse.json({}, { status: 500 })))
   const spy = vi.spyOn(client, 'invalidateQueries')
 
   const { result } = renderHook(() => useCreateFoo(), { wrapper: wrapperFactory(client) })
@@ -304,7 +304,7 @@ it('does NOT invalidate on server error', async () => {
 ```
 
 **What to test**:
-- ✅ Enable-gate(s) — `companyId`, `id` param, `enabled` flag explicit false
+- ✅ Enable-gate(s) — `tenantId`, `id` param, `enabled` flag explicit false
 - ✅ Successful fetch + camelCase shape
 - ✅ Param forwarding (capture URL.searchParams via MSW)
 - ✅ For mutations: invalidate-correct-keys on success
@@ -325,7 +325,7 @@ it('does NOT invalidate on server error', async () => {
 **File**: `<feature>/components/<group>/<Name>.test.tsx`
 **Tools**: vitest + custom `render` (i18n + QueryClient + optional router) + `userEvent` + MSW where applicable
 
-Default scope = **smoke**: the component renders its title, gates submit on validation, prefills in edit mode, disables Cancel while saving. **Don't** chase Radix portal interactions (DatePicker, Select, Combobox) in component-level jsdom — they're flaky and the assertions don't transfer to Cypress/Playwright.
+Default scope = **smoke**: the component renders its title, gates submit on validation, prefills in edit mode, disables Cancel while saving. **Don't** chase portal-based primitive interactions (e.g. Radix DatePicker, Select, Combobox) in component-level jsdom — they're flaky and the assertions don't transfer to Cypress/Playwright.
 
 ```tsx
 import { render, screen, waitFor } from '@/test/test-utils'
@@ -373,7 +373,7 @@ describe('FooDrawer — create mode', () => {
 - ✅ `isSaving=true` → Cancel disabled, loading label shown
 - ✅ Dirty-state gating (Save disabled while pristine in edit mode)
 
-**Coverage target**: **60-70% lines**. Lower than other layers because Radix portal branches are unreachable in jsdom.
+**Coverage target**: **60-70% lines**. Lower than other layers because portal-primitive branches are unreachable in jsdom.
 
 **i18n namespace**: Components use `useTranslation('<feature>')` — the test must have the namespace strings loaded in `src/test/test-utils.tsx`. **Append, never replace** existing namespaces. Use the key paths that exist in `<feature>.json` — don't invent labels.
 
@@ -383,9 +383,9 @@ describe('FooDrawer — create mode', () => {
 3. 🥉 `getByTestId('...')` — only for row disambiguation; production strips `data-testid`
 
 **Anti-patterns**:
-- ❌ `fireEvent.click(...)` — use `userEvent.click(...)` (Radix-safe focus + event order)
-- ❌ Asserting on Radix `<Select>` value after `user.click(SelectItem)` — portal flake
-- ❌ Snapshot of full DOM — brittle on Radix internals
+- ❌ `fireEvent.click(...)` — use `userEvent.click(...)` (portal-safe focus + event order)
+- ❌ Asserting on a portal `<Select>` value after `user.click(SelectItem)` — portal flake
+- ❌ Snapshot of full DOM — brittle on portal-primitive internals
 - ❌ Hardcoded `await new Promise(r => setTimeout(r, 500))` — use `findBy*` or `waitFor`
 - ❌ Reaching into form internals (`form.formState.errors.x`) — test the rendered UI
 
@@ -411,10 +411,10 @@ it('creates a foo and re-renders the list', async () => {
   // Initial empty list, then one item after POST.
   const items = [{ foo_id: 'f1', name: 'Existing' }]
   server.use(
-    http.get('*/pps/v1/foo', () =>
+    http.get('*/api/v1/foo', () =>
       HttpResponse.json({ data: { content: items, total_elements: items.length } })
     ),
-    http.post('*/pps/v1/foo', async ({ request }) => {
+    http.post('*/api/v1/foo', async ({ request }) => {
       const body = (await request.json()) as { name: string }
       items.push({ foo_id: 'f2', name: body.name })
       return HttpResponse.json({ data: items[items.length - 1] }, { status: 201 })
@@ -453,8 +453,8 @@ it('creates a foo and re-renders the list', async () => {
 | Schema | 100% | 100% | 100% | Pure, small, no excuse |
 | API client | 90%+ | — | 90%+ | Each method × happy path |
 | Query keys | 100% | 100% | 100% | Trivial, just stable-key assertion |
-| Hooks | 80%+ | 50%+ | 100% | Branches lower because companyId-missing branches are skipped on happy path |
-| Components | 60-70% | — | — | Radix portal branches unreachable in jsdom |
+| Hooks | 80%+ | 50%+ | 100% | Branches lower because tenantId-missing branches are skipped on happy path |
+| Components | 60-70% | — | — | portal-primitive branches unreachable in jsdom |
 | Pages (smoke) | not measured | — | — | Integration is the confidence, not coverage |
 
 Configure threshold in `vite.config.ts` → `test.coverage.thresholds` **only after** the suite has crossed each target for 2+ features. Premature thresholds = noise.
@@ -492,15 +492,15 @@ foo: {
 | Anti-pattern | Why it's bad | Fix |
 |---|---|---|
 | `vi.mock('@/services/api')` | Bypasses interceptors + case-transform | Use MSW |
-| `fireEvent.*` for interactions | No focus/blur fidelity, breaks Radix | `userEvent.setup()` |
-| Snapshot the full DOM | Brittle on Radix internals | `getByRole` + targeted assertions |
+| `fireEvent.*` for interactions | No focus/blur fidelity, breaks portal primitives | `userEvent.setup()` |
+| Snapshot the full DOM | Brittle on portal-primitive internals | `getByRole` + targeted assertions |
 | One QueryClient shared across tests | Cache leak → flaky | `createTestQueryClient()` per render |
 | `.only` / `.skip` left in code | Half-disabled suites pretend to pass | grep before commit |
 | `await new Promise(r => setTimeout(r, 500))` | Slow + flaky | `findBy*` or `waitFor` |
 | Asserting on `result.current.data` synchronously | Race with query refetch | `await waitFor(isSuccess)` |
 | Mocking `useQuery` directly | Tests the mock, not the cache | Wrap in QueryClient + MSW |
 | `getByTestId` first | Bypasses a11y safety net | Role → Label → TestId order |
-| Component test that opens Radix Select | Portal flake under jsdom | Move to integration or stub the Select |
+| Component test that opens a portal Select | Portal flake under jsdom | Move to integration or stub the Select |
 | Coverage threshold set too early | Blocks PRs without signal | Wait until 2+ features hit target |
 
 ---
@@ -529,6 +529,6 @@ If an agent invokes this skill, it should produce:
 1. A **layered plan** — list of test files to write/expand, grouped by the 5 layers above
 2. **Coverage delta** projection — current % vs target per layer
 3. **i18n keys delta** — new keys to add to `test-utils.tsx` (none if namespace already exists)
-4. **Risk callouts** — Radix primitives in scope (move to integration?), missing tenant accessor mock, etc.
+4. **Risk callouts** — portal primitives in scope (e.g. Radix; move to integration?), missing tenant accessor mock, etc.
 
 The agent applies in **pure → impure** order (schemas first, integration last) so a failure in low layers blocks before expensive layers run.

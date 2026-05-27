@@ -1,76 +1,76 @@
 # Placeholder reference
 
-Every `{{PLACEHOLDER}}` used by the agent templates, with example values from the `pps-web` reference profile.
+Every `{{PLACEHOLDER}}` used by the agent templates, with example values from a fictional `shop-web` project (showing one consistent set of filled values).
 
 ## Identity
 
-| Placeholder | What it is | Example (`pps-web`) |
+| Placeholder | What it is | Example (`shop-web`) |
 |---|---|---|
-| `{{PROJECT_NAME}}` | Project slug used in agent descriptions and conventions text | `pps-web` |
-| `{{AGENT_PREFIX}}` | Short prefix for agent names (becomes `<prefix>-implement`, etc.) | `web` |
+| `{{PROJECT_NAME}}` | Project slug used in agent descriptions and conventions text | `shop-web` |
+| `{{AGENT_PREFIX}}` | Short prefix for agent names (becomes `<prefix>-implement`, etc.) | `shop` |
 | `{{STACK}}` | One-line stack summary for `implement` + `polish` agent `description:` frontmatter | `React 19 / TS / Vite / Tailwind / Radix` |
 | `{{TEST_STACK}}` | Test-stack one-liner for `test` agent description (Vitest/RTL/MSW + versions) | `Vitest 4 + React Testing Library 16 + @testing-library/user-event 14 + MSW 2` |
 | `{{OUTPUT_LANG}}` | Language for `implement` + `polish` + `test` reports (`pre-commit` is always English) | `Thai` |
-| `{{BACKEND_NAME}}` | Backend project / repo name (used in implement Debug Protocol) | `pps-api` |
+| `{{BACKEND_NAME}}` | Backend project / repo name (used in implement Debug Protocol) | `shop-api` |
 
 ## Paths
 
 | Placeholder | What it is | Example |
 |---|---|---|
-| `{{CONVENTIONS_DOC}}` | Path to your project's Mandatory Conventions doc | `pps-web/CLAUDE.md` |
+| `{{CONVENTIONS_DOC}}` | Path to your project's Mandatory Conventions doc | `shop-web/CLAUDE.md` |
 | `{{CONV_SECTION_REF}}` | Optional clause naming the section that holds the rules (empty = the whole doc is conventions). Agents enumerate rules at runtime — no count is baked. | `` (its `Mandatory Conventions` section)`` |
-| `{{STRUCTURE_DOC}}` | Path to feature/folder structure rules doc | `pps-web/docs/architecture/feature-structure.md` |
+| `{{STRUCTURE_DOC}}` | Path to feature/folder structure rules doc | `shop-web/docs/architecture/feature-structure.md` |
 | `{{STRUCTURE_PREWRITE_TABLE}}` | (Optional) Project-specific "new file kind → required sections to Read" table + worked example, inserted into `implement` Step 0.1 Structure pre-write check. Empty if generic | (multi-line table; see PROFILE-GENERATOR.md crib sheet) |
 | `{{STRUCTURE_EXTRACT_MAPPING}}` | (Optional) Project-specific extraction-kind → section bullet list for `polish` Structure check when extracting. Empty if generic | `- Schema extraction → Section 4.1 + 4.4 + 9`<br>`- Component split / extract → Section 4.2 + 6` |
-| `{{PROGRESS_DOC}}` | Path to the doc that lists Polished baseline pages | `pps-web/docs/progress.md` |
+| `{{PROGRESS_DOC}}` | Path to the doc that lists Polished baseline pages | `shop-web/docs/progress.md` |
 | `{{FEATURES_ROOT}}` | Root path for feature folders | `src/features` |
-| `{{POLISHED_PAGE_EXAMPLES}}` | Comma-separated examples of reference (baseline) pages agents anchor on | `PayrollListPage, EmployeeListPage, EmployeeDetailPage` |
+| `{{POLISHED_PAGE_EXAMPLES}}` | Comma-separated examples of reference (baseline) pages agents anchor on | `OrderListPage, ProductListPage, ProductDetailPage` |
 | `{{REFERENCE_PAGE_TERM}}` | Adjective for a known-good reference page (default `Polished`; `reference` if the project has no page-maturity model) | `Polished` |
 | `{{ANTI_REFERENCE_CLAUSE}}` | Inline warning against anchoring on immature pages (empty if no maturity model) | `` — never anchor on Rough/Partial pages`` |
 | `{{POLISH_STATUS_REPORT_BLOCK}}` | The `## Polish status` flip/regression report subsection (empty unless a page-status audit script exists) | (see POLISH_STATUS_REPORT_BLOCK template) |
-| `{{ARCHITECTURE_DOCS_GLOB}}` | Glob of architectural docs (drives pre-commit doc-sync gate) | `pps-web/docs/architecture/*` |
-| `{{COMPONENT_DOCS_GLOB}}` | Glob of per-component docs | `pps-web/docs/components/*` |
-| `{{FEATURE_DOCS_GLOB}}` | Glob of per-feature docs | `pps-web/docs/features/*` |
+| `{{ARCHITECTURE_DOCS_GLOB}}` | Glob of architectural docs (drives pre-commit doc-sync gate) | `shop-web/docs/architecture/*` |
+| `{{COMPONENT_DOCS_GLOB}}` | Glob of per-component docs | `shop-web/docs/components/*` |
+| `{{FEATURE_DOCS_GLOB}}` | Glob of per-feature docs | `shop-web/docs/features/*` |
 | `{{PLAN_FILE_PATTERN}}` | (Optional) Trailing parenthetical hint for Plan-file path convention in `implement` Mode table | ` (\`session-working-space/tasks/*-plan.md\`)` |
 | `{{MC_WALK_INCIDENT_REF}}` | (Optional) Trailing sentence cited as motivation for the MC-walk forcing functions (typically a past incident). Empty if no incident | ` A precedent miss exists (org-config revamp 2026-05-19, 18 issues escaped); the forcing functions below are designed to make that impossible to repeat.` |
 | `{{MC_MECHANICAL_CATCH_MAP}}` | (Optional) Trailing sentence listing which MC sections the structure linter mechanically catches. Empty if not applicable | ` It catches MC-5 (factory schema), MC-6 (shared namespace), MC-7 (console.*).` |
-| `{{COMMIT_SCOPE_OPTIONS}}` | Scope-options sentence in `pre-commit` commit-draft section | `` `(pps-web)` when diff is purely frontend · `(pps-api)` when purely backend · omit for cross-cutting / repo-level `` |
+| `{{COMMIT_SCOPE_OPTIONS}}` | Scope-options sentence in `pre-commit` commit-draft section | `` `(shop-web)` when diff is purely frontend · `(shop-api)` when purely backend · omit for cross-cutting / repo-level `` |
 | `{{API_TRIGGER_HINT}}` | Inline phrase in `pre-commit` Bug+regression scan describing what API surface touched looks like | `` `services/api.ts` or feature `api/` `` (default: `network surface`) |
-| `{{STRUCTURE_LEGACY_REF}}` | Phrase used to refer to pre-existing structure violations (project's backlog name, if any) | `Section 17 backlog` (default: `legacy`) |
+| `{{STRUCTURE_LEGACY_REF}}` | Phrase used to refer to pre-existing structure violations (project's backlog name, if any) | `Tech-debt backlog` (default: `legacy`) |
 | `{{STRUCT_PENDING_RULES}}` | Multi-line block under Structure regression check step 4 — project's pending-list workflow. Empty = single-line generic Non-blocking note | (see PROFILE-GENERATOR.md crib sheet — bullet list referencing project pending-list names) |
 
 ## Commands
 
 | Placeholder | What it is | Example |
 |---|---|---|
-| `{{BUILD_CMD}}` | One-liner that must pass before reporting done | `cd pps-web && npm run build` |
-| `{{DEV_CMD}}` | Dev server command (reserved — not currently embedded in templates) | `cd pps-web && npm run dev` |
-| `{{TEST_CMD}}` | Test runner used by the pre-commit "test-only diff" fast path and `web-test` chunk runs (`{{TEST_CMD}} -- <files>`) | `cd pps-web && npm run test:unit` |
-| `{{TEST_COV_CMD}}` | Coverage-variant test runner (`web-test` baseline + delta capture) | `cd pps-web && npm run test:cov` |
+| `{{BUILD_CMD}}` | One-liner that must pass before reporting done | `cd shop-web && npm run build` |
+| `{{DEV_CMD}}` | Dev server command (reserved — not currently embedded in templates) | `cd shop-web && npm run dev` |
+| `{{TEST_CMD}}` | Test runner used by the pre-commit "test-only diff" fast path and `shop-test` chunk runs (`{{TEST_CMD}} -- <files>`) | `cd shop-web && npm run test:unit` |
+| `{{TEST_COV_CMD}}` | Coverage-variant test runner (`shop-test` baseline + delta capture) | `cd shop-web && npm run test:cov` |
 | `{{LINT_STRUCTURE_CMD}}` | Project structure linter (or empty if not used) | `npm run lint:structure` |
 | `{{LINT_STRUCTURE_CMD_STRICT}}` | Strict variant (non-zero exit on `✖`) | `npm run lint:structure:strict` |
-| `{{POLISH_AUDIT_SCRIPT_REF}}` | Either ` + skim <script> (PAGE_STATUS map)` or empty | ` + skim pps-web/scripts/page-polish-audit.mjs (PAGE_STATUS map)` |
+| `{{POLISH_AUDIT_SCRIPT_REF}}` | Either ` + skim <script> (PAGE_STATUS map)` or empty | ` + skim shop-web/scripts/page-polish-audit.mjs (PAGE_STATUS map)` |
 | `{{POLISH_STATUS_CHECK_SECTION}}` | Full Polish-status check block (or empty) | (see template — only rendered if a polish audit script is configured) |
-| `{{POLISH_AUDIT_CMD}}` | Command that emits the page polish status map (referenced inside `{{POLISH_STATUS_CHECK_SECTION}}`) | `cd pps-web && node scripts/page-polish-audit.mjs` |
-| `{{POLISH_AUDIT_SOURCE}}` | Source file path used as the `PAGE_STATUS` reference | `pps-web/scripts/page-polish-audit.mjs` |
+| `{{POLISH_AUDIT_CMD}}` | Command that emits the page polish status map (referenced inside `{{POLISH_STATUS_CHECK_SECTION}}`) | `cd shop-web && node scripts/page-polish-audit.mjs` |
+| `{{POLISH_AUDIT_SOURCE}}` | Source file path used as the `PAGE_STATUS` reference | `shop-web/scripts/page-polish-audit.mjs` |
 
 ## Backend
 
 | Placeholder | What it is | Example |
 |---|---|---|
-| `{{SWAGGER_URL}}` | Full URL to your backend's API-contract doc — Swagger/OpenAPI UI or GraphQL schema (or empty for FE-only) | `https://payroll-dev-api.aware.co.th/swagger-ui/index.html` |
+| `{{SWAGGER_URL}}` | Full URL to your backend's API-contract doc — Swagger/OpenAPI UI or GraphQL schema (or empty for FE-only) | `https://api.example.com/swagger-ui/index.html` |
 | `{{API_CONTRACT_NAME}}` | Report-wording term for the contract source (default `Swagger`; set `OpenAPI` / `GraphQL schema` for non-Swagger backends) | `Swagger` |
 | `{{BE_KEYWORDS_PRIMARY}}` | First group of BE-scope opt-in keywords | `Thai: เช็ค BE, เช็ค swagger, sync api` |
 | `{{BE_KEYWORDS_SECONDARY}}` | Second group | `English: check BE, verify BE, sync api types` |
-| `{{API_SERVICES_PATHS}}` | Comma-separated paths of shared API client / interceptor / transform files (Swagger drift gate evidence list) | `pps-web/src/services/api.ts, pps-web/src/services/http.ts, pps-web/src/services/case-transform.ts` |
+| `{{API_SERVICES_PATHS}}` | Comma-separated paths of shared API client / interceptor / transform files (Swagger drift gate evidence list) | `shop-web/src/services/api.ts, shop-web/src/services/http.ts, shop-web/src/services/case-transform.ts` |
 
 ## Testing
 
 | Placeholder | What it is | Example |
 |---|---|---|
-| `{{TEST_CANONICAL_BASELINE}}` | Folder of the canonical/reference test suite that `web-test` mirrors when retrofitting | `pps-web/src/features/holiday/` |
-| `{{TEST_CANONICAL_FILES}}` | Multi-line markdown bullet list of specific baseline test files to read in full (one per line, backtick-wrapped) | `- `pps-web/src/features/holiday/schemas/holiday.schema.test.ts`<br>- `pps-web/src/features/holiday/api/index.test.ts`<br>- ... (3 more) |
-| `{{TEST_INFRA_ROOT}}` | Folder holding shared test infra (`setup`, `test-utils`, `server`, `handlers`, `factories`) | `pps-web/src/test` |
+| `{{TEST_CANONICAL_BASELINE}}` | Folder of the canonical/reference test suite that `shop-test` mirrors when retrofitting | `shop-web/src/features/orders/` |
+| `{{TEST_CANONICAL_FILES}}` | Multi-line markdown bullet list of specific baseline test files to read in full (one per line, backtick-wrapped) | `- `shop-web/src/features/orders/schemas/orders.schema.test.ts`<br>- `shop-web/src/features/orders/api/index.test.ts`<br>- ... (3 more) |
+| `{{TEST_INFRA_ROOT}}` | Folder holding shared test infra (`setup`, `test-utils`, `server`, `handlers`, `factories`) | `shop-web/src/test` |
 | `{{API_CLIENT_IMPORT}}` | Module path the project's API client is imported from (used in test agent for "don't `vi.mock()` this" checks) | `@/services/api` (default: same) |
 | `{{TEST_UTILS_IMPORT}}` | Module path `createTestQueryClient` (or equivalent) is imported from | `@/test/test-utils` (default: same) |
 | `{{I18N_LOCALES_PATH}}` | Glob/path of i18n locale JSON files (used in test agent for key-existence checks) | `src/i18n/locales/en/<feature>.json` (default: same) |
@@ -79,8 +79,8 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | `{{BP_APPLIED_ARCH}}` | Arch/Dev bullet examples in `implement` Report's "Best Practices Applied" section. Default = `<pattern enforced>` placeholder | `- <enforced pattern, e.g. useTabDirtyState mirror / atomic mutation / form values vs defaultValues>` |
 | `{{POLISH_MODE_ROWS}}` | Data rows of `polish` agent's Mode table (4 rows: Component-audit / Visual-consistency / Feature-audit / Diff-polish). Project fills with its trigger phrases | (see PROFILE-GENERATOR.md crib sheet — 4 markdown table rows) |
 | `{{TEST_MODE_ROWS}}` | Data rows of `test` agent's Mode-detection table (3 rows: retrofit / expand / integration). Project fills with its trigger phrases | (see PROFILE-GENERATOR.md crib sheet — 3 markdown table rows) |
-| `{{MSW_URL_PATTERN}}` | One-line description of project's MSW URL matching convention in `test` agent's Conventions section | `` `*/pps/v1/<path>` (wildcard host, matches baseURL `/api` + path) `` (default: `wildcard host + path (matches project baseURL + path)`) |
-| `{{MUTATION_SCENARIOS}}` | Required test scenarios for Mutation hook row in `test` agent's Required-scenarios-per-layer table. Project fills with its tenant/cache invalidation patterns | `invalidates correct keys on success; does NOT invalidate on error; does NOT invalidate when companyId missing; removeQueries for delete` (default: `invalidates correct keys on success; does NOT invalidate on error; removeQueries for delete`) |
+| `{{MSW_URL_PATTERN}}` | One-line description of project's MSW URL matching convention in `test` agent's Conventions section | `` `*/api/v1/<path>` (wildcard host, matches baseURL + path) `` (default: `wildcard host + path (matches project baseURL + path)`) |
+| `{{MUTATION_SCENARIOS}}` | Required test scenarios for Mutation hook row in `test` agent's Required-scenarios-per-layer table. Project fills with its tenant/cache invalidation patterns | `invalidates correct keys on success; does NOT invalidate on error; does NOT invalidate when tenantId missing; removeQueries for delete` (default: `invalidates correct keys on success; does NOT invalidate on error; removeQueries for delete`) |
 
 ## Triggers (per-agent description lines)
 
