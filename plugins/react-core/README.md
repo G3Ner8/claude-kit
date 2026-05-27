@@ -14,16 +14,16 @@ From a Claude Code session that has already added the parent marketplace:
 
 ## Skills
 
-| Skill | Purpose |
-| --- | --- |
-| [`react-perf`](./skills/react-perf/) | 40 React 19 + Vite + TanStack Query performance rules (waterfalls, bundles, re-renders, JS micro-opts). |
-| [`react-composition`](./skills/react-composition/) | 8 React 19 composition patterns (boolean-prop bloat, compound components, context, render props, R19 API changes). |
-| [`react-audit`](./skills/react-audit/) | Read-only audit. Three modes: single-feature, multi-feature divergence matrix, visual-consistency across pages. |
-| [`react-revamp`](./skills/react-revamp/) | Read-only revamp proposal for a single page (discovery → audit → flow → sketches → plan). |
-| [`react-ux-review`](./skills/react-ux-review/) | Read-only workflow critic across 9 UX dimensions (dirty tracking, validation, cancel, loading, keyboard, etc.). |
-| [`react-dry`](./skills/react-dry/) | Read-only CSS/style/class divergence audit across one or more component usages. Table-first findings. |
-| [`react-test-patterns`](./skills/react-test-patterns/) | Reference manual for Vitest 4 + React Testing Library 16 + MSW 2 test patterns. Layered conventions (schema / API / hook / component) consulted by the `*-test` agent. |
-| [`react-debug`](./skills/react-debug/) | 5-step discipline for "data not flowing" bugs — walk the BE↔FE chain layer by layer instead of patching the symptom. |
+| Skill | Purpose | Try |
+| --- | --- | --- |
+| [`react-perf`](./skills/react-perf/) | 40 React 19 + Vite + TanStack Query performance rules (waterfalls, bundles, re-renders, JS micro-opts). | "why does this list re-render so much?" |
+| [`react-composition`](./skills/react-composition/) | 8 React 19 composition patterns (boolean-prop bloat, compound components, context, render props, R19 API changes). | "this component has 9 boolean props" |
+| [`react-audit`](./skills/react-audit/) | Read-only audit. Three modes: single-feature, multi-feature divergence matrix, visual-consistency across pages. | "is `orders` consistent with `products`?" |
+| [`react-revamp`](./skills/react-revamp/) | Read-only revamp proposal for a single page (discovery → audit → flow → sketches → plan). | "revamp the orders page" |
+| [`react-ux-review`](./skills/react-ux-review/) | Read-only workflow critic across 9 UX dimensions (dirty tracking, validation, cancel, loading, keyboard, etc.). | "review the order form's UX" |
+| [`react-dry`](./skills/react-dry/) | Read-only CSS/style/class divergence audit across one or more component usages. Table-first findings. | "audit Button usages for style drift" |
+| [`react-test-patterns`](./skills/react-test-patterns/) | Reference manual for Vitest 4 + React Testing Library 16 + MSW 2 test patterns. Layered conventions (schema / API / hook / component) consulted by the `*-test` agent. | _read before writing a feature's tests_ |
+| [`react-debug`](./skills/react-debug/) | 5-step discipline for "data not flowing" bugs — walk the BE↔FE chain layer by layer instead of patching the symptom. | "the orders list shows no data" |
 
 > Stack-agnostic disciplines (`scrutinize`, `post-mortem`) live in the [`dev-core`](../dev-core/) plugin, not here.
 

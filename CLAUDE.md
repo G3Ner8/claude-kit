@@ -380,7 +380,7 @@ CI integration (future): run both validators on PR — block merge on failure.
 
 **To create a new project profile**:
 1. Invoke `react-agents/skills/profile-generator` interactively
-2. Answer the 22 questions (see PLACEHOLDER-REFERENCE.md)
+2. Answer the interview (see PLACEHOLDER-REFERENCE.md)
 3. Generator writes `plugins/<new>-profile/` from templates
 4. Run profile's `web-pre-commit` against a real PR to verify
 
