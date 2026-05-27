@@ -53,5 +53,5 @@ No raw `console.*` in `src/`. Use the project logger (`logger.info` / `logger.er
 ## Adapting
 
 - Sections are not fixed at 7 — add `MC-8`, `MC-9` for project-specific rules (e.g. testing, performance budgets, security gates).
-- Renaming a section is OK; do **not** renumber existing sections without a migration pass on every `MC-N` reference in agent prompts and audit reports.
+- Renaming or renumbering sections is fine — generated agents enumerate whatever rules this doc defines at runtime, so there is no baked `MC-N` reference in agent prompts to migrate. (Keep line numbers stable within a section, since audits cite rules by line.)
 - Keep section titles short (≤ 5 words) — agents copy them verbatim into status lines.

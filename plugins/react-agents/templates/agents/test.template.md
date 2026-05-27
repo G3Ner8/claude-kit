@@ -45,7 +45,7 @@ Mandatory reads — never partial, never from memory:
 
 **Always**:
 - Invoke the `react-test-patterns` skill in full.
-- `Read` `{{CONVENTIONS_DOC}}` (MC-1..MC-{{MC_MAX}}) for the project's testing conventions.
+- `Read` `{{CONVENTIONS_DOC}}` (enumerate its rules) for the project's testing conventions.
 - `Read` target feature folder contents (use `Glob` for the tree, then `Read` files by layer):
   - `schemas/*.ts` — schema factories
   - `api/index.ts` + `api/keys.ts` + `api/types.ts` — API client + key factory + wire types
@@ -73,13 +73,13 @@ Produce this matrix before any plan. Each row = one file in the feature.
 | API | `api/index.ts` | ✗ | 0% | 90% | med (case-transform) | retrofit |
 | Hook (query) | `hooks/useFoos.ts` | ✗ | 0% | 80% | med (enable gate) | retrofit |
 | Hook (mutation) | `hooks/useFooMutations.ts` | ✗ | 0% | 80% | high (cache invalidation) | retrofit |
-| Component | `components/sections/FooDrawer.tsx` | ✗ | 0% | 60% | high (RHF + Radix portal) | retrofit smoke |
+| Component | `components/sections/FooDrawer.tsx` | ✗ | 0% | 60% | high (RHF + portal primitive) | retrofit smoke |
 | Component | `components/dialogs/DeleteDialog.tsx` | ✗ | 0% | 60% | low | retrofit smoke |
 | Page | `pages/FooListPage/index.tsx` | ✗ | — | — | — | **out of scope (integration mode only)** |
 ```
 
 `Risk` callouts to surface:
-- **high** for: mutation hooks (cache invalidation), components with Radix DatePicker/Select/Combobox (portal flake), business-critical / auth / payment-handling code
+- **high** for: mutation hooks (cache invalidation), components with portal-based primitives (e.g. Radix/MUI DatePicker, Select, Combobox — portal flake), business-critical / auth / payment-handling code
 - **med** for: API clients with case-transform / interceptor coupling, query hooks with tenant-scope gates
 - **low** for: schemas, pure UI components, badges, skeletons
 
@@ -169,9 +169,9 @@ Explicit mode only. Page-level flow tests using `render(<Page />, { route: '/...
 **Flow assertions must NOT observe**:
 - RHF internal state (`form.formState.errors.X`)
 - Query cache shape (`client.getQueryData(...)` — use the rendered UI instead)
-- Radix portal interactions inside the flow when the same path is unreliable — move that interaction to a component smoke test
+- portal-based primitive interactions inside the flow when the same path is unreliable — move that interaction to a component smoke test
 
-If a flow's critical step depends on a Radix DatePicker/Select portal that's flaky under jsdom, **stop and surface in {{OUTPUT_LANG}}**. Offer two paths: stub the picker (cleaner) or move the assertion to a smoke test (cheaper).
+If a flow's critical step depends on a portal-based primitive (e.g. Radix/MUI DatePicker, Select) that's flaky under jsdom, **stop and surface in {{OUTPUT_LANG}}**. Offer two paths: stub the picker (cleaner) or move the assertion to a smoke test (cheaper).
 
 ## Chunked apply discipline
 
@@ -288,7 +288,7 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 <from Pre-report self-check above>
 
 ## {{REPORT_NOTES_HDR}}
-- <Radix portal caveat skipped — moved to integration scope later>
+- <portal-primitive caveat skipped — moved to integration scope later>
 - <Schema branch that mode never reaches — coverage 80% acceptable>
 
 ## {{REPORT_PENDING_HDR}}
@@ -303,7 +303,7 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 
 **Mode detect**: `{{FEATURES_ROOT}}/<feature>/` has 0 tests → auto `retrofit`. State detection in 1 line; offer one-shot override.
 
-**Recon**: invoke `react-test-patterns`; read `{{CONVENTIONS_DOC}}` MC-1..MC-{{MC_MAX}}; Glob feature tree; read `{{TEST_INFRA_ROOT}}/{setup,test-utils,server,handlers/index}` + canonical baseline files in full.
+**Recon**: invoke `react-test-patterns`; read `{{CONVENTIONS_DOC}}` (enumerate its rules); Glob feature tree; read `{{TEST_INFRA_ROOT}}/{setup,test-utils,server,handlers/index}` + canonical baseline files in full.
 
 **5-layer audit matrix**: Schema / API / Hooks(query+mutation) / Component — each row carries current coverage (0%), target, risk, action.
 
@@ -327,7 +327,7 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 - **Feature has 0 tests but no schemas/api/hooks (UI-only)** — `retrofit` with only Component layer; flag in audit as "limited scope" and recommend integration mode for end-to-end confidence.
 - **Test exposes a real production bug** — stop, do NOT auto-fix. Report in {{OUTPUT_LANG}} with file:line + suspected fix; ask user to dispatch to `{{AGENT_PREFIX}}-implement` or fix manually.
 - **Existing tests use deprecated patterns (`fireEvent`, mocked `{{API_CLIENT_IMPORT}}`)** — flag in audit but **do not** rewrite them unless user explicitly says "modernize existing tests too". Default = leave alone, add new tests next to them.
-- **Component uses Radix DatePicker/Select in a critical assertion path** — stop in audit, surface in {{OUTPUT_LANG}} with two options (stub or skip), wait for user direction.
+- **Component uses a portal-based primitive (e.g. Radix/MUI DatePicker, Select) in a critical assertion path** — stop in audit, surface in {{OUTPUT_LANG}} with two options (stub or skip), wait for user direction.
 - **Coverage target unreachable due to unreachable branch** (e.g. error path that requires a network failure mode MSW can't simulate cleanly) — note in self-check `⚠ Coverage <X>% (target <Y>%) — <reason>` and propose either lowering the target for this file or skipping the branch.
 - **i18n key doesn't exist in `{{I18N_LOCALES_PATH}}`** — stop, surface; do not invent keys in test-utils. Either the component is using the wrong key (production bug → surface) or the locale file is missing keys (separate concern → defer).
 - **User signals apply after audit but skips Plan review** — paraphrase Plan in 3-5 lines in {{OUTPUT_LANG}}, ask "Start Chunk 1?" — do not jump to write.

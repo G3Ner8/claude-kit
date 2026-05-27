@@ -1,6 +1,6 @@
 ---
 name: profile-generator
-description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet + optional UI inventory stub) for any React 19 / Vite SPA. Auto-scans the project (package.json, filesystem, MD docs) to pre-fill ~25 placeholders, then asks the user only what can't be inferred (~5-12 questions for a typical scaffolded project). Substitutes the result into agent templates from the `react-agents` plugin and writes the filled-in profile to a user-specified path. The output is a self-contained plugin folder ready to symlink into `.claude/agents/` or publish as its own marketplace plugin.
+description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet) for any React 19 / Vite SPA. Auto-scans the project (package.json, filesystem, MD docs) to pre-fill ~25 placeholders, then asks the user only what can't be inferred (~5-12 questions for a typical scaffolded project). Substitutes the result into agent templates from the `react-agents` plugin and writes the filled-in profile to a user-specified path. The output is a self-contained plugin folder ready to symlink into `.claude/agents/` or publish as its own marketplace plugin.
 license: MIT
 user-invocable: true
 metadata:
@@ -26,6 +26,8 @@ This skill mutates the filesystem by writing a new plugin folder. Refuse to proc
 4. **PLACEHOLDER-REFERENCE.md exists** — `plugins/react-agents/docs/PLACEHOLDER-REFERENCE.md` is the source of truth for placeholder names. If absent, refuse and surface the broken install.
 
 If any pre-condition fails, list the gap and stop without writing files.
+
+A **missing conventions doc is NOT a refuse condition** — it triggers the case-2 seed (see "Conventions-doc resolution"). The generator guarantees a conventions doc exists post-gen rather than refusing.
 
 ## When to invoke
 
@@ -111,7 +113,7 @@ Workarounds:
 
 | Placeholder | Method |
 |---|---|
-| `{{MC_MAX}}` | Read `{{CONVENTIONS_DOC}}` → grep `MC-([0-9]+)` → take max |
+| `{{CONV_SECTION_REF}}` | Read `{{CONVENTIONS_DOC}}` → detect how rules are identified (numbered like `MC-N`, or named sections). If the rules sit under a dedicated heading in a larger doc, render ` (its \`<heading>\` section)`; if the doc is a dedicated conventions file, leave empty (agents walk the whole file). Surface the detected rule identifiers in the Phase 1 summary (D-10). **No rule count is baked** — agents enumerate at runtime. |
 | `{{POLISHED_PAGE_EXAMPLES}}` | **Primary**: Read `<POLISH_AUDIT_SOURCE>` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `<PROGRESS_DOC>` → extract pages with `Polished` status. **Surface as preset-template** in Phase 2 — see "Curated-list questions" below. Never silently pick first-N. |
 
 ### Scan D — Derive
@@ -123,6 +125,37 @@ Workarounds:
 | `{{POLISH_AUDIT_CMD}}` | `node <POLISH_AUDIT_SOURCE>` |
 | `{{POLISH_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + ` `` + POLISH_AUDIT_SOURCE + `` ` `` + ` (` + `` ` `` + `PAGE_STATUS` + `` ` `` + ` map)` (empty if no audit script) |
 | `{{REPORT_*_HDR}}` placeholders | derived from `{{OUTPUT_LANG}}` after Phase 2 Round 1 (see "Report-header derivation") |
+
+### Conventions-doc resolution (run after Scan C)
+
+The MC-walk machinery needs a readable conventions doc whose rules the agents enumerate **at runtime**. Split two decisions Scan B/C surface separately — *is there a doc?* and *can its rules be enumerated?* — then branch:
+
+**Case 1 — doc found, rules enumerable.** Bind to its own scheme:
+- numbered (`MC-N`, `CONV-N`, `R-N` — regex `([A-Z]+)-(\d+)`) → identifiers = the numbers found (no max; gaps are fine).
+- named sections (headings under the conventions area) → identifiers = the section titles.
+Set `{{CONV_SECTION_REF}}` per Scan C. **Show the detected identifiers in the scan summary** (D-10); add no extra question when unambiguous.
+
+**Case 2 — no doc found.** Seed one (see "Stack-aware conventions seed"): write `<PROJECT_ROOT>/CONVENTIONS.md` from the starter taxonomy, examples grounded in the detected stack, framed as a draft. Set `{{CONVENTIONS_DOC}}` to it, `{{CONV_SECTION_REF}}` empty (whole file). Announce in the final report.
+
+**Case 3 — doc found but rules not cleanly enumerable** (prose, fewer than ~2 rule-like items, or can't tell which headings are rules). Do NOT bind silently — `AskUserQuestion`:
+- (a) point me at the rules section → re-scan that section
+- (b) merge the 7-section starter to fill gaps → run the seed and merge
+- (c) use as-is → MC-walk degrades to "walk whatever's there" (warn)
+
+**Multi-file rules (D-9).** v1 supports a single doc. If the conventions doc links out to `docs/conventions/*.md` (rules likely span files), warn and ask the user to point at one consolidated doc or accept single-doc scoping. True multi-file support is deferred.
+
+### Page-maturity resolution (run after Scan B)
+
+Agents anchor on a known-good **reference page**. Whether the project tracks *page maturity* (a status model like Polished/Rough/Partial) is optional:
+
+**Has a maturity model** — a progress/status doc with maturity labels detected (or user says so):
+- `{{REFERENCE_PAGE_TERM}}` = the project's "good" label (e.g. `Polished`).
+- `{{ANTI_REFERENCE_CLAUSE}}` = ` — never anchor on <bad-labels> pages` (e.g. ` — never anchor on Rough/Partial pages`).
+- `{{POLISH_STATUS_REPORT_BLOCK}}` = the flip/regression report block — kept only if a page-status audit script exists (same gate as `{{POLISH_STATUS_CHECK_SECTION}}`).
+
+**No maturity model** — `{{REFERENCE_PAGE_TERM}}` = `reference`; `{{ANTI_REFERENCE_CLAUSE}}` = empty; `{{POLISH_STATUS_REPORT_BLOCK}}` = empty (stripped). The user still names reference pages → `{{POLISHED_PAGE_EXAMPLES}}` (curated-list question worded "reference pages"). The anchor-on-a-good-reference discipline stays; only the maturity overlay drops.
+
+Show the resolved `{{REFERENCE_PAGE_TERM}}` in the scan summary (D-10 style).
 
 ### Scan summary presentation
 
@@ -143,7 +176,7 @@ Commands:
 - Lint structure: <lint-cmd>  (strict: <strict-cmd>)
 
 Paths:
-- Conventions doc: <conventions-doc>  (<MC-count> MC sections found)
+- Conventions doc: <conventions-doc>  (rules detected: <list identifiers, e.g. `MC-1..MC-7` or section names — or "none: will seed">)
 - Structure doc: <structure-doc>
 - Progress doc: <progress-doc>
 - Features root: <features-root>
@@ -185,7 +218,7 @@ Question wording: plain, with concrete examples. Show auto-detected/default valu
 
 For two placeholders the scan produces a ranked candidate list, not a final value. AskUserQuestion's 4-option limit (see "AskUserQuestion mechanics") means we cannot list 12+ candidates directly — use **3 preset-template options** instead. The scanner runs heuristics to pre-compute each preset's content, then the user picks which preset to use (or Customize for free-form override).
 
-1. **`{{POLISHED_PAGE_EXAMPLES}}`** — present detected Polished pages (up to 16) as `markdown context block` (visible above the question), then ask via `AskUserQuestion` with 3 options:
+1. **`{{POLISHED_PAGE_EXAMPLES}}`** (the reference pages agents anchor on) — present detected reference pages (your `{{REFERENCE_PAGE_TERM}}` pages, up to 16) as `markdown context block` (visible above the question), then ask via `AskUserQuestion` with 3 options:
    - **(a) Balanced by role (Recommended)** — pre-compute 4-6 pages balanced across roles. Use page-name heuristics:
      - ends with `ListPage` → list
      - ends with `DetailPage` → detail
@@ -224,7 +257,8 @@ If scan succeeded, just confirm. Otherwise ask.
    - Override if you want a custom prefix.
 
 3. **Output language** — what language should agents report in?
-   - Choose: English · Thai · Japanese · other (free text)
+   - `AskUserQuestion` with **2 options**: `English` (default) · `Thai`. The tool's built-in "Other" slot takes a free-text language name.
+   - If the user picks "Other" (any language that is not English or Thai), enter the non-en/th flow: during the summary step prompt once for each of the 9 Report-header values (see "Report-header derivation"). Never silently fall back to English — that would mix languages in the rendered Report block.
    - Affects: `<prefix>-implement`, `<prefix>-polish`, `<prefix>-test` reports
    - Note: `<prefix>-pre-commit` is always English
 
@@ -242,11 +276,12 @@ If scan succeeded, just confirm. Otherwise ask.
 
 If Phase 1 found no sibling backend repo AND user has no Swagger URL → skip.
 
-6. **Backend Swagger URL** — full URL to your backend's Swagger UI.
+6. **Backend API-contract URL** — full URL to your backend's contract doc (Swagger / OpenAPI UI, or a GraphQL schema endpoint).
    - Leave empty for frontend-only projects.
    - Example: `https://api.example.com/swagger-ui/`
+   - **Contract name** (report wording) — defaults to `Swagger`; set e.g. `OpenAPI` or `GraphQL schema` for non-Swagger backends. Fills `{{API_CONTRACT_NAME}}`.
 
-7. **BE-scope trigger keywords** (only if Swagger given) — phrases that opt-in the backend-contract check during implement sessions.
+7. **BE-scope trigger keywords** (only if Swagger given) — phrases that turn on the backend API-shape check while implementing.
    - Default: `check BE, verify BE, sync api types, contract check`
    - Multi-language allowed; agent does case-insensitive substring match.
    - Example for Thai project: add `เช็ค BE, เช็ค swagger`
@@ -267,50 +302,52 @@ These define what user phrases should invoke each agent. Defaults work for Engli
 
 Present a checklist via `AskUserQuestion` `multiSelect`. Each picked item = 1 follow-up question to gather its value. Skip all → all placeholders use generic defaults.
 
+> Acronyms used below: **MC** = Mandatory Conventions (your project's enforceable rules — see "Conventions-doc resolution"). **BP** = Best Practices.
+
 ```
 Add project-specific richness? Pick what applies (skip all = generic):
 
-[ ] Structure pre-write check table  ({{STRUCTURE_PREWRITE_TABLE}})
-    Project's "new file kind → required-section" mapping table.
+[ ] Structure rules: new-file checklist  ({{STRUCTURE_PREWRITE_TABLE}})
+    Map of "when creating file kind X, follow which doc section".
 
-[ ] Structure extraction mapping  ({{STRUCTURE_EXTRACT_MAPPING}})
-    Project's "extraction kind → section" bullet list.
+[ ] Structure rules: extraction map  ({{STRUCTURE_EXTRACT_MAPPING}})
+    Map of "when extracting X (schema, section), follow which doc section".
 
-[ ] MC walk incident reference  ({{MC_WALK_INCIDENT_REF}})
-    Past incident that motivates strict MC walk (forcing function context).
+[ ] Convention-walk reminder  ({{MC_WALK_INCIDENT_REF}})
+    A past bug that justifies walking every rule strictly — shown as a reminder in the agent.
 
 [ ] Plan-file path convention  ({{PLAN_FILE_PATTERN}})
     Where draft plans get saved (e.g. `session-working-space/tasks/*-plan.md`).
 
-[ ] lint:structure → MC mapping  ({{MC_MECHANICAL_CATCH_MAP}})
-    Which MC sections the structure linter mechanically catches.
+[ ] Linter → rule mapping  ({{MC_MECHANICAL_CATCH_MAP}})
+    Which conventions your structure linter already catches automatically.
 
 [ ] Commit scope examples  ({{COMMIT_SCOPE_OPTIONS}})
-    Project-specific scope hints (e.g. `(pps-web)` / `(pps-api)`).
+    Project-specific scope hints (e.g. `(web)` / `(api)`).
 
-[ ] Pending-list / backlog reference  ({{STRUCTURE_LEGACY_REF}} + {{STRUCT_PENDING_RULES}})
-    Project's "Section 17 backlog" style + pending-list workflow.
+[ ] Backlog / pending-work reference  ({{STRUCTURE_LEGACY_REF}} + {{STRUCT_PENDING_RULES}})
+    Where your backlog lives + how pending work is tracked.
 
 [ ] Workflow regression check table  ({{WORKFLOW_PATTERNS_TABLE}})
-    Canonical components/hooks per Polished page (used by pre-commit gate).
+    Key components/hooks each mature page must keep (used by the pre-commit gate).
 
-[ ] BPapplied bullet examples  ({{BP_APPLIED_UX}} + {{BP_APPLIED_ARCH}})
-    Concrete UX/Arch patterns for revamp-scope reports.
+[ ] Best-practice examples for reports  ({{BP_APPLIED_UX}} + {{BP_APPLIED_ARCH}})
+    Concrete UX / architecture patterns to cite in revamp-scope reports.
 
-[ ] Polish-status signal definitions  ({{POLISH_STATUS_CHECK_SECTION}})
-    Flip thresholds + signal-drop examples (only if polish audit script configured).
+[ ] Page-maturity signals  ({{POLISH_STATUS_CHECK_SECTION}})
+    When a page counts as "done" + what regresses it (only if a page-status audit script exists).
 
-[ ] Polish/Test Mode-table rows  ({{POLISH_MODE_ROWS}} + {{TEST_MODE_ROWS}})
-    Override default Mode-table triggers (e.g. add Thai trigger phrases).
+[ ] Polish/Test mode triggers  ({{POLISH_MODE_ROWS}} + {{TEST_MODE_ROWS}})
+    Override default trigger phrases (e.g. add localized phrases).
 
-[ ] MSW URL pattern  ({{MSW_URL_PATTERN}})
-    Your project's API URL convention.
+[ ] API URL pattern  ({{MSW_URL_PATTERN}})
+    Your project's API URL convention (used for test mocks).
 
-[ ] Mutation hook scenarios  ({{MUTATION_SCENARIOS}})
-    Project's tenant/cache invalidation test rules.
+[ ] Mutation hook test scenarios  ({{MUTATION_SCENARIOS}})
+    Project rules for cache-invalidation / multi-tenant tests.
 
 [ ] API trigger surface  ({{API_TRIGGER_HINT}})
-    Phrase describing what API surface touched looks like.
+    A phrase describing what "an API-touching change" looks like in your project.
 ```
 
 ### Round 6 — Output (1 ask, 2 questions)
@@ -338,11 +375,11 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{OUTPUT_LANG}}` | answer 4 | |
 | `{{BACKEND_NAME}}` | answer 4b (backend project/repo name; default `backend`) | rendered backticked inline; if user types `none` keep template wording `backend` |
 | `{{CONVENTIONS_DOC}}` | answer 5 | |
-| `{{MC_MAX}}` | answer 6 | |
+| `{{CONV_SECTION_REF}}` | derived in Scan C (empty for a dedicated whole-file conventions doc) | renders as ` (its \`<heading>\` section)` or empty string |
 | `{{STRUCTURE_DOC}}` | answer 7 (or `<conventions-doc>` if empty — keep references coherent) | |
 | `{{PROGRESS_DOC}}` | answer 8 (or `<conventions-doc>` if empty) | |
 | `{{FEATURES_ROOT}}` | answer 9 | |
-| `{{POLISHED_PAGE_EXAMPLES}}` | answer 10 (or `Polished pages in <progress-doc>` if empty) | |
+| `{{POLISHED_PAGE_EXAMPLES}}` | answer 10 (or `{{REFERENCE_PAGE_TERM}} pages in <progress-doc>` if empty) | |
 | `{{ARCHITECTURE_DOCS_GLOB}}` | `<answer 11>/architecture/*` (empty if answer 11 empty — drop row from docs-update table) | |
 | `{{COMPONENT_DOCS_GLOB}}` | `<answer 11>/components/*` (empty if answer 11 empty) | |
 | `{{FEATURE_DOCS_GLOB}}` | `<answer 11>/features/*` (empty if answer 11 empty) | |
@@ -355,7 +392,11 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{POLISH_STATUS_CHECK_SECTION}}` | render full Polish-status block (see below) if answer 17 non-empty; else empty string | |
 | `{{POLISH_AUDIT_CMD}}` | `cd <project> && node <relative-path-from-project-root>` derived from answer 17 (empty if answer 17 empty) | only referenced inside `{{POLISH_STATUS_CHECK_SECTION}}` |
 | `{{POLISH_AUDIT_SOURCE}}` | answer 17 verbatim (empty if answer 17 empty) | |
+| `{{REFERENCE_PAGE_TERM}}` | page-maturity resolution: project's "good" page label (default `Polished`); `reference` if no maturity model | |
+| `{{ANTI_REFERENCE_CLAUSE}}` | page-maturity resolution: ` — never anchor on <bad-labels> pages` (default ` — never anchor on Rough/Partial pages`); empty if no maturity model | leading ` — ` separator preserved |
+| `{{POLISH_STATUS_REPORT_BLOCK}}` | the flip/regression report block (see "POLISH_STATUS_REPORT_BLOCK template") if a page-status audit script exists; else empty string | gated identically to `{{POLISH_STATUS_CHECK_SECTION}}` |
 | `{{SWAGGER_URL}}` | answer 18 | |
+| `{{API_CONTRACT_NAME}}` | answer 18b (default `Swagger`; e.g. `OpenAPI` / `GraphQL schema`) | report-wording term for the contract source |
 | `{{BE_KEYWORDS_PRIMARY}}` | answer 19 first half | |
 | `{{BE_KEYWORDS_SECONDARY}}` | answer 19 second half | split at commas, group |
 | `{{API_SERVICES_PATHS}}` | answer 20 with each path backtick-wrapped (e.g. `` `a`, `b`, `c` ``); empty if FE-only | gate then lists feature `api/*` files only |
@@ -386,6 +427,22 @@ For each of the 9 Report-header placeholders, look up the value from this table.
 | `{{REPORT_IFANY_SUFFIX}}` | ` (if any)` | ` (ถ้ามี)` |
 | `{{REPORT_PENDING_NONE}}` | `none` | `ไม่มี` |
 
+### Stack-aware conventions seed (case 2)
+
+When no conventions doc exists, write `<PROJECT_ROOT>/CONVENTIONS.md` from the 7-section taxonomy in `react-core/docs/CONVENTIONS.template.md`, filling each section's **examples** from already-detected / normative signals — never guessed from code usage. Phrase rules as **candidates to confirm**, not settled rules.
+
+| Section | Fill examples from |
+|---|---|
+| HTML & a11y | ESLint a11y plugin presence; else generic defaults |
+| Input primitives & variants | UI lib in `{{STACK}}` (Radix / MUI / Chakra / Mantine / shadcn) |
+| Tables | UI lib table primitive if any; else generic |
+| Modal vs Drawer | UI lib dialog/drawer primitives |
+| Forms & validation | form lib (RHF / Formik) + schema lib (zod / yup) from `package.json` |
+| i18n & cross-feature | i18n lib + locales from `{{I18N_LOCALES_PATH}}` |
+| Logging & error handling | logger dep if any; toast lib; ESLint `no-console` rule |
+
+The seeded file's header states: *starter draft — agents walk these before every report; edit to match your team.* If the deps/config scan yields nothing usable, fall back to copying `CONVENTIONS.template.md` verbatim (option A). Either way a doc exists post-gen, so the runtime MC-walk has something to read.
+
 ### POLISH_STATUS_CHECK_SECTION template
 
 If answer 17 is non-empty, expand `{{POLISH_STATUS_CHECK_SECTION}}` to:
@@ -406,13 +463,25 @@ If pre-commit mode AND any `{{FEATURES_ROOT}}/*/pages/*Page/` is in diff:
 
 Substitute the inner placeholders too, then drop in.
 
+### POLISH_STATUS_REPORT_BLOCK template
+
+If a page-status audit script exists (answer 17 non-empty), expand `{{POLISH_STATUS_REPORT_BLOCK}}` to the report subsection below; otherwise render an empty string (drop it from the `## Report` block):
+
+```markdown
+## Polish status (if pages touched)
+- Flip candidates: <Page> Rough → {{REFERENCE_PAGE_TERM}}? (3/5 → 5/5)   (in pre-commit mode: reply `yes flip` to update)
+- Regressions: <Page> {{REFERENCE_PAGE_TERM}} → ⚠️ (signal X dropped)
+- (or "no page changes")
+```
+
 ### Edge cases in substitution
 
-- **Empty Swagger URL** (answer 18): strip the entire `### 0.0 BE-scope gate` section from `implement.template.md` and the `## Swagger drift gate` section from `pre-commit.template.md`. Replace with a 1-line note: `BE-scope / Swagger drift gates: not configured (no Swagger URL).`
+- **Empty Swagger URL** (answer 18): strip the entire `### 0.0 BE-scope gate` section from `implement.template.md` and the `## {{API_CONTRACT_NAME}} drift gate` section from `pre-commit.template.md`. Replace with a 1-line note: `BE-scope / API-contract drift gates: not configured (no contract URL).`
 - **Empty lint:structure** (answer 15): strip `## Shared lint:structure run` and `## Structure regression check` sections from `pre-commit.template.md`. Inline a 1-line note in their place.
 - **Empty docs root** (answer 11): the three `{{*_DOCS_GLOB}}` placeholders render empty; the generator should drop the corresponding rows from the `## Docs update` table in `pre-commit.template.md` (otherwise the table has empty cells).
-- **Empty `{{API_SERVICES_PATHS}}`** (answer 20): the Swagger drift gate bullet "Project's shared HTTP client / API service / case-transform" disappears — gate triggers only on per-feature `api/*` and network-wrapping hooks.
+- **Empty `{{API_SERVICES_PATHS}}`** (answer 20): the `{{API_CONTRACT_NAME}}` drift gate bullet "Project's shared HTTP client / API service / case-transform" disappears — gate triggers only on per-feature `api/*` and network-wrapping hooks.
 - **Empty test baseline** (answers 23 + 24): `test.template.md` renders with an empty Canonical baseline section. The agent still works (falls back to in-repo conventions), but the user should fill in baseline files once their first feature has good tests.
+- **No page-maturity model** (page-maturity resolution): `{{REFERENCE_PAGE_TERM}}` = `reference`, `{{ANTI_REFERENCE_CLAUSE}}` = empty, `{{POLISH_STATUS_REPORT_BLOCK}}` = empty (drop the `## Polish status` subsection from the `## Report` block in `pre-commit.template.md`). Agents still anchor on user-named reference pages — only the Polished/Rough/Partial overlay drops.
 
 ## Output structure
 
@@ -509,7 +578,7 @@ When invoked:
    - Round 3: backend (skip whole round if Phase 1 found no backend AND user has no Swagger URL)
    - Round 4: trigger keywords for polish + test (offer defaults; user can extend)
    - Round 5: optional richness menu (`multiSelect` checklist; each picked item → 1 follow-up question)
-   - Round 6: output folder + profile description + UI inventory skill name
+   - Round 6: output folder + profile description
    - Validate answers as collected.
 
 4. **Summarize + final confirm**:
@@ -517,9 +586,9 @@ When invoked:
    - Show absolute output path.
    - `AskUserQuestion`: "Write the profile?" → Yes / Adjust.
 
-5. **Write**: read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Polish-status, lint:structure) before writing — strip whole sections when their gate is empty.
+5. **Write**: if Conventions-doc resolution landed on **case 2**, first write the seeded `<PROJECT_ROOT>/CONVENTIONS.md` (see "Stack-aware conventions seed"). Then read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Polish-status, lint:structure) before writing — strip whole sections when their gate is empty.
 
-6. **Report**: print absolute paths of all created files + symlink install snippet from README. Remind user to `git init` + push if they want to publish as marketplace plugin.
+6. **Report**: print absolute paths of all created files + symlink install snippet from README. If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
 
 ### Typical question count (for reference)
 

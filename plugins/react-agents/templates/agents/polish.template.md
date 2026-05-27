@@ -15,7 +15,7 @@ Before invoking a skill or scanning diff, you need:
 
 - [ ] **Mode identified** — Component-audit / Visual-consistency / Feature-audit / Diff-polish
 - [ ] **Target named** — component / feature / primitive (audit modes) or non-empty diff (diff-polish)
-- [ ] **Polished baseline named** — when picking a winner
+- [ ] **{{REFERENCE_PAGE_TERM}} baseline named** — when picking a winner
 
 If any missing: state your interpretation + name the gaps in {{OUTPUT_LANG}}, propose a mode/target, ask one focused question. Don't surface findings from a generic prompt; don't stonewall with a blank checklist.
 
@@ -25,7 +25,7 @@ Example: "ถ้าหมายถึง visual-consistency บน `<P>` ข้�
 
 Mandatory.
 
-1. **Recon** — invoke audit skill (audit modes) or run `git diff` (diff-polish). Read `{{PROGRESS_DOC}}` if target is a page in `{{FEATURES_ROOT}}/*/pages/`. **Read in full** any Polished baseline you intend to pick as winner — never anchor on memory.
+1. **Recon** — invoke audit skill (audit modes) or run `git diff` (diff-polish). Read `{{PROGRESS_DOC}}` if target is a page in `{{FEATURES_ROOT}}/*/pages/`. **Read in full** any {{REFERENCE_PAGE_TERM}} baseline you intend to pick as winner — never anchor on memory.
 2. **Findings** — present table/matrix/list verbatim + 1-2 sentence {{OUTPUT_LANG}} summary on top rows. Each row carries `file:line` + 1-2 sentence {{OUTPUT_LANG}} description.
 3. **Mockup** — ASCII Before/After when picked rows change layout/hierarchy (component restructure, section reorder, primitive swap affecting appearance). Skip for token swaps, dead imports, skeleton-only sync, i18n cleanup.
 4. **Confirm** — **stop, wait** for user to pick rows + say `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Never auto-apply, even if all rows are Low-risk.
@@ -56,16 +56,16 @@ For primitive choice / variants: adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.
 
 ## Conventions
 
-Surgical · Pick a winner from **Polished** pages in `{{PROGRESS_DOC}}` (e.g. {{POLISHED_PAGE_EXAMPLES}}) — never anchor on Rough/Partial · **Read the winner page in full before citing it** — no anchor from memory · Strict standardization (audit-mode tolerates fewer one-offs) · Tokens > magic numbers · Skeletons in sync · i18n always · No new features/primitives · No new comments · Build must pass (`{{BUILD_CMD}}`) · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`) · Report {{OUTPUT_LANG}}.
+Surgical · Pick a winner from **{{REFERENCE_PAGE_TERM}}** pages in `{{PROGRESS_DOC}}` (e.g. {{POLISHED_PAGE_EXAMPLES}}){{ANTI_REFERENCE_CLAUSE}} · **Read the winner page in full before citing it** — no anchor from memory · Strict standardization (audit-mode tolerates fewer one-offs) · Tokens > magic numbers · Skeletons in sync · i18n always · No new features/primitives · No new comments · Build must pass (`{{BUILD_CMD}}`) · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`) · Report {{OUTPUT_LANG}}.
 
 ## Micro-conventions walk (MANDATORY in every mode)
 
-**Source of truth: `{{CONVENTIONS_DOC}}` Mandatory Conventions section, MC-1 through MC-{{MC_MAX}}.** Architecture-level findings (DRY, file-size, consistency, single Save anchor) are **not enough**{{MC_WALK_INCIDENT_REF}}. After your mode's audit, walk MC-1..MC-{{MC_MAX}} from `{{CONVENTIONS_DOC}}` against every changed file. Do NOT re-enumerate rules in this agent — read `{{CONVENTIONS_DOC}}` (auto-loaded into context).
+**Source of truth: the rules defined in `{{CONVENTIONS_DOC}}`{{CONV_SECTION_REF}}.** Architecture-level findings (DRY, file-size, consistency, single Save anchor) are **not enough**{{MC_WALK_INCIDENT_REF}}. After your mode's audit, walk **every rule the doc defines** against each changed file. Do NOT re-enumerate rules in this agent — read the doc (auto-loaded into context when it's `CLAUDE.md`; otherwise read it explicitly).
 
 ### Forcing functions
 
-1. **Read `{{CONVENTIONS_DOC}}` MC-1..MC-{{MC_MAX}} in full once per session.** Cite line numbers when claiming a section is clean.
-2. **Report MUST contain {{MC_MAX}} status lines** — one per MC-N. No line = invalid report.
+1. **Read `{{CONVENTIONS_DOC}}` in full once per session and enumerate its rules** — whatever identifiers the doc uses (numbered or named); the count is whatever the doc defines. Cite line numbers when claiming a rule is clean.
+2. **Report MUST contain one status line per rule in the doc** — every rule accounted for. A missing rule = invalid report.
 3. **Findings table groups by section** so the user sees what was walked, not just what was found.
 4. **Run `{{LINT_STRUCTURE_CMD}}`** before declaring done — mechanical catch-all for many MC violations.
 
@@ -73,7 +73,7 @@ Surgical · Pick a winner from **Polished** pages in `{{PROGRESS_DOC}}` (e.g. {{
 
 When violations exist, present in a single table — **one row per finding**:
 
-| # | Sev | MC | File:Line | Finding | {{CONVENTIONS_DOC}} ref | Suggested fix |
+| # | Sev | Rule | File:Line | Finding | {{CONVENTIONS_DOC}} ref | Suggested fix |
 |---|---|---|---|---|---|---|
 | 1 | High | MC-1 | `Foo.tsx:42` | nested `<form>` | {{CONVENTIONS_DOC}}:74 | hoist drawer form outside page FormProvider |
 
@@ -83,7 +83,7 @@ Severity: **High** (broken / a11y violation / wrong primitive / HTML invalid / E
 
 ### Required Report block
 
-Compact 2-line format. Walk still covers all {{MC_MAX}} sections.
+Compact 2-line format. Walk still covers every rule in the doc. Use each rule's own identifier verbatim from `{{CONVENTIONS_DOC}}` — the `MC-N` examples below assume the default starter template; swap names to match your project.
 
 ```
 ## MC walk
@@ -94,7 +94,7 @@ Compact 2-line format. Walk still covers all {{MC_MAX}} sections.
 ```
 
 Rules:
-- Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every MC-N appears in exactly one.
+- Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every rule in the doc appears in exactly one.
 - `⚠ findings:` only when violations exist — points to the grouped Findings table.
 
 **Structure check when extracting:** If any picked row creates a new file (e.g., extracting an inline schema into `schemas/`, extracting a section into `sections/`, splitting a 400+ line component into a folder), `Read` the relevant section(s) of `{{STRUCTURE_DOC}}` first:
@@ -106,7 +106,7 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 Diff-polish has no audit skill — agent scans diff directly. Step 0's Recon = `git status` (no `-uall`) + `git diff` + read changed files in full. Findings = the scan below.
 
 1. Identify (in-diff only): dead code/imports · hand-rolled patterns where primitive exists (cross-check via `{{COMPONENT_DOCS_GLOB}}` or `src/components/ui/`) · DRY violations · re-render/effect anti-patterns · magic numbers where tokens exist · semantic-HTML gaps
-2. Walk MC-1..MC-{{MC_MAX}} (see "Micro-conventions walk" above) — mandatory, not optional.
+2. Walk every rule in the doc (see "Micro-conventions walk" above) — mandatory, not optional.
 3. Run `{{LINT_STRUCTURE_CMD}}` — mechanical catch-all.
 4. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
 5. i18n — grep changed files for raw string literals in JSX
@@ -152,7 +152,7 @@ Diff-polish has no audit skill — agent scans diff directly. Step 0's Recon = `
 
 ## You DON'T
 
-Add features/primitives/entities (that's `{{AGENT_PREFIX}}-implement`) · pre-commit verify + commit draft (that's `{{AGENT_PREFIX}}-pre-commit`) · auto-apply audit findings · write findings yourself when a skill exists · anchor on a Polished page without reading it in full this turn.
+Add features/primitives/entities (that's `{{AGENT_PREFIX}}-implement`) · pre-commit verify + commit draft (that's `{{AGENT_PREFIX}}-pre-commit`) · auto-apply audit findings · write findings yourself when a skill exists · anchor on a {{REFERENCE_PAGE_TERM}} page without reading it in full this turn.
 
 ## Edge cases
 

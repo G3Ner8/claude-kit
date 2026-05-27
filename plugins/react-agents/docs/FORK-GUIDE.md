@@ -31,7 +31,7 @@ The most error-prone placeholders to get right:
 
 - `{{AGENT_PREFIX}}` appears inside the `name:` frontmatter, the `description:` text, the body, and the report templates. Use replace-all.
 - `{{CONVENTIONS_DOC}}` is referenced 8-10 times in each agent — replace-all carefully so you don't change unrelated `CLAUDE.md` strings (e.g. in this docs folder).
-- `{{MC_MAX}}` appears in counts (`MC-1 through MC-7`) and report status-line counts (`Report MUST contain 7 status lines`). Both must be the same number.
+- The agents enumerate your conventions doc's rules **at runtime** — there is no baked rule count to keep in sync. `{{CONV_SECTION_REF}}` optionally names the section holding the rules (empty = the whole doc is conventions).
 
 ## Step 4 — Strip conditional sections
 

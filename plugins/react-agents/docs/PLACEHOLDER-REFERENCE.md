@@ -18,13 +18,16 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 | Placeholder | What it is | Example |
 |---|---|---|
 | `{{CONVENTIONS_DOC}}` | Path to your project's Mandatory Conventions doc | `pps-web/CLAUDE.md` |
-| `{{MC_MAX}}` | Highest MC-N section number in your conventions doc | `7` |
+| `{{CONV_SECTION_REF}}` | Optional clause naming the section that holds the rules (empty = the whole doc is conventions). Agents enumerate rules at runtime — no count is baked. | `` (its `Mandatory Conventions` section)`` |
 | `{{STRUCTURE_DOC}}` | Path to feature/folder structure rules doc | `pps-web/docs/architecture/feature-structure.md` |
 | `{{STRUCTURE_PREWRITE_TABLE}}` | (Optional) Project-specific "new file kind → required sections to Read" table + worked example, inserted into `implement` Step 0.1 Structure pre-write check. Empty if generic | (multi-line table; see PROFILE-GENERATOR.md crib sheet) |
 | `{{STRUCTURE_EXTRACT_MAPPING}}` | (Optional) Project-specific extraction-kind → section bullet list for `polish` Structure check when extracting. Empty if generic | `- Schema extraction → Section 4.1 + 4.4 + 9`<br>`- Component split / extract → Section 4.2 + 6` |
 | `{{PROGRESS_DOC}}` | Path to the doc that lists Polished baseline pages | `pps-web/docs/progress.md` |
 | `{{FEATURES_ROOT}}` | Root path for feature folders | `src/features` |
-| `{{POLISHED_PAGE_EXAMPLES}}` | Comma-separated examples of canonical baseline pages | `PayrollListPage, EmployeeListPage, EmployeeDetailPage` |
+| `{{POLISHED_PAGE_EXAMPLES}}` | Comma-separated examples of reference (baseline) pages agents anchor on | `PayrollListPage, EmployeeListPage, EmployeeDetailPage` |
+| `{{REFERENCE_PAGE_TERM}}` | Adjective for a known-good reference page (default `Polished`; `reference` if the project has no page-maturity model) | `Polished` |
+| `{{ANTI_REFERENCE_CLAUSE}}` | Inline warning against anchoring on immature pages (empty if no maturity model) | `` — never anchor on Rough/Partial pages`` |
+| `{{POLISH_STATUS_REPORT_BLOCK}}` | The `## Polish status` flip/regression report subsection (empty unless a page-status audit script exists) | (see POLISH_STATUS_REPORT_BLOCK template) |
 | `{{ARCHITECTURE_DOCS_GLOB}}` | Glob of architectural docs (drives pre-commit doc-sync gate) | `pps-web/docs/architecture/*` |
 | `{{COMPONENT_DOCS_GLOB}}` | Glob of per-component docs | `pps-web/docs/components/*` |
 | `{{FEATURE_DOCS_GLOB}}` | Glob of per-feature docs | `pps-web/docs/features/*` |
@@ -55,7 +58,8 @@ Every `{{PLACEHOLDER}}` used by the agent templates, with example values from th
 
 | Placeholder | What it is | Example |
 |---|---|---|
-| `{{SWAGGER_URL}}` | Full URL to your backend's Swagger UI (or empty for FE-only) | `https://payroll-dev-api.aware.co.th/swagger-ui/index.html` |
+| `{{SWAGGER_URL}}` | Full URL to your backend's API-contract doc — Swagger/OpenAPI UI or GraphQL schema (or empty for FE-only) | `https://payroll-dev-api.aware.co.th/swagger-ui/index.html` |
+| `{{API_CONTRACT_NAME}}` | Report-wording term for the contract source (default `Swagger`; set `OpenAPI` / `GraphQL schema` for non-Swagger backends) | `Swagger` |
 | `{{BE_KEYWORDS_PRIMARY}}` | First group of BE-scope opt-in keywords | `Thai: เช็ค BE, เช็ค swagger, sync api` |
 | `{{BE_KEYWORDS_SECONDARY}}` | Second group | `English: check BE, verify BE, sync api types` |
 | `{{API_SERVICES_PATHS}}` | Comma-separated paths of shared API client / interceptor / transform files (Swagger drift gate evidence list) | `pps-web/src/services/api.ts, pps-web/src/services/http.ts, pps-web/src/services/case-transform.ts` |
@@ -117,7 +121,7 @@ The generator strips entire sections when key placeholders are empty:
 
 | When empty | What gets removed |
 |---|---|
-| `{{SWAGGER_URL}}` | Step 0.0 BE-scope gate (implement) + Swagger drift gate (pre-commit) |
+| `{{SWAGGER_URL}}` | Step 0.0 BE-scope gate (implement) + API-contract drift gate (pre-commit) |
 | `{{LINT_STRUCTURE_CMD}}` | Shared `lint:structure` run + Structure regression check (pre-commit) |
 | `{{POLISH_AUDIT_SOURCE}}` / `{{POLISH_AUDIT_CMD}}` (both empty when no polish auditor configured) | Entire Polish-status check section (pre-commit) + `{{POLISH_AUDIT_SCRIPT_REF}}` collapses to empty |
 | `{{ARCHITECTURE_DOCS_GLOB}}` / `{{COMPONENT_DOCS_GLOB}}` / `{{FEATURE_DOCS_GLOB}}` (any empty) | Matching row in pre-commit `## Docs update` table is dropped |
