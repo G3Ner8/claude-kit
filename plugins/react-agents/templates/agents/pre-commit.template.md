@@ -72,8 +72,17 @@ For every changed file:
 - **API** (if diff touches {{API_TRIGGER_HINT}}) — see "{{API_CONTRACT_NAME}} drift gate" below
 - **Workflow regression** (if diff touches a `{{REFERENCE_PAGE_TERM}}` page) — see "Workflow regression check" below
 - **Structure regression** (if diff adds/renames files in `{{FEATURES_ROOT}}/*`) — see "Structure regression check" below
+- **Scope creep** (intent tripwire) — changes that don't trace back to the stated task: unrelated refactors/renames, "while I'm here" edits, a diff materially larger than the task implies. **Non-blocking** — see "Scope-creep handoff" below
 
 Record findings as numbered rows (severity = **Blocking** / **Non-blocking**) for the Report's Findings table — one row per finding, never collapsed.
+
+## Scope-creep handoff (intent alignment)
+
+Pre-commit checks **quality + ship-readiness**, not deep **intent** alignment (does the diff do what the task asked — no more, no less). When the scope-creep tripwire fires, or the diff is materially larger than the stated task implies:
+
+- **Recommend, never auto-invoke.** Surface a one-line pointer: *"Possible scope creep — for a structured intent-alignment + scope-creep matrix, run `/inspector` (dev-core) before merge."*
+- **Degrade gracefully — no install probe.** Don't try to detect whether `inspector` is installed, and don't block on its absence. The scope-creep findings already stand alone as Non-blocking rows; the `/inspector` pointer is an optional upgrade, harmless to ignore if `dev-core` isn't present. Never call the `Skill` tool for it — this is a text recommendation, not an invocation.
+- Keeps pre-commit's job narrow (it flags); the deep pass stays with the dedicated gate (intent is `inspector`'s whole concern).
 
 ## {{API_CONTRACT_NAME}} drift gate (mandatory when API surface changes)
 
@@ -290,6 +299,10 @@ One row per finding — sort Blocking first, then Non-blocking:
 - One status line per rule present: <yes | no — Blocking>
 - Unfixed ⚠ findings: <list or "none">
 - lint:structure mechanical fallback: <0 / N diff-introduced violations>
+
+## Scope-creep tripwire
+- Changes not tracing to stated task: <0 / N>
+- (if N>0) optional: run `/inspector` for an intent-alignment matrix before merge
 
 {{POLISH_STATUS_REPORT_BLOCK}}
 ```

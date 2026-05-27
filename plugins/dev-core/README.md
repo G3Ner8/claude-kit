@@ -14,16 +14,21 @@ From a Claude Code session that has already added the parent marketplace:
 
 ## Skills
 
-| Skill | Purpose | Try |
-| --- | --- | --- |
-| [`scrutinize`](./skills/scrutinize/) | Read-only intent-validation review of a diff / PR — does the change do what the task asked, no more / no less? Surfaces scope creep, missed requirements, silent assumptions. Run after pre-commit passes, before merge. _(experimental)_ | "does this diff match the task?" |
-| [`post-mortem`](./skills/post-mortem/) | Standardized incident post-mortem / RCA document (impact, timeline, single root cause, fix, prevention with owners). Run after an incident is resolved, never during firefighting. _(experimental)_ | "post-mortem for the login outage" |
+Each skill is a **persona** — a stance the assistant adopts at a distinct moment of the lifecycle.
 
-Both read-only — they produce a report / document, never edit code. Invoke individually (`/scrutinize`, `/post-mortem`) or from any project regardless of stack.
+| Skill | Persona | Moment | Purpose | Try |
+| --- | --- | --- | --- | --- |
+| [`detective`](./skills/detective/) | 🕵️ detective | **while** debugging | Reproduce → follow the fail path inward → falsify hypotheses → name the root cause **before** fixing. Breaks the "patch the symptom" reflex. _(experimental)_ | "why is X broken?" |
+| [`inspector`](./skills/inspector/) | 🔎 inspector | **before** merge | Read-only intent-validation review of a diff / PR — does it do what the task asked, no more / no less? Surfaces scope creep, missed requirements, silent assumptions. No rubber-stamp. _(experimental)_ | "does this diff match the task?" |
+| [`archivist`](./skills/archivist/) | 📚 archivist | **after** resolution | Standardized incident post-mortem / RCA (impact, timeline, single root cause, fix, prevention with owners), shaped so a future reader who wasn't there learns the lesson. _(experimental)_ | "document the login outage" |
+
+All read-only — they produce a report / document, never edit code. Invoke individually (`/detective`, `/inspector`, `/archivist`) from any project regardless of stack. The three line up across the lifecycle: **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson.
 
 ## Why a separate tier
 
 These apply to **any** codebase, not just React. Keeping them out of `react-core` keeps that plugin's scope honest (React 19 / Vite) and gives stack-agnostic disciplines a home that can grow (e.g. future commit-message, changelog, or ADR helpers).
+
+`detective` is the framework-agnostic debug discipline; for React's backend↔frontend data-fetch chain specifically, `react-core` ships the specialized `react-debug`.
 
 ## License
 

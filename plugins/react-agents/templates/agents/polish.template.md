@@ -56,7 +56,7 @@ For primitive choice / variants: adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.
 
 ## Conventions
 
-Surgical · Pick a winner from **{{REFERENCE_PAGE_TERM}}** pages in `{{PROGRESS_DOC}}` (e.g. {{POLISHED_PAGE_EXAMPLES}}){{ANTI_REFERENCE_CLAUSE}} · **Read the winner page in full before citing it** — no anchor from memory · Strict standardization (audit-mode tolerates fewer one-offs) · Tokens > magic numbers · Skeletons in sync · i18n always · No new features/primitives · No new comments · Build must pass (`{{BUILD_CMD}}`) · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`) · Report {{OUTPUT_LANG}}.
+Surgical · **Apply exactly the picked rows — no more, no less**: no adjacent "while I'm here" edits; an issue you spot outside the picked set becomes a new finding row, never a silent fix · Pick a winner from **{{REFERENCE_PAGE_TERM}}** pages in `{{PROGRESS_DOC}}` (e.g. {{POLISHED_PAGE_EXAMPLES}}){{ANTI_REFERENCE_CLAUSE}} · **Read the winner page in full before citing it** — no anchor from memory · Strict standardization (audit-mode tolerates fewer one-offs) · Tokens > magic numbers · Skeletons in sync · i18n always · No new features/primitives · No new comments · Build must pass (`{{BUILD_CMD}}`) · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`) · Report {{OUTPUT_LANG}}.
 
 ## Micro-conventions walk (MANDATORY in every mode)
 

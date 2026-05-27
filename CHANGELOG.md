@@ -7,13 +7,22 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 ## [Unreleased]
 
 ### `dev-core` 0.1.0 (new plugin)
-- New cross-cutting tier: `scrutinize` (intent-validation diff review) and `post-mortem` (incident RCA) — framework-agnostic, moved out of `react-core` (bare names, no `react-` prefix).
+- New cross-cutting tier of framework-agnostic disciplines, each named for the **persona** it adopts and mapped to a lifecycle moment:
+  - `detective` (new) — debug discipline: reproduce → follow the fail path → falsify → name the root cause before fixing. The stack-agnostic counterpart to `react-core`'s React-specialized `react-debug`.
+  - `inspector` (was `scrutinize`) — intent-validation diff review: does the change do what the task asked, no more / no less?
+  - `archivist` (was `post-mortem`) — standardized incident post-mortem / RCA document.
+- `inspector` + `archivist` moved out of `react-core`; bare names, no `react-` prefix (decision D6 + D7).
 
 ### `react-core` 0.5.0
 - Promote `react-debug` (data-flow debug discipline) from `_in-progress/` to stable; cited by the implement template.
-- Move `scrutinize` + `post-mortem` to the new `dev-core` plugin.
+- Move `scrutinize` + `post-mortem` to the new `dev-core` plugin (renamed `inspector` + `archivist`).
 - Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
 - Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
+
+### `react-agents` 0.3.0
+- Templates adopt `inspector`'s intent-alignment technique (not the skill — `dev-core` stays user-invoked):
+  - `pre-commit` gains a scope-creep tripwire (Non-blocking) + a graceful handoff that *recommends* `/inspector` when the diff drifts from the stated task — never auto-invokes, degrades silently when `dev-core` isn't installed.
+  - `polish` gains a "no more, no less" operating rule — apply exactly the picked rows; spotted-but-unpicked issues become new findings, never silent fixes.
 
 ### `react-agents` 0.2.1
 - `profile-generator` 1.1.1 — output-folder default derives from `PROJECT_ROOT` (`<PROJECT_ROOT>-profile`) instead of a hardcoded `$HOME/Workspace/`, so it lands next to the project even in a nested monorepo.

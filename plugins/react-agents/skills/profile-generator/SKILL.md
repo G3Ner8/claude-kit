@@ -553,7 +553,7 @@ for a in <prefix>-implement <prefix>-polish <prefix>-pre-commit <prefix>-test; d
 done
 \`\`\`
 
-> Skills (`react-*`, `scrutinize`, `post-mortem`) aren't part of this profile — they come from the `react-core` / `dev-core` plugins. Install those via the marketplace, or symlink them into `.claude/skills/`.
+> Skills (`react-*`, `detective`, `inspector`, `archivist`) aren't part of this profile — they come from the `react-core` / `dev-core` plugins. Install those via the marketplace, or symlink them into `.claude/skills/`.
 
 ### Plugin marketplace (if this folder becomes its own repo)
 
