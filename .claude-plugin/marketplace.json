@@ -9,7 +9,7 @@
     {
       "name": "react-core",
       "source": "./plugins/react-core",
-      "description": "React 19 / Vite SPA skills: perf, composition, audit, revamp, ux-review, dry. Stack-agnostic across any web-React project.",
+      "description": "React 19 / Vite SPA skills: perf, composition, audit, revamp, ux-review, dry, test-patterns, debug, scrutinize, post-mortem. Stack-agnostic across any web-React project.",
       "version": "0.1.0"
     },
     {

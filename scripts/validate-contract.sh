@@ -119,8 +119,8 @@ echo ""
 # ─── Collect skills (per status bucket) ──────────────────────────────────────
 
 declare -a public_skills      # status=stable or experimental, NOT in _in-progress/_deprecated
-declare -a draft_skills       # in _in-progress/ folder
-declare -a deprecated_skills  # in _deprecated/ folder
+declare -a draft_skills=()       # in _in-progress/ folder
+declare -a deprecated_skills=()  # in _deprecated/ folder
 
 base="$REPO_ROOT/plugins"
 [[ -n "$PLUGIN_FILTER" ]] && base="$REPO_ROOT/plugins/$PLUGIN_FILTER"

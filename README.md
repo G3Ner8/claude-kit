@@ -6,7 +6,7 @@ A [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marketplace 
 
 | Plugin | What | Portable? |
 | --- | --- | --- |
-| [`react-core`](./plugins/react-core/) | 7 skills — perf, composition, audit, revamp, ux-review, dry, test-patterns | ✅ Any React 19 / Vite project |
+| [`react-core`](./plugins/react-core/) | 10 skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug, scrutinize, post-mortem | ✅ Any React 19 / Vite project |
 | [`react-agents`](./plugins/react-agents/) | Templates + `/profile-generator` skill that scaffolds the build/polish/pre-commit trio for your project | ✅ Any React 19 / Vite project |
 
 A filled-in worked example (the Aware `pps-web` profile) is kept under [`_archive/pps-web-profile/`](./_archive/pps-web-profile/) for reference — read it to see what a generated profile looks like. It is not published to the marketplace.
@@ -63,7 +63,6 @@ claude-kit/
 ├── _archive/pps-web-profile/           # worked example (not published)
 │   ├── .claude-plugin/plugin.json
 │   └── agents/{web-implement,web-polish,web-pre-commit,web-test}.md
-├── NOTICES.md                          # upstream attribution
 ├── LICENSE                             # MIT
 └── README.md
 ```
@@ -130,7 +129,7 @@ Read-only output. User reads, decides, no edit.
 
 ## License
 
-MIT — all skills and agents authored in this repository. See [LICENSE](./LICENSE) and [NOTICES.md](./NOTICES.md).
+MIT — all skills and agents authored in this repository. See [LICENSE](./LICENSE).
 
 Kit code: **MIT**, see [LICENSE](./LICENSE).
 
