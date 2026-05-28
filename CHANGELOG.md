@@ -19,6 +19,9 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
 - Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
 
+### `react-agents` 0.4.0
+- `profile-generator` 1.2.0 — **friendlier Round 5 richness menu**. Each of the 14 items now leads with a plain-English title and a concrete example tied to a real codebase, instead of jargon + raw `{{PLACEHOLDER_NAME}}` tags. The placeholder mapping moved into a separate "Substitution map" table the generator reads internally (not surfaced to the user). Same 14 items, no behavior change to the produced profile — only the interview UX.
+
 ### `react-agents` 0.3.3
 - Templates trimmed for per-invocation token cost: removed the `## Worked example` section from all four agent templates (illustrative placeholders; the procedural body covers the flow) and dropped the redundant `(auto-loaded ... otherwise read explicitly)` parenthetical on MC-walk source-of-truth lines in `implement` + `polish`. ~60 lines / ~4KB shaved across the quartet. Pure trim — no behavior change; profile-generator skill unchanged (still 1.1.3).
 
