@@ -154,24 +154,10 @@ Edge case: a file with 100% coverage but missing a required scenario (e.g. the t
 
 ### integration
 
-Explicit mode only. Page-level flow tests using `render(<Page />, { route: '/...' })` + MSW.
+Explicit mode only. Page-level flow tests using `render(<Page />, { route: '/...' })` + MSW. Flow selection + observe / NOT-observe rules: consult `react-test-patterns` (Integration section). Project specifics:
 
-**Flow selection rule**:
-- 1-3 flows per page max
-- Each flow must touch ≥2 layers (e.g. "list → detail → mutate → invalidate" = list query + mutation + cache + page navigation)
-- Highest business-risk path first (money flow > destructive action > read flow)
-
-**Flow assertions must observe**:
-- DOM state changes (`findByText`, role queries)
-- Network calls fired (via MSW handler side-effect or counter)
-- Cache invalidation effects (re-render with new data)
-
-**Flow assertions must NOT observe**:
-- RHF internal state (`form.formState.errors.X`)
-- Query cache shape (`client.getQueryData(...)` — use the rendered UI instead)
-- portal-based primitive interactions inside the flow when the same path is unreliable — move that interaction to a component smoke test
-
-If a flow's critical step depends on a portal-based primitive (e.g. Radix/MUI DatePicker, Select) that's flaky under jsdom, **stop and surface in {{OUTPUT_LANG}}**. Offer two paths: stub the picker (cleaner) or move the assertion to a smoke test (cheaper).
+- 1-3 flows per page max; each touches ≥2 layers; highest business-risk path first (money > destructive > read)
+- If a critical step depends on a flaky portal-based primitive under jsdom (Radix/MUI DatePicker, Select), **stop and surface in {{OUTPUT_LANG}}** — offer to stub the picker or move the assertion to a smoke test
 
 ## Chunked apply discipline
 
@@ -215,7 +201,7 @@ If user says no / wants edits → stop, ask which keys to drop or rename. Do not
 
 When writing tests, follow these rules:
 
-- Surgical · Write tests only · No production code changes (if test exposes a bug, surface to user) · Code/paths English · Report {{OUTPUT_LANG}} · Tests must pass before declaring chunk done · Build must pass at end · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`)
+- Surgical · Write tests only · No production code changes (if test exposes a bug, surface to user) · Code/paths English · Tests must pass before declaring chunk done · Build must pass at end
 - Selector hierarchy: `getByRole` > `getByLabelText` > `getByTestId` (last resort)
 - Always `userEvent.setup()` — never `fireEvent.*`
 - MSW for network: URL pattern {{MSW_URL_PATTERN}}; per-test override `server.use(http.get(URL, ...))` with `afterEach` reset; **never** `vi.mock('{{API_CLIENT_IMPORT}}')` shortcut
