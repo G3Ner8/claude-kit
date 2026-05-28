@@ -25,7 +25,7 @@ Templates + interactive generator for the implement / polish / pre-commit / test
 /profile-generator
 ```
 
-Claude runs a short interview (project name, paths, commands, triggers, backend settings) — most values are auto-scanned, so you only answer what can't be inferred — confirms once, then writes a complete profile to a folder you pick. Output is ready to symlink into `.claude/agents/` or `git init` + push as its own plugin.
+Claude runs a short interview (project name, paths, commands, triggers, backend settings) — most values are auto-scanned, so you only answer what can't be inferred — confirms once, then writes a complete profile to a folder you pick (default `/tmp/<project>-profile`). The final prompt offers **Auto-install** (copies the four agents into `<launch-cwd>/.claude/agents/` and cleans up the output folder when it's under `/tmp`) or **Manual** (prints the install snippet to run yourself). You can also `git init` + push the folder as its own plugin.
 
 ### B — Manual fork
 
