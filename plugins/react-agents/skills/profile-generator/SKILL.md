@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
   type: action
   status: stable
   derived_from: project-internal
@@ -650,7 +650,15 @@ When invoked:
 
 5. **Write**: if Conventions-doc resolution landed on **case 2**, first write the seeded `<PROJECT_ROOT>/CONVENTIONS.md` (see "Stack-aware conventions seed"). Then read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Polish-status, lint:structure) before writing — strip whole sections when their gate is empty.
 
-6. **Report**: print absolute paths of all created files + the copy install snippet from README (symlink is the documented alternative). If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
+6. **Report**: print absolute paths of all created files. If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
+
+7. **Install** — close the gen → copy → discard loop. `AskUserQuestion` with 2 options (default `Auto-install`):
+   - **Auto-install** — copy the four `agents/*.md` into `<launch-cwd>/.claude/agents/` (the directory the user launched Claude Code in — usually the monorepo root for prefixed-command profiles, the project root otherwise). If `<output-path>` is under `/tmp`, also `rm -rf` it after the copy succeeds.
+   - **Manual** — print the copy install snippet from the generated README and stop. User runs the commands themselves.
+
+   **Before copying, surface the overwrite list once.** If any of the four destination files already exists (`<launch-cwd>/.claude/agents/<file>.md`), list them: "Auto-install will overwrite: <list>. Continue with Auto, or switch to Manual to inspect first?" — one more confirmation only when overwrite is involved (no extra ask on clean install).
+
+   On Auto completion: print the four destination paths + "Removed `<output-path>`" when the output was under `/tmp`. On Manual: print the README's copy snippet (no filesystem changes).
 
 ### Typical question count (for reference)
 
