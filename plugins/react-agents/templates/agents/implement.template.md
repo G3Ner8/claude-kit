@@ -135,7 +135,7 @@ Do **not** touch FE first.
 
 ## Conventions
 
-Surgical · Primitives first (look up via `{{COMPONENT_DOCS_GLOB}}` per-component docs, fallback to `src/components/ui/<X>.tsx` source) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`{{BUILD_CMD}}`) · Don't commit (handoff `{{AGENT_PREFIX}}-pre-commit`) · Code/paths English · Report {{OUTPUT_LANG}}.
+Surgical · Primitives first (look up via `{{COMPONENT_DOCS_GLOB}}` per-component docs, fallback to `src/components/ui/<X>.tsx` source) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`{{BUILD_CMD}}`) · Code/paths English.
 
 **Canonical anchors** (read in full when scope touches them — never anchor from memory):
 - Pages: **{{REFERENCE_PAGE_TERM}}** pages in `{{PROGRESS_DOC}}` (e.g. {{POLISHED_PAGE_EXAMPLES}}){{ANTI_REFERENCE_CLAUSE}}.
