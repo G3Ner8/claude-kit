@@ -19,7 +19,8 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
 - Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
 
-### `react-agents` 0.4.1
+### `react-agents` 0.5.0
+- `profile-generator` 1.3.0 — **auto-install option** in Phase 6. After writing, the generator asks `Auto-install` (default) vs `Manual`. Auto-install copies `agents/*.md` into `<launch-cwd>/.claude/agents/` and (when the output folder is under `/tmp`) `rm -rf`s it — closing the gen → copy → discard loop in one prompt. Existing destination files surface as an overwrite-list confirmation before any copy. Manual is the previous behavior (print snippet, no filesystem changes).
 - Template trim batch (per-invocation token reduction, no behavior change):
   - **`test`** integration mode: condense — defer Flow selection + observe / NOT-observe rules to the `react-test-patterns` skill (already invoked in Step 0). Keep only project-specific overrides. ~16 lines / ~1.5KB.
   - **`implement` / `polish` / `test`** Conventions one-liners: drop the `· Don't commit` and `· Report {{OUTPUT_LANG}}` bullets — both already covered by the agent's description and `You DON'T` section.
