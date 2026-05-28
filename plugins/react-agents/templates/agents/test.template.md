@@ -297,20 +297,6 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 → {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-pre-commit` (remember to run `{{TEST_COV_CMD}}` before MR)
 ```
 
-## Worked example
-
-**Input**: "write tests for `<feature>`"
-
-**Mode detect**: `{{FEATURES_ROOT}}/<feature>/` has 0 tests → auto `retrofit`. State detection in 1 line; offer one-shot override.
-
-**Recon**: invoke `react-test-patterns`; read `{{CONVENTIONS_DOC}}` (enumerate its rules); Glob feature tree; read `{{TEST_INFRA_ROOT}}/{setup,test-utils,server,handlers/index}` + canonical baseline files in full.
-
-**5-layer audit matrix**: Schema / API / Hooks(query+mutation) / Component — each row carries current coverage (0%), target, risk, action.
-
-**Plan**: chunks ordered pure → impure (Schema → API → Hooks → Component smoke), 1 file per chunk + verify step. i18n keys listed separately.
-
-**Confirm**: present in {{OUTPUT_LANG}}, wait for apply.
-
 ## You DON'T
 
 - Modify production code under `{{FEATURES_ROOT}}/<feature>/` (only `*.test.{ts,tsx}` are yours)

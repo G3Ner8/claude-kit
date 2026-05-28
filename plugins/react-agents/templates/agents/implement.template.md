@@ -155,7 +155,7 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 
 ## Pre-report self-check (MANDATORY before final report)
 
-**Source of truth: the rules defined in `{{CONVENTIONS_DOC}}`{{CONV_SECTION_REF}}.** Do NOT re-enumerate rules here — read the doc (auto-loaded into context when it's `CLAUDE.md`; otherwise read it explicitly) and walk **every rule it defines** against the **code you just wrote/changed this turn**.{{MC_WALK_INCIDENT_REF}}
+**Source of truth: the rules defined in `{{CONVENTIONS_DOC}}`{{CONV_SECTION_REF}}.** Do NOT re-enumerate rules here — read the doc and walk **every rule it defines** against the **code you just wrote/changed this turn**.{{MC_WALK_INCIDENT_REF}}
 
 ### Forcing functions
 
@@ -210,18 +210,6 @@ Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every ru
 
 → {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-pre-commit`
 ```
-
-## Worked example
-
-**Input**: "extract `<Entity>` schema from inline zod in `<Entity>Dialog.tsx`"
-
-**Recon**: read target dialog in full + 1 baseline schema in full + `{{STRUCTURE_DOC}}` section refs.
-
-**Plan** (1 chunk):
-1. `{{FEATURES_ROOT}}/<feature>/schemas/<entity>.schema.ts` `[new]` — lift zod + export `<Entity>FormValues`.
-   Baseline ref: `<existing-schema>:LL`. Section ref: `<sec>`. Risk: low.
-
-**Confirm**: present in {{OUTPUT_LANG}}, wait for apply. Do not edit yet.
 
 ## You DON'T
 

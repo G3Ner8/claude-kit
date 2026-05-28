@@ -19,6 +19,9 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
 - Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
 
+### `react-agents` 0.3.3
+- Templates trimmed for per-invocation token cost: removed the `## Worked example` section from all four agent templates (illustrative placeholders; the procedural body covers the flow) and dropped the redundant `(auto-loaded ... otherwise read explicitly)` parenthetical on MC-walk source-of-truth lines in `implement` + `polish`. ~60 lines / ~4KB shaved across the quartet. Pure trim — no behavior change; profile-generator skill unchanged (still 1.1.3).
+
 ### `react-agents` 0.3.2
 - `profile-generator` 1.1.3 — generated README's install snippet now defaults to **copy** (`cp`) instead of symlink, pairing with the `/tmp` output default (a symlink into `/tmp` breaks when the OS clears it). Symlink is kept as the documented alternative for a persistent profile folder used as source of truth.
 
