@@ -60,7 +60,7 @@ Surgical · **Apply exactly the picked rows — no more, no less**: no adjacent 
 
 ## Micro-conventions walk (MANDATORY in every mode)
 
-**Source of truth: the rules defined in `{{CONVENTIONS_DOC}}`{{CONV_SECTION_REF}}.** Architecture-level findings (DRY, file-size, consistency, single Save anchor) are **not enough**{{MC_WALK_INCIDENT_REF}}. After your mode's audit, walk **every rule the doc defines** against each changed file. Do NOT re-enumerate rules in this agent — read the doc (auto-loaded into context when it's `CLAUDE.md`; otherwise read it explicitly).
+**Source of truth: the rules defined in `{{CONVENTIONS_DOC}}`{{CONV_SECTION_REF}}.** Architecture-level findings (DRY, file-size, consistency, single Save anchor) are **not enough**{{MC_WALK_INCIDENT_REF}}. After your mode's audit, walk **every rule the doc defines** against each changed file. Do NOT re-enumerate rules in this agent — read the doc.
 
 ### Forcing functions
 
@@ -137,18 +137,6 @@ Diff-polish has no audit skill — agent scans diff directly. Step 0's Recon = `
 
 → {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-pre-commit`
 ```
-
-## Worked example
-
-**Input**: "primitive `<P>` looks different across pages"
-
-**Mode**: Visual-consistency. Invoke `react-audit` mode `visual-consistency`.
-
-**Findings**: 3-5 row table showing `<P>` usage per page (baseline + drifters).
-
-**Top-2 {{OUTPUT_LANG}} summary**: which pages drift from baseline + why.
-
-**Stop, wait for row pick + apply** → execution plan (file, LOC, risk). MC walk on changed file before report.
 
 ## You DON'T
 

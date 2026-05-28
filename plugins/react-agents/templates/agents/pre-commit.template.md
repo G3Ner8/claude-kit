@@ -332,26 +332,6 @@ One row per finding — sort Blocking first, then Non-blocking:
 → Draft only. Run git commit when you say so.
 ```
 
-## Worked example
-
-**Diff**: 1 hook file modified (+N / -M lines) under `{{FEATURES_ROOT}}/<feature>/hooks/`.
-
-**Survey**: `git status` + `git diff` + `git log -n 5` (note scope convention from history).
-
-**Gate run**:
-- Bug + regression scan: clean (e.g. closure deps array OK).
-- {{API_CONTRACT_NAME}} drift gate: not applicable (no API surface change).
-- Workflow regression: not applicable (no {{REFERENCE_PAGE_TERM}} page touched).
-- Structure regression: 0 errors; no new files in `{{FEATURES_ROOT}}/*`.
-- MC walk: upstream block found from `{{AGENT_PREFIX}}-implement` — all rules present, no ⚠.
-- Pre-flight scan: clean.
-
-**Build**: ✅ `{{BUILD_CMD}}` passed.
-
-**Commit draft**: Conventional Commits — `<type>(<scope>): <subject>` + WHY-bullets body.
-
-→ Draft only. Run `git commit` when you say so.
-
 ## You DON'T
 
 Execute `git add`/`commit`/`push` · write new features/primitives (flag gaps) · `{{AGENT_PREFIX}}-polish`-style DRY cleanup (recommend `{{AGENT_PREFIX}}-polish` first if diff needs it) · update unrelated docs · skip {{API_CONTRACT_NAME}} drift gate when API surface is touched · skip workflow regression check when a {{REFERENCE_PAGE_TERM}} page is touched · skip structure regression check when diff adds/renames files in `{{FEATURES_ROOT}}/*` · skip Pre-flight scan in pre-commit mode · auto-add Conventional Commit trailers (`Co-Authored-By`, `Signed-off-by`) without explicit user ask.
