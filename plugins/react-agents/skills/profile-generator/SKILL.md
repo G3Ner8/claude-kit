@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.1.3"
+  version: "1.2.0"
   type: action
   status: stable
   derived_from: project-internal
@@ -314,49 +314,82 @@ Present a checklist via `AskUserQuestion` `multiSelect`. Each picked item = 1 fo
 ```
 Add project-specific richness? Pick what applies (skip all = generic):
 
-[ ] Structure rules: new-file checklist  ({{STRUCTURE_PREWRITE_TABLE}})
-    Map of "when creating file kind X, follow which doc section".
+[ ] **Doc sections to check when creating a new file**
+    Example: new schema → Section 4.4 + 9; new page folder → Section 5; new hook → Section 4.3.
+    Adds a lookup table to the implement agent so it cites the right doc sections.
 
-[ ] Structure rules: extraction map  ({{STRUCTURE_EXTRACT_MAPPING}})
-    Map of "when extracting X (schema, section), follow which doc section".
+[ ] **Doc sections to check when extracting code**
+    Example: extract schema → Section 4.1 + 4.4; component split → Section 4.2 + 6.
+    Used by polish when picked rows create new files.
 
-[ ] Convention-walk reminder  ({{MC_WALK_INCIDENT_REF}})
-    A past bug that justifies walking every rule strictly — shown as a reminder in the agent.
-    Cite a commit ONLY if the user gives one or `git log` confirms it (grep the subject); else describe the incident without a hash. Never invent a hash (see Grounding rule).
+[ ] **Remind the agent of a past bug**
+    Example: "the org-config revamp missed i18n keys because the agent skipped MC-5."
+    One-line motivation in the agent body. Skip if you don't have a story.
+    If you cite a commit, supply a hash you've verified via `git log` — do NOT invent (Grounding rule).
 
-[ ] Plan-file path convention  ({{PLAN_FILE_PATTERN}})
-    Where draft plans get saved (e.g. `session-working-space/tasks/*-plan.md`).
+[ ] **Where you save draft plans**
+    Example: `session-working-space/tasks/*-plan.md`.
+    The implement agent reads from here in Continuation mode. Skip if you don't save plans.
 
-[ ] Linter → rule mapping  ({{MC_MECHANICAL_CATCH_MAP}})
-    Which conventions your structure linter already catches automatically.
+[ ] **What your structure linter already catches**
+    Example: `lint:structure` validates MC-5 (page folder), MC-6 (file naming), MC-7 (form scope).
+    Tells the agent which MC rules the linter handles, so it doesn't double-check.
 
-[ ] Commit scope examples  ({{COMMIT_SCOPE_OPTIONS}})
-    Project-specific scope hints (e.g. `(web)` / `(api)`).
+[ ] **Conventional Commit scopes used in your repo**
+    Example: `(web)`, `(api)`, `(payroll)`, `(ui)` — derived from your `git log` if you skip.
+    Pre-commit uses these when drafting the commit message.
 
-[ ] Backlog / pending-work reference  ({{STRUCTURE_LEGACY_REF}} + {{STRUCT_PENDING_RULES}})
-    Where your backlog lives + how pending work is tracked.
+[ ] **Where you track migration backlog**
+    Example: `feature-structure.md` Section 17 "Known violations".
+    Pre-commit ignores pre-existing violations listed here ("not this PR's problem"). Skip if no backlog yet.
 
-[ ] Workflow regression check table  ({{WORKFLOW_PATTERNS_TABLE}})
-    Key components/hooks each mature page must keep (used by the pre-commit gate).
+[ ] **Patterns every "done" page must keep**
+    Example: `<PageLayout>` wraps every list page; skeleton mirrors real structure; URL holds deep-link state.
+    Pre-commit flags a Polished page that loses one. Skip if no "done" / Polished concept yet.
 
-[ ] Best-practice examples for reports  ({{BP_APPLIED_UX}} + {{BP_APPLIED_ARCH}})
-    Concrete UX / architecture patterns to cite in revamp-scope reports.
+[ ] **UX / architecture patterns to cite in revamp reports**
+    Example: UX: "Skeleton during loading + auto-focus first field"; Arch: "extract shared schema to `schemas/`".
+    Implement cites these when scope = revamp. Skip if you don't do revamps.
 
-[ ] Page-maturity signals  ({{POLISH_STATUS_CHECK_SECTION}})
-    When a page counts as "done" + what regresses it (only if a page-status audit script exists).
+[ ] **What counts as a "done" page (needs an audit script)**
+    Example: `scripts/page-polish-audit.mjs` exports a `PAGE_STATUS` map with `Polished` / `Rough` / `Partial`.
+    Skip if you don't have a page-status audit script.
 
-[ ] Polish/Test mode triggers  ({{POLISH_MODE_ROWS}} + {{TEST_MODE_ROWS}})
-    Override default trigger phrases (e.g. add localized phrases).
+[ ] **Custom trigger phrases for polish / test modes**
+    Example: add Thai trigger `"ทำให้ X สวยขึ้น"` for polish visual-consistency mode.
+    Skip = use defaults (already cover multi-language basics).
 
-[ ] API URL pattern  ({{MSW_URL_PATTERN}})
-    Your project's API URL convention (used for test mocks).
+[ ] **Your project's API URL pattern (for test mocks)**
+    Example: `*/pps/v1/<path>` — wildcard host + path; matches your baseURL.
+    MSW handlers use this. Skip if you don't use MSW or defaults work.
 
-[ ] Mutation hook test scenarios  ({{MUTATION_SCENARIOS}})
-    Project rules for cache-invalidation / multi-tenant tests.
+[ ] **Test rules for mutation cache + multi-tenant**
+    Example: "invalidate correct keys on success; do NOT invalidate on error or when tenant scope missing".
+    The test agent uses these as mutation-hook test guardrails. Skip if not multi-tenant.
 
-[ ] API trigger surface  ({{API_TRIGGER_HINT}})
-    A phrase describing what "an API-touching change" looks like in your project.
+[ ] **What an "API-touching change" looks like in your diff**
+    Example: "diff touches `services/api.ts` or any feature `api/` folder".
+    Pre-commit fires the Swagger drift gate on these paths. Skip = derive from project structure.
 ```
+
+**Substitution map** (generator uses internally to substitute the right placeholder — do NOT surface in the menu rendered to the user):
+
+| Menu item | Placeholder(s) |
+|---|---|
+| Doc sections to check when creating a new file | `{{STRUCTURE_PREWRITE_TABLE}}` |
+| Doc sections to check when extracting code | `{{STRUCTURE_EXTRACT_MAPPING}}` |
+| Remind the agent of a past bug | `{{MC_WALK_INCIDENT_REF}}` |
+| Where you save draft plans | `{{PLAN_FILE_PATTERN}}` |
+| What your structure linter already catches | `{{MC_MECHANICAL_CATCH_MAP}}` |
+| Conventional Commit scopes used in your repo | `{{COMMIT_SCOPE_OPTIONS}}` |
+| Where you track migration backlog | `{{STRUCTURE_LEGACY_REF}}` + `{{STRUCT_PENDING_RULES}}` |
+| Patterns every "done" page must keep | `{{WORKFLOW_PATTERNS_TABLE}}` |
+| UX / architecture patterns to cite in revamp reports | `{{BP_APPLIED_UX}}` + `{{BP_APPLIED_ARCH}}` |
+| What counts as a "done" page (needs an audit script) | `{{POLISH_STATUS_CHECK_SECTION}}` |
+| Custom trigger phrases for polish / test modes | `{{POLISH_MODE_ROWS}}` + `{{TEST_MODE_ROWS}}` |
+| Your project's API URL pattern (for test mocks) | `{{MSW_URL_PATTERN}}` |
+| Test rules for mutation cache + multi-tenant | `{{MUTATION_SCENARIOS}}` |
+| What an "API-touching change" looks like in your diff | `{{API_TRIGGER_HINT}}` |
 
 ### Round 6 — Output (1 ask, 2 questions)
 

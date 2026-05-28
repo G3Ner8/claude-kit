@@ -22,7 +22,7 @@
       "name": "react-agents",
       "source": "./plugins/react-agents",
       "description": "Templates for the implement/polish/pre-commit/test agent quartet + a profile-generator skill that scaffolds a project-specific profile interactively.",
-      "version": "0.3.3"
+      "version": "0.4.0"
     }
   ]
 }
