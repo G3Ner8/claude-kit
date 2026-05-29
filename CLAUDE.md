@@ -242,6 +242,15 @@ Agents live in `plugins/<profile>/agents/<name>.md`. Skills live in
 `plugins/<plugin>/skills/<name>/SKILL.md`. **Never** put behavioral
 orchestration in a skill — that's an agent.
 
+**Agent continuation (experimental, opt-in).** By default an agent runs
+one-shot — the caller spawns it, it works, it reports, its context is gone;
+a follow-up means re-spawning with the context rebuilt by hand. If the host
+sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (off by default), the caller can
+instead resume a spawned agent by the id it returns (`SendMessage`), context
+intact. This is a **host capability** — agent files need no change to benefit
+and MUST NOT depend on it while it's experimental (they must still work
+one-shot).
+
 ---
 
 ## 7. Naming conventions
