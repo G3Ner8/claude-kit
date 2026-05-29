@@ -18,6 +18,7 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Move `scrutinize` + `post-mortem` to the new `dev-core` plugin (renamed `inspector` + `archivist`).
 - Genericize teaching examples (Employee → User, HR features → orders/products, internal URL → example.com, `pps/v1` → `api/v1`) — examples only, no behavior change.
 - Remove redundant per-skill READMEs (audit / dry / revamp / ux-review) and duplicate `rules/_sections.md`.
+- `react-test-patterns` 1.1.0 — add a "Fixtures — factory vs inline" section + two anti-pattern rows, closing a gap where the skill mandated a `factories/` infra layer and listed "fixture reuse" as a review criterion but never said when to use one. Rule: factories produce FE-shape (camelCase) objects for component props / hook-output assertions; MSW handler payloads stay inline wire-shape (snake_case); a `factories/` file with zero importers is dead infra (wire it in or delete it).
 
 ### `react-agents` 0.5.0
 - `profile-generator` 1.3.0 — **auto-install option** in Phase 6. After writing, the generator asks `Auto-install` (default) vs `Manual`. Auto-install copies `agents/*.md` into `<launch-cwd>/.claude/agents/` and (when the output folder is under `/tmp`) `rm -rf`s it — closing the gen → copy → discard loop in one prompt. Existing destination files surface as an overwrite-list confirmation before any copy. Manual is the previous behavior (print snippet, no filesystem changes).

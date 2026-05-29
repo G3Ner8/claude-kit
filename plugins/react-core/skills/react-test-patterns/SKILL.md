@@ -4,7 +4,7 @@ description: Reusable test patterns for React 19 SPAs running Vitest + React Tes
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   type: reference
   status: stable
   stack: React 19 + Vitest 4 + @testing-library/react 16 + @testing-library/user-event 14 + MSW 2 + jsdom
@@ -71,7 +71,7 @@ Plus, in `src/test/`:
 - `test-utils.tsx` — custom `render()` that wraps in `<I18nextProvider>` + `<QueryClientProvider>` + (optional) `<MemoryRouter>`; re-exports `@testing-library/react`
 - `server.ts` — `setupServer(...rootHandlers)` for node
 - `handlers/index.ts` — `rootHandlers` aggregator
-- `factories/` — fixture builders (`buildXxx(overrides)`)
+- `factories/` — FE-shape fixture builders (`buildXxx(overrides)`); see "Fixtures — factory vs inline" for when to reach for one vs stay inline
 
 If any are missing, write them once for the project — the rest of this skill assumes they exist.
 
@@ -93,6 +93,23 @@ Pick one well-tested feature in your project as the **canonical baseline** and r
 | Component smoke (drawer + RHF + portal primitive) | `src/features/<feature>/components/sections/<Feature>Drawer.test.tsx` |
 
 No baseline yet? Build the first feature's suite to this shape, then use it as the reference for the rest.
+
+---
+
+## Fixtures — factory vs inline
+
+`src/test/factories/` holds `buildFoo(overrides)` builders that return **FE-shape (camelCase)** domain objects — what hooks and components see *after* the case-transform interceptor runs. They exist to kill duplication, but only where the value is genuinely FE-shape. Reach for a factory when the same shape appears in 2+ places:
+
+- ✅ **Component props** — edit-mode entity prefill: `<FooDrawer foo={buildFoo({ name: 'X' })} />`
+- ✅ **Hook-output expectations** — the camelCase object you assert against, when it's more than 1-2 fields
+- ✅ **Integration seed data** — shaped the way the FE consumes it
+
+Stay **inline** — do NOT use a factory — for:
+
+- ❌ **MSW handler payloads** — those are **wire-shape (snake_case)**, e.g. `{ foo_id: 'f1' }`. A FE-shape factory must not emit snake_case; build the wire body inline in the handler. A factory that produces wire-shape duplicates the case-transform boundary and rots out of sync with it.
+- ❌ **One-off `toMatchObject` on 1-2 fields** — a 6-field factory doesn't reduce duplication here; inline `{ fooId: 'f1' }` reads clearer.
+
+**Reviewers — "fixture reuse" means imported, not merely present.** A `factories/` file with zero importers is dead infra: wire it into the tests that build that entity, or delete it. Don't ship a builder the suite never calls — a baseline that carries unused factories teaches the wrong pattern to whoever copies it.
 
 ---
 
@@ -502,6 +519,8 @@ foo: {
 | `getByTestId` first | Bypasses a11y safety net | Role → Label → TestId order |
 | Component test that opens a portal Select | Portal flake under jsdom | Move to integration or stub the Select |
 | Coverage threshold set too early | Blocks PRs without signal | Wait until 2+ features hit target |
+| Wire-shape (snake_case) payload from a FE-shape factory | Duplicates the case-transform boundary; rots | Build MSW bodies inline; factories stay camelCase |
+| `factories/` file with zero importers | Dead infra; misleads baseline copies | Wire it in or delete it |
 
 ---
 
