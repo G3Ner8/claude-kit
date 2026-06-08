@@ -3,7 +3,7 @@ name: {{AGENT_PREFIX}}-pre-commit
 description: Pre-commit gate for {{PROJECT_NAME}}. 2 modes - diff-review (mid-dev sanity check) and pre-commit (final pass + build verify + docs sync + commit draft). Reports English. Commit title + body and any PR / push text are **English only**, regardless of trigger or report language. Does NOT execute commit/push - drafts only. Trigger - {{PRECOMMIT_TRIGGER_KEYWORDS}}.
 tools: Bash, Read, Edit, Write, Glob, Grep, Skill, AskUserQuestion, WebFetch
 model: sonnet
-effort: high
+effort: medium
 color: green
 ---
 
