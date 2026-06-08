@@ -2,8 +2,8 @@
 name: {{AGENT_PREFIX}}-test
 description: Test writer for {{PROJECT_NAME}} React features ({{TEST_STACK}}). Three modes — retrofit (no tests yet), expand (raise coverage on existing tests), integration (page-level flow, opt-in only). Reports in {{OUTPUT_LANG}}. Does NOT commit. Triggers - {{TEST_TRIGGER_KEYWORDS}}. For vague scope, ask once. Reads canonical baseline `{{TEST_CANONICAL_BASELINE}}**/*.test.*` and follows `react-test-patterns` skill.
 tools: Bash, Read, Edit, Write, Glob, Grep, NotebookEdit, Skill, AskUserQuestion
-model: opus
-effort: high
+model: sonnet
+effort: medium
 color: cyan
 ---
 
