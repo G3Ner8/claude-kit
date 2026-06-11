@@ -31,6 +31,8 @@ A **missing conventions doc is NOT a refuse condition** — it triggers the case
 
 **Grounding rule (no fabrication).** Every value written into the profile must come from the scan, a user answer, or a documented generic default — never invented. This matters most for specifics that read as authoritative: **commit hashes, file paths, section numbers, page names**. If a richness follow-up wants a commit hash and none is supplied or verifiable via `git log` (grep the subject to confirm it resolves), **omit the hash and describe the incident in prose** — never fabricate one.
 
+**No personal paths (guardrail).** Generated agents must not contain absolute paths or author-personal paths (home directories, personal scratch folders such as `session-working-space/`). Every path baked into a generated agent must be project-relative and meaningful to any teammate cloning the repo. If a scan or user answer yields a personal path, reject it and re-ask for a project-relative equivalent (or leave the placeholder empty so the template's generic phrasing stands — e.g. the implement Continuation row falls back to "Plan file or skill output from an earlier turn").
+
 ## When to invoke
 
 User runs `/profile-generator` after installing the `react-agents` plugin, or types a phrase like:
@@ -84,6 +86,7 @@ Workarounds:
 | `{{DEV_CMD}}` | `CMD_PREFIX` + `npm run dev` (or `start`) |
 | `{{TEST_CMD}}` | `CMD_PREFIX` + `npm run test:unit` or `npm run test` (whichever exists) |
 | `{{TEST_COV_CMD}}` | `CMD_PREFIX` + `npm run test:cov` or `npm run coverage` |
+| `{{FULL_CHECK_CMD}}` | `CMD_PREFIX` + `npm run check` (or whatever script chains type-check + lint + build). Fall back to `{{BUILD_CMD}}` if no such script — pre-commit's full gate then equals the build. **Never** pick a script that mutates the working tree (`format`, `lint:fix`, husky-style `precommit`) |
 | `{{LINT_STRUCTURE_CMD}}` | `CMD_PREFIX` + `npm run lint:structure` (empty if script absent) |
 | `{{LINT_STRUCTURE_CMD_STRICT}}` | `CMD_PREFIX` + `npm run lint:structure:strict` (empty if absent) |
 | `{{STACK}}` | parse `dependencies` + `devDependencies`. Match by pattern: React major from `react`; bundler from `vite`/`webpack`/`turbopack`; css-lib from `tailwindcss`/`styled-components`/`emotion`; UI-lib by **prefix match** against `@radix-ui/*`, `@chakra-ui/*`, `@mantine/*`, `@nextui-org/*`, `@mui/*` (label as Radix UI / Chakra / Mantine / NextUI / MUI respectively). Render: `React <X> / TypeScript / <bundler> / <css-lib> / <ui-lib>` |
@@ -110,6 +113,7 @@ Workarounds:
 | `{{TEST_CANONICAL_BASELINE}}` | scan `<FEATURES_ROOT>/*/` → folder with most `*.test.*` files | `PATH_PREFIX` + chosen folder path | — |
 | `{{TEST_CANONICAL_FILES}}` | list `*.test.*` in baseline folder | each path prefixed with `PATH_PREFIX`, markdown bullet form | **Surface as preset-template** in Phase 2 — see "Curated-list questions" below |
 | `{{BACKEND_NAME}}` | sibling dirs at cwd matching `<PROJECT_NAME>-{api,be,backend,server}` | matched name (e.g. `pps-api`); no path prefix | First match |
+| `{{BACKEND_LOCAL_PATH}}` | same sibling-dir scan as `{{BACKEND_NAME}}` | relative path from PROJECT_ROOT to the backend checkout (typically `../<backend-name>`); empty if no sibling found | First match; confirm in Round 3 |
 
 ### Scan C — Script + MD content (Read + grep)
 
@@ -191,7 +195,7 @@ Test setup:
 - Test utils import: <test-utils-import>
 - i18n locales: <i18n-locales-path>
 
-Backend (sibling): <backend-name>
+Backend (sibling): <backend-name>  (local checkout: <backend-local-path> — contract fallback)
 API services: <api-services-paths>
 
 Polished pages found: <N> pages (selection happens in Phase 2 — preset-template choice)
@@ -258,7 +262,7 @@ If scan succeeded, just confirm. Otherwise ask.
    - Auto-derived: first hyphenated segment of project name (`pps-web` → `web`, `my-app` → `my-app`)
    - Override if you want a custom prefix.
 
-3. **Output language** — what language should agents report in?
+3. **Output language** — the **default** report language. Generated agents resolve the actual report language per session (explicit user request > dominant session language > this default) via their `## Report language` section; this answer only sets the fallback.
    - `AskUserQuestion` with **2 options**: `English` (default) · `Thai`. The tool's built-in "Other" slot takes a free-text language name.
    - If the user picks "Other" (any language that is not English or Thai), enter the non-en/th flow: during the summary step prompt once for each of the 9 Report-header values (see "Report-header derivation"). Never silently fall back to English — that would mix languages in the rendered Report block.
    - Affects: `<prefix>-implement`, `<prefix>-polish`, `<prefix>-test` reports
@@ -276,14 +280,20 @@ If scan succeeded, just confirm. Otherwise ask.
 
 ### Round 3 — Backend / API (skip whole round if FE-only)
 
-If Phase 1 found no sibling backend repo AND user has no Swagger URL → skip.
+If Phase 1 found no sibling backend repo AND user has no API-docs URL → skip.
 
-6. **Backend API-contract URL** — full URL to your backend's contract doc (Swagger / OpenAPI UI, or a GraphQL schema endpoint).
+6. **Backend API-docs URL** — full URL to your backend's **machine-readable** contract document (OpenAPI JSON, e.g. springdoc `/v3/api-docs`, or a GraphQL introspection endpoint). Fills `{{API_DOCS_URL}}`.
    - Leave empty for frontend-only projects.
-   - Example: `https://api.example.com/swagger-ui/`
+   - Example: `https://api.example.com/v3/api-docs`
+   - **Must be the JSON document, never a swagger-ui HTML page** — the HTML page is a JS shell with no endpoint data, so agents fetching it verify nothing. If the user supplies a `swagger-ui/index.html`-style URL, derive the JSON sibling (springdoc default: `/v3/api-docs`) and confirm with the user.
    - **Contract name** (report wording) — defaults to `Swagger`; set e.g. `OpenAPI` or `GraphQL schema` for non-Swagger backends. Fills `{{API_CONTRACT_NAME}}`.
 
-7. **BE-scope trigger keywords** (only if Swagger given) — phrases that turn on the backend API-shape check while implementing.
+6b. **Backend local checkout path** — relative path from PROJECT_ROOT to a local checkout of the backend repo, used as the contract-verification fallback when the API-docs URL is unreachable. Fills `{{BACKEND_LOCAL_PATH}}`.
+   - Auto-detected from the sibling-dir scan (typically `../<backend-name>`); confirm or override.
+   - Must be a **relative** path meaningful to any teammate — never an absolute or author-personal path.
+   - Leave empty if no local backend checkout exists.
+
+7. **BE-scope trigger keywords** (only if an API-docs URL is given) — phrases that turn on the backend API-shape check while implementing.
    - Default: `check BE, verify BE, sync api types, contract check`
    - Multi-language allowed; agent does case-insensitive substring match.
    - Example for Thai project: add `เช็ค BE, เช็ค swagger`
@@ -292,11 +302,11 @@ If Phase 1 found no sibling backend repo AND user has no Swagger URL → skip.
 
 These define what user phrases should invoke each agent. Defaults work for English-only projects; all four accept multi-language variants.
 
-8. **Implement triggers** — phrases that invoke `<prefix>-implement`.
-   - Default: `"implement X", "build Y", "apply this plan", "revamp X"`
+8. **Implement triggers** — phrases that invoke `<prefix>-implement`. Implement owns bug fixes and structural refactors, so "fix X" belongs here, not in polish.
+   - Default: `"implement X", "build feature X", "fix X", "apply this plan", "revamp X"`
 
-9. **Polish triggers** — phrases that invoke `<prefix>-polish`.
-   - Default: `"clean up", "DRY up X", "align features X, Y, Z", "polish diff"`
+9. **Polish triggers** — phrases that invoke `<prefix>-polish`. Polish owns DRY/consistency-flavored "refactor X"; structural refactors stay with implement.
+   - Default: `"clean up", "DRY up X", "refactor X" (DRY/consistency-flavored), "align features X, Y, Z", "polish diff"`
 
 10. **Pre-commit triggers** — phrases that invoke `<prefix>-pre-commit`.
    - Default: `"review my changes", "ship it", "pre-commit check", "draft commit"`
@@ -328,8 +338,9 @@ Add project-specific richness? Pick what applies (skip all = generic):
     If you cite a commit, supply a hash you've verified via `git log` — do NOT invent (Grounding rule).
 
 [ ] **Where you save draft plans**
-    Example: `session-working-space/tasks/*-plan.md`.
-    The implement agent reads from here in Continuation mode. Skip if you don't save plans.
+    Example: `docs/plans/*-plan.md` — must be project-relative; never an absolute or author-personal path.
+    The implement agent reads from here in Continuation mode. Skip if you don't save plans
+    (the row then reads "Plan file or skill output from an earlier turn" — the generic phrase).
 
 [ ] **What your structure linter already catches**
     Example: `lint:structure` validates MC-5 (page folder), MC-6 (file naming), MC-7 (form scope).
@@ -430,6 +441,7 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{BUILD_CMD}}` | answer 12 | |
 | `{{DEV_CMD}}` | answer 13 | (currently unused in templates — reserved) |
 | `{{TEST_CMD}}` | answer 14 | |
+| `{{FULL_CHECK_CMD}}` | Scan A (`npm run check`-style script; falls back to `{{BUILD_CMD}}`) | pre-commit mode full gate; must not mutate the working tree |
 | `{{LINT_STRUCTURE_CMD}}` | answer 15 | |
 | `{{LINT_STRUCTURE_CMD_STRICT}}` | answer 16 | |
 | `{{POLISH_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + `` ` ``+ answer 17 +` ` `` ` + ` (` + `` ` ``+`PAGE_STATUS`+`` ` ``+` map)` (empty string if answer 17 empty) | backtick-wrap both the script path AND `PAGE_STATUS` |
@@ -439,7 +451,8 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{REFERENCE_PAGE_TERM}}` | page-maturity resolution: project's "good" page label (default `Polished`); `reference` if no maturity model | |
 | `{{ANTI_REFERENCE_CLAUSE}}` | page-maturity resolution: ` — never anchor on <bad-labels> pages` (default ` — never anchor on Rough/Partial pages`); empty if no maturity model | leading ` — ` separator preserved |
 | `{{POLISH_STATUS_REPORT_BLOCK}}` | the flip/regression report block (see "POLISH_STATUS_REPORT_BLOCK template") if a page-status audit script exists; else empty string | gated identically to `{{POLISH_STATUS_CHECK_SECTION}}` |
-| `{{SWAGGER_URL}}` | answer 18 | |
+| `{{API_DOCS_URL}}` | answer 18 — machine-readable contract JSON endpoint (e.g. `/v3/api-docs`); never a swagger-ui HTML page | |
+| `{{BACKEND_LOCAL_PATH}}` | answer 18c (auto-detected sibling, typically `../<backend-name>`; relative path only) | contract-verification fallback when API docs unreachable |
 | `{{API_CONTRACT_NAME}}` | answer 18b (default `Swagger`; e.g. `OpenAPI` / `GraphQL schema`) | report-wording term for the contract source |
 | `{{BE_KEYWORDS_PRIMARY}}` | answer 19 first half | |
 | `{{BE_KEYWORDS_SECONDARY}}` | answer 19 second half | split at commas, group |
@@ -450,10 +463,10 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{TEST_CANONICAL_FILES}}` | answer 24 (multi-line markdown bullet list, indentation = 0 spaces, one `- \`path\`` per line) | |
 | `{{APPLY_KEYWORD}}` | answer 25 | |
 | `{{APPLY_KEYWORD_ALIASES}}` | answer 25b — trailing alias suffix beginning with ` / `, default ` / `` `apply` `` ` / `` `go ahead` ``  | comma-separated alias list user types → render each backticked, joined by ` / `, prefixed with ` / ` |
-| `{{POLISH_TRIGGER_KEYWORDS}}` | answer 25c — comma-separated quoted triggers for polish description (multi-language allowed) | default: `"clean up", "DRY up X", "align features X, Y, Z", "polish diff"` |
+| `{{POLISH_TRIGGER_KEYWORDS}}` | answer 25c — comma-separated quoted triggers for polish description (multi-language allowed) | default: `"clean up", "DRY up X", "refactor X" (DRY/consistency-flavored), "align features X, Y, Z", "polish diff"` |
 | `{{POLISH_SCOPE_NOTE}}` | answer 25d — optional parenthetical clarifier in polish description (or empty) | default empty |
 | `{{TEST_TRIGGER_KEYWORDS}}` | answer 25e — comma-separated quoted triggers for test description (multi-language allowed) | default: `"write tests for X", "test for X", "expand coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"` |
-| `{{IMPLEMENT_TRIGGER_KEYWORDS}}` | answer 8 (Round 4) — comma-separated quoted triggers for implement description (multi-language allowed) | default: `"implement X", "build Y", "apply this plan", "revamp X"` |
+| `{{IMPLEMENT_TRIGGER_KEYWORDS}}` | answer 8 (Round 4) — comma-separated quoted triggers for implement description (multi-language allowed) | default: `"implement X", "build feature X", "fix X", "apply this plan", "revamp X"` |
 | `{{PRECOMMIT_TRIGGER_KEYWORDS}}` | answer 10 (Round 4) — comma-separated quoted triggers for pre-commit description (multi-language allowed) | default: `"review my changes", "ship it", "pre-commit check", "draft commit"`; **localizing the trigger does NOT localize pre-commit output — commit/PR text stays English** |
 | Report-block headers (`{{REPORT_NOTES_HDR}}`, `{{REPORT_PENDING_HDR}}`, `{{REPORT_HANDOFF_VERB}}`, `{{REPORT_BUILD_VERB}}`, `{{REPORT_OR_REASON}}`, `{{REPORT_FILES_HDR}}`, `{{REPORT_SKIP_HDR}}`, `{{REPORT_IFANY_SUFFIX}}`, `{{REPORT_PENDING_NONE}}`) | derived from `{{OUTPUT_LANG}}` — see "Report-header derivation" below | |
 
@@ -522,7 +535,9 @@ If a page-status audit script exists (answer 17 non-empty), expand `{{POLISH_STA
 
 ### Edge cases in substitution
 
-- **Empty Swagger URL** (answer 18): strip the entire `### 0.0 BE-scope gate` section from `implement.template.md` and the `## {{API_CONTRACT_NAME}} drift gate` section from `pre-commit.template.md`. Replace with a 1-line note: `BE-scope / API-contract drift gates: not configured (no contract URL).`
+- **Empty API-docs URL AND empty backend local path** (answers 18 + 18c): strip the entire `### 0.0 BE-scope gate` section from `implement.template.md` and the `## {{API_CONTRACT_NAME}} drift gate` section from `pre-commit.template.md`. Replace with a 1-line note: `BE-scope / API-contract drift gates: not configured (no contract source).`
+- **Empty API-docs URL but backend local path present**: keep both gates; drop the `WebFetch` step — the local checkout becomes the primary contract source.
+- **Empty backend local path but API-docs URL present**: keep both gates; drop the local-checkout fallback step — an unreachable API-docs URL goes straight to "not verified" severity.
 - **Empty lint:structure** (answer 15): strip `## Shared lint:structure run` and `## Structure regression check` sections from `pre-commit.template.md`. Inline a 1-line note in their place.
 - **Empty docs root** (answer 11): the three `{{*_DOCS_GLOB}}` placeholders render empty; the generator should drop the corresponding rows from the `## Docs update` table in `pre-commit.template.md` (otherwise the table has empty cells).
 - **Empty `{{API_SERVICES_PATHS}}`** (answer 20): the `{{API_CONTRACT_NAME}}` drift gate bullet "Project's shared HTTP client / API service / case-transform" disappears — gate triggers only on per-feature `api/*` and network-wrapping hooks.
@@ -652,7 +667,17 @@ When invoked:
 
 6. **Report**: print absolute paths of all created files. If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
 
-7. **Install** — close the gen → copy → discard loop. `AskUserQuestion` with 2 options (default `Auto-install`):
+7. **Workflow guideline** — offer to append the section below to the project's conventions doc (`{{CONVENTIONS_DOC}}`, usually the project CLAUDE.md) so the whole team sees how the quartet chains. `AskUserQuestion` (Append / Skip); skip silently if an equivalent "Agent workflow" section already exists in the doc.
+
+   ```markdown
+   ### Agent workflow (guideline, not automation)
+
+   Typical flow: `<prefix>-implement` (or hand-edit) → `<prefix>-polish` diff-polish → `<prefix>-pre-commit` → human runs `git commit` / `git push`.
+   Each agent's report names the next step — the human (or the main conversation, with the user's go-ahead) invokes it.
+   Agents never invoke each other; every confirm gate stays manual.
+   ```
+
+8. **Install** — close the gen → copy → discard loop. `AskUserQuestion` with 2 options (default `Auto-install`):
    - **Auto-install** — copy the four `agents/*.md` into `<launch-cwd>/.claude/agents/` (the directory the user launched Claude Code in — usually the monorepo root for prefixed-command profiles, the project root otherwise). If `<output-path>` is under `/tmp`, also `rm -rf` it after the copy succeeds.
    - **Manual** — print the copy install snippet from the generated README and stop. User runs the commands themselves.
 
