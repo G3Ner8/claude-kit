@@ -1,7 +1,7 @@
 {
   "name": "dev-core",
-  "version": "0.1.0",
-  "description": "Cross-cutting engineering-discipline skills, independent of framework or stack — each a persona: detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem). The stack-agnostic tier of claude-kit.",
+  "version": "0.2.0",
+  "description": "Cross-cutting engineering-discipline skills, independent of framework or stack — each a persona: foreman (plan → scope-tight work order for a headless agent), detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem). The stack-agnostic tier of claude-kit.",
   "author": {
     "name": "Chettawat Phosri"
   },
