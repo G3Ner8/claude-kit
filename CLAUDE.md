@@ -19,7 +19,7 @@ claude-kit is a **tiered** personal kit. Skills/agents are organised by how wide
 
 | Tier | Plugin | Role | Depends on | Status |
 |---|---|---|---|---|
-| **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`) | — | experimental |
+| **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: plan → agent work order (`foreman`), debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`) | — | experimental |
 | **Domain** (React 19 / Vite) | **`react-core`** | Portable React knowledge — skills consumed by any React 19 / Vite project | — | stable |
 | **Domain** (React 19 / Vite) | **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | stable |
 
@@ -50,6 +50,7 @@ claude-kit/
     ├── dev-core/                       # cross-cutting tier — stack-agnostic personas
     │   ├── .claude-plugin/plugin.json
     │   └── skills/
+    │       ├── foreman/SKILL.md         # plan → agent work order
     │       ├── detective/SKILL.md       # debug discipline
     │       ├── inspector/SKILL.md       # intent-validation review
     │       └── archivist/SKILL.md       # incident post-mortem
@@ -257,7 +258,7 @@ one-shot).
 
 | Asset | Pattern | Example |
 |---|---|---|
-| Cross-cutting skill (dev-core) | `<persona>` (bare — no domain prefix; a role noun, not a verb) | `detective`, `inspector`, `archivist` |
+| Cross-cutting skill (dev-core) | `<persona>` (bare — no domain prefix; a role noun, not a verb) | `foreman`, `detective`, `inspector`, `archivist` |
 | Domain skill (react-core) | `<domain>-<concern>` | `react-audit`, `react-perf` |
 | Project-specific skill (profile) | `<scope>-<concern>` | `dash-ui` (hypothetical) |
 | Generator/meta skill | `<noun>-generator` | `profile-generator` |

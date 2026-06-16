@@ -9,8 +9,8 @@
     {
       "name": "dev-core",
       "source": "./plugins/dev-core",
-      "description": "Cross-cutting, stack-agnostic engineering disciplines as personas: detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem). claude-kit's foundational tier.",
-      "version": "0.1.0"
+      "description": "Cross-cutting, stack-agnostic engineering disciplines as personas: foreman (plan → scope-tight work order for a headless agent), detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem). claude-kit's foundational tier.",
+      "version": "0.2.0"
     },
     {
       "name": "react-core",
