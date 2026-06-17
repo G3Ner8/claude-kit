@@ -19,7 +19,7 @@ claude-kit is a **tiered** personal kit. Skills/agents are organised by how wide
 
 | Tier | Plugin | Role | Depends on | Status |
 |---|---|---|---|---|
-| **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: plan → agent work order (`foreman`), debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`) | — | experimental |
+| **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: plan → agent work order (`drafter`), debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`), project-status survey (`surveyor`) | — | experimental |
 | **Domain** (React 19 / Vite) | **`react-core`** | Portable React knowledge — skills consumed by any React 19 / Vite project | — | stable |
 | **Domain** (React 19 / Vite) | **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | stable |
 
@@ -50,10 +50,11 @@ claude-kit/
     ├── dev-core/                       # cross-cutting tier — stack-agnostic personas
     │   ├── .claude-plugin/plugin.json
     │   └── skills/
-    │       ├── foreman/SKILL.md         # plan → agent work order
+    │       ├── drafter/SKILL.md         # plan → agent work order
     │       ├── detective/SKILL.md       # debug discipline
     │       ├── inspector/SKILL.md       # intent-validation review
-    │       └── archivist/SKILL.md       # incident post-mortem
+    │       ├── archivist/SKILL.md       # incident post-mortem
+    │       └── surveyor/SKILL.md        # project-status survey (declared vs ground truth)
     ├── react-core/
     │   ├── .claude-plugin/plugin.json
     │   └── skills/
@@ -258,7 +259,7 @@ one-shot).
 
 | Asset | Pattern | Example |
 |---|---|---|
-| Cross-cutting skill (dev-core) | `<persona>` (bare — no domain prefix; a role noun, not a verb) | `foreman`, `detective`, `inspector`, `archivist` |
+| Cross-cutting skill (dev-core) | `<persona>` (bare — no domain prefix; a role noun, not a verb) | `drafter`, `detective`, `inspector`, `archivist`, `surveyor` |
 | Domain skill (react-core) | `<domain>-<concern>` | `react-audit`, `react-perf` |
 | Project-specific skill (profile) | `<scope>-<concern>` | `dash-ui` (hypothetical) |
 | Generator/meta skill | `<noun>-generator` | `profile-generator` |
@@ -434,6 +435,8 @@ Foundational decisions resolved during the Phase 1 foundation pass.
 | D5 | Public timeline: Phase 1 only vs full Phase 3 | Phase 1 internal → Phase 2 beta → Phase 3 GA | ✅ 2026-05-26 |
 | D6 | Stack-agnostic skills (`scrutinize`, `post-mortem`): keep in `react-core` vs separate tier | new `dev-core` tier (cross-cutting); bare names, no `react-` prefix (see Section 7) | ✅ 2026-05-27 |
 | D7 | dev-core skill names: functional (`scrutinize`/`post-mortem`) vs persona | persona names — `detective` (debug), `inspector` (review, was `scrutinize`), `archivist` (post-mortem). Distinctive + map to lifecycle moments (find → gate → preserve); persona = the opening voice of each SKILL.md. Adds `detective` as the framework-agnostic debug discipline (`react-debug` stays its React-specialized cousin in `react-core`). Supersedes D6 naming. | ✅ 2026-05-27 |
+| D8 | Name for the project-status-survey skill | `surveyor` — persona that reads as its job (walks the ground, measures real status vs the declared map). Selection rule extends D7: **legibility first** — the name must telegraph the function (loanword-transparent, like `detective`/`inspector`) over period-flavor; rejected `scrutineer`/`scrivener` as too opaque. | ✅ 2026-06-17 |
+| D9 | `foreman` is the industrial-era outlier in the otherwise older-craft persona set — rename? | renamed `foreman` → `drafter`. Same job (turns a crystallized plan into a precise work order for a headless agent), but the name reads as its function (drafts the order) and fits the set's register. Applies the D8 legibility rule; extends D7. Shipped in the same change as `surveyor` (dev-core 0.3.0). | ✅ 2026-06-17 |
 
 Future decisions append to this table; never edit a resolved row in place —
 add a new row referencing the prior decision instead.
