@@ -18,12 +18,13 @@ Each skill is a **persona** — a stance the assistant adopts at a distinct mome
 
 | Skill | Persona | Moment | Purpose | Try |
 | --- | --- | --- | --- | --- |
-| [`foreman`](./skills/foreman/) | 🏗️ foreman | **before** work | Turn a crystallized plan into a scope-tight, checkable work order for a headless coding agent (e.g. an SDC agent-ready issue). Preserves discovered knowledge (root cause, constraints, traps), drops choreography, makes acceptance criteria the contract. _(experimental)_ | "turn this plan into an agent issue" |
+| [`drafter`](./skills/drafter/) | 📐 drafter | **before** work | Turn a crystallized plan into a scope-tight, checkable work order for a headless coding agent (e.g. an SDC agent-ready issue). Preserves discovered knowledge (root cause, constraints, traps), drops choreography, makes acceptance criteria the contract. _(experimental)_ | "turn this plan into an agent issue" |
 | [`detective`](./skills/detective/) | 🕵️ detective | **while** debugging | Reproduce → follow the fail path inward → falsify hypotheses → name the root cause **before** fixing. Breaks the "patch the symptom" reflex. _(experimental)_ | "why is X broken?" |
 | [`inspector`](./skills/inspector/) | 🔎 inspector | **before** merge | Read-only intent-validation review of a diff / PR — does it do what the task asked, no more / no less? Surfaces scope creep, missed requirements, silent assumptions. No rubber-stamp. _(experimental)_ | "does this diff match the task?" |
 | [`archivist`](./skills/archivist/) | 📚 archivist | **after** resolution | Standardized incident post-mortem / RCA (impact, timeline, single root cause, fix, prevention with owners), shaped so a future reader who wasn't there learns the lesson. _(experimental)_ | "document the login outage" |
+| [`surveyor`](./skills/surveyor/) | 🗺️ surveyor | **between** cycles | Survey the real project state — reconcile declared status (backlog, status docs, tracker) against ground truth (merged history, MR/issue state, the code), report the drift, recommend next work by feasibility, offer to sync stale docs. Verifies, never trusts the doc. _(experimental)_ | "where are we — what's actually done?" |
 
-All read-only — they produce a report / document, never edit code. Invoke individually (`/foreman`, `/detective`, `/inspector`, `/archivist`) from any project regardless of stack. The four line up across the lifecycle: **foreman** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson.
+Read-only deliverables — they produce a report / document and never touch code (`surveyor` can sync status docs, but only on explicit approval). Invoke individually (`/drafter`, `/detective`, `/inspector`, `/archivist`, `/surveyor`) from any project regardless of stack. The five line up across the lifecycle: **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **surveyor** surveys where it all stands.
 
 ## Why a separate tier
 
