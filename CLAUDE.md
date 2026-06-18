@@ -396,6 +396,15 @@ CI integration (future): run both validators on PR — block merge on failure.
 5. Use it in a real session — if it survives, move out of `_in-progress/`
    and bump `status: stable`
 
+**To update an existing skill** (behavior or content change):
+1. Edit the `SKILL.md` and bump `metadata.version` (SemVer)
+2. **Bump the plugin's `plugin.json` version** (minor bump for new behavior,
+   patch for fixes) — this is the cache key; skipping it means installed
+   consumers keep the old cached copy
+3. **Mirror the bump in `.claude-plugin/marketplace.json`** — the version
+   there must match `plugin.json`
+4. Add an entry to `CHANGELOG.md` under `## [Unreleased]`
+
 **To create a new project profile**:
 1. Invoke `react-agents/skills/profile-generator` interactively
 2. Answer the interview (see PLACEHOLDER-REFERENCE.md)
