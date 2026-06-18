@@ -4,7 +4,7 @@ description: Survey the real state of a project — reconcile DECLARED status (b
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   type: gate
   status: experimental
   stack: any (language-agnostic; git + optional glab/gh)
@@ -46,7 +46,9 @@ Before reading anything, establish what kind of project this is. Don't hardcode 
 - **Integration branch:** the branch "done" work lands on (`main` / `master` / `develop` — check the project's CLAUDE.md or the most-merged-into branch).
 - **Project context:** read the repo's `CLAUDE.md` for where the backlog lives, which docs are authoritative, and any "this doc is historically wrong" notes. Let the project tell you its own layout.
 
-State the terrain in one line at the top of the report so the reader knows what you assumed.
+**Contributor scope** — default is **my work only**. Resolve `git config user.name` + `git config user.email` → `SURVEY_AUTHOR`. Only widen to all contributors if the user explicitly requests it ("survey everyone", "all work", "the whole team").
+
+State the terrain in one line at the top of the report. Append `(author: <name>)` when scoped to one author.
 
 ## Step 2 — Gather the declared status
 
@@ -65,7 +67,7 @@ Scope: if the user named an area, scope to it. Otherwise default to the active b
 
 For every claim, run the actual check and record *what you ran* and *what it returned*. The visible check is the deliverable's spine — never collapse it to a bare verdict.
 
-- **Merged?** `git -C <repo> log --oneline <branch> | grep <sha>`, or search the commit subject on the integration branch. A SHA not reachable on the branch = not landed.
+- **Merged?** `git -C <repo> log --oneline <branch> | grep <sha>`, or search the commit subject on the integration branch. A SHA not reachable on the branch = not landed. If scope is "my work only", use `git log --oneline --author="<SURVEY_AUTHOR>" <branch>` to filter — only surface items the user authored; skip rows that have no commits from them.
 - **MR/PR & issue state?** `glab mr view <n>` / `gh pr view <n>`; `glab issue view <n>` / `gh issue view <n>`. Merged / open / closed / stale.
 - **Code real?** Grep the feature's directory. Flag if a "done" item is still an empty-state stub, a fake/mock implementation (`Promise.resolve`, hardcoded return), or carries a "TODO / Original: <sha>" placeholder marker. A real, reachable code path is the bar.
 - **Separate the three levels — always say which you checked:**
