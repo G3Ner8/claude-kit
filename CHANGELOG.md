@@ -6,6 +6,9 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.4.0
+- `surveyor` 0.2.0 — default contributor scope is now **my work only**: resolves `git config user.name/email` and filters `git log` with `--author`. Widen to all contributors only on explicit request ("survey everyone", "all work", "the whole team"). Terrain line appends `(author: <name>)` when scoped.
+
 ### `dev-core` 0.3.0
 - `surveyor` (new) — project-status survey: reconcile DECLARED status (backlog/plan files, status docs, memory notes, tracker issues) against GROUND TRUTH (merged git history, MR/issue state, the actual code), report the drift, then recommend next work by feasibility and offer to sync the stale docs. Read-only by default; doc edits apply only on explicit go-ahead, tracker actions asked separately. Detects host (glab/gh/plain git) + repo shape (submodule/mono) and reads the project's own `CLAUDE.md` for layout; separates exists-in-source ≠ merged ≠ deployed. The discipline transfers by *showing the work* (every verdict carries the check that produced it), not by teaching tags. Persona name chosen for legibility (decision D8).
 - `foreman` → `drafter` (rename) — the persona was the industrial-era outlier in the set; `drafter` reads as its job (drafts the work order) and fits the register. Same behavior, no content change beyond the persona voice (decision D9). The `/foreman` invocation becomes `/drafter`.
