@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   type: gate
   status: experimental
   stack: any (language- and framework-agnostic)
@@ -63,6 +63,13 @@ Two moves at once:
 - **Lossless on discovered knowledge** — the root cause, the "trap" a naive implementation falls into, and the confirmed facts (paths, schemas, hard limits) are the gold. They are exactly what a fresh headless agent **cannot** rediscover and what stops it from repeating the mistake the plan already caught. Carry them over whole.
 - **Lossy on rigid choreography** — the literal step-by-step ("edit file A, then add function B, then…") is the human's implementation path. Demote it to a **recommended approach**, not a mandate; the agent designs in-session. Keep an approach only when it encodes a *constraint* (a pattern that must be mirrored, a pitfall to avoid) — and then keep its **why**, which is what makes it load-bearing.
 
+**Scan for agent orchestration intent.** Before filing into sections, identify in the plan:
+- Specific skills the agent should invoke (e.g. "run react-audit", "use the inspector") → candidate for `skills:` in Agent Configuration
+- A specific sub-agent to delegate to (e.g. "hand to web-implement", "run through the test agent") → candidate for `agent-type:` in Agent Configuration
+- A multi-phase agent sequence (e.g. "implement → pre-commit → test") → prose in `## Design`; `agent-type:` covers the primary agent only; the daemon has no per-phase config today
+
+If the plan implies either, **confirm the exact names with the user before writing** — the daemon hard-blocks the issue pre-claim if any declared name is unknown (see Operating rules).
+
 Re-file the plan into the work-order sections (Step 4). The same self-contained rule that serves the agent makes it readable to the absent teammate — strip every session-local reference and inline what it pointed to.
 
 ## Step 4 — Write the work order (English only)
@@ -76,6 +83,11 @@ The work-order document is **English only** — its reader is a coding agent and
 - **Acceptance Criteria** — the **hard contract**: checkable, verifiable items. This is what the MR is measured against.
 - **Test Cases** — Given / When / Then. At least one.
 - **Out of scope / Non-goals** — explicit. Pre-empts scope creep; names adjacent work that is deliberately *not* in this order.
+- **Agent Configuration** *(include when the plan specifies any of these; omit the section entirely otherwise)*:
+  - `model:` — infer from task complexity: `opus` for heavy/architectural work, `haiku` for trivial/mechanical, `sonnet` otherwise.
+  - `skills:` — when the plan names skills to invoke. Bare name = project skill (`.claude/skills/<name>/SKILL.md` in the target repo); `<plugin>:<skill>` = plugin skill installed on the agent. Comma-separated, case-sensitive kebab-case. **The daemon validates every name pre-claim and hard-blocks the issue if any is unknown** — never write a name you haven't confirmed with the user.
+  - `agent-type:` — when the plan delegates to a specific sub-agent type. Valid names are the repo's `.claude/agents/` entries and Claude Code built-ins (`general-purpose`, `Explore`, `Plan`). Daemon-validated pre-claim with the same hard-block rule. Best-effort: the directive only binds if the agent chooses to delegate.
+  - Multi-phase sequences → write the sequence as prose in `## Design`; `agent-type:` names the primary agent only. The daemon cannot express per-phase config today.
 - **Dependencies** — ordering / `Depends-on:` when the plan implies it (e.g. a BE change that must land before its FE counterpart).
 
 If the plan surfaced adjacent problems, **split them into their own work orders** — do not bundle them into this one (archivist's rule: each follow-up is its own ticket).
@@ -106,6 +118,7 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 - **The work order is English only.** The artifact's readers are an agent and a reviewing team.
 - **Interactive replies adapt to the user.** Talk to the user in the language they're using in the conversation; honor their CLAUDE.md / language-preference memory if present; default to matching the conversation. Keep technical terms, identifiers, and all code in English regardless. (This skill ships in a shared kit — never hardcode a single human language.)
 - **Self-contained.** No reference the absent reader can't resolve. Inline what a session-local note pointed to.
+- **Never guess skill or agent-type names.** If the plan implies a specific skill (`skills:`) or sub-agent (`agent-type:`), confirm the exact name with the user — the daemon hard-blocks the issue pre-claim if any declared name is unknown. A typo parks the issue `agent-blocked` before a single line of code is written.
 - **Read-only.** Produce a document. Posting and code edits belong to other tools.
 
 ## Quick reference
@@ -114,7 +127,7 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 1. Locate plan   — path / in-context / ask. Never assume a fixed location.
 2. Gate          — precise target? recoverable AC? constraints present? — else bounce back
 3. Transform     — TRUST the plan (no re-explore); keep knowledge, drop choreography
-4. Write order   — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Deps
+4. Write order   — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Agent Config (skills/agent-type/model when plan implies them) + Deps
 5. Stop/handoff  — to /create-issue if present, else output; never post or edit code
 ```
 

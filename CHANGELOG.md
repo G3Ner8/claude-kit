@@ -6,6 +6,9 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.5.0
+- `drafter` 0.2.0 — add `skills:` / `agent-type:` awareness for SDC agent tasks. Step 3 now scans the plan for agent orchestration intent (skills to invoke, sub-agent to delegate to, multi-phase sequences) and asks the user to confirm exact names before writing. Step 4 adds an **Agent Configuration** section to the work-order template with `model:`, `skills:`, and `agent-type:` rules including the daemon's hard-block semantics. Operating rules add: never guess skill or agent-type names — a wrong name parks the issue `agent-blocked` pre-claim.
+
 ### `dev-core` 0.4.0
 - `surveyor` 0.2.0 — default contributor scope is now **my work only**: resolves `git config user.name/email` and filters `git log` with `--author`. Widen to all contributors only on explicit request ("survey everyone", "all work", "the whole team"). Terrain line appends `(author: <name>)` when scoped.
 
