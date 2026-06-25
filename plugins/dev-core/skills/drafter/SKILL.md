@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
   type: gate
   status: experimental
   stack: any (language- and framework-agnostic)
@@ -80,7 +80,10 @@ Wait for the user's response (even "looks right, go ahead") before proceeding to
 **Classify as choreography (demote to recommended approach):**
 - Explicit step sequences ("then do X", "after Y, do Z") with no automated enforcement signal
 - Build order or chunk sequences — the agent sequences its own work
-- Agent workflow coordination (implement → pre-commit → test) — keep the sequence as prose in `## Design`, not as mandated steps
+- **Human-gate coordination** — "human reviews", manual `git commit`, "wait for approval" arrows between steps. SDC is autonomous and one-shot; these gates cannot exist, so drop them.
+
+**Not choreography — named agent-phase chains are load-bearing workflow:**
+A plan that sequences distinct named sub-agents in order (e.g. `implement → polish → pre-commit`) — especially when stages need different models — is **not** droppable choreography. It maps to a first-class `## Phases` section in the work order (Step 4). Drop only the human-confirm gates wrapped around the chain; keep the chain itself.
 
 ## Step 3 — Transform: lossless on knowledge, lossy on choreography
 
@@ -92,10 +95,8 @@ Two moves at once:
 
 **Scan for agent orchestration intent.** Before filing into sections, identify in the plan:
 - Specific skills the agent should invoke (e.g. "run react-audit", "use the inspector") → candidate for `skills:` in Agent Configuration
-- A specific sub-agent to delegate to (e.g. "hand to web-implement", "run through the test agent") → candidate for `agent-type:` in Agent Configuration
-- A multi-phase agent sequence (e.g. "implement → pre-commit → test") → prose in `## Design`; `agent-type:` covers the primary agent only; the daemon has no per-phase config today
-
-If the plan implies either, **confirm the exact names with the user before writing** — the daemon hard-blocks the issue pre-claim if any declared name is unknown (see Operating rules).
+- A specific sub-agent to delegate to (e.g. "hand to an implement agent", "run through the test agent") → candidate for `agent-type:` in Agent Configuration
+- A multi-phase agent sequence with distinct sub-agents (e.g. `implement → polish → pre-commit`) → a first-class **`## Phases`** section (Step 4) — see there for the format. Confirm per-phase names with the user (see Operating rules).
 
 **Path-scope check (mandatory before filing into sections):** scan the plan for every file path reference. For each path, ask: can the SDC agent resolve this from inside the target repo's working directory? Drafter runs locally where all repos are accessible — this is the only window to resolve external references before the work order leaves.
 
@@ -129,11 +130,29 @@ The work-order document is **English only** — its reader is a coding agent and
 - **Acceptance Criteria** — the **hard contract**: checkable, verifiable items. This is what the MR is measured against.
 - **Test Cases** — Given / When / Then. At least one.
 - **Out of scope / Non-goals** — explicit. Pre-empts scope creep; names adjacent work that is deliberately *not* in this order.
+- **Phases** *(emit only when the plan carries a named multi-stage agent chain AND the target supports first-class phases, e.g. SDC)* — one `### Phase N: <title>` sub-block per stage, each carrying its own `agent-type:` / optional `model:` / `skills:` line (same format as Agent Configuration) plus that stage's instructions. Format:
+  ```
+  ## Phases
+
+  ### Phase 1: Implement
+  agent-type: implement-agent
+  Build the feature against the plan. Do not commit (the runner commits per phase).
+
+  ### Phase 2: Polish
+  agent-type: polish-agent
+  One pass over the accumulated working-tree diff: DRY, consistency, cleanup.
+
+  ### Phase 3: Pre-commit gate
+  agent-type: pre-commit-agent
+  Run the project's gates (type-check, lint, tests, structure checks) over the full diff.
+  ```
+  *Phase titles and `agent-type:` values above are illustrative — substitute the target repo's actual `.claude/agents/` names (confirm with the user; see Operating rules).*
+  A runner with first-class phases (e.g. SDC's daemon) runs phases in order, one committed run each on the same branch, one MR after the last phase. Omit a phase's `model:` to cascade to the issue-level default (then `sonnet`). **Drop human-confirm gates** — deterministic per-phase execution replaces them. A bare `## Phases` heading with no `### Phase` sub-blocks is NOT valid — always emit ≥1 sub-block.
 - **Agent Configuration** *(include when the plan specifies any of these; omit the section entirely otherwise)*:
-  - `model:` — infer from task complexity: `opus` for heavy/architectural work, `haiku` for trivial/mechanical, `sonnet` otherwise.
+  - `model:` — infer from task complexity: `opus` for heavy/architectural work, `haiku` for trivial/mechanical, `sonnet` otherwise. Acts as the cascade default for any `## Phases` sub-block that omits its own `model:`.
   - `skills:` — when the plan names skills to invoke. Bare name = project skill (`.claude/skills/<name>/SKILL.md` in the target repo); `<plugin>:<skill>` = plugin skill installed on the agent. Comma-separated, case-sensitive kebab-case. **The daemon validates every name pre-claim and hard-blocks the issue if any is unknown** — never write a name you haven't confirmed with the user.
   - `agent-type:` — when the plan delegates to a specific sub-agent type. Valid names are the repo's `.claude/agents/` entries and Claude Code built-ins (`general-purpose`, `Explore`, `Plan`). Daemon-validated pre-claim with the same hard-block rule. Best-effort: the directive only binds if the agent chooses to delegate.
-  - Multi-phase sequences → write the sequence as prose in `## Design`; `agent-type:` names the primary agent only. The daemon cannot express per-phase config today.
+  - Multi-phase agent chains → use the **`## Phases`** section (above), not issue-level `agent-type:`. Issue-level `agent-type:`/`model:` then act as the cascade default for any phase that omits its own. (Targets without first-class phases: fall back to a prose chain in `## Design` and name the sub-agents — best-effort, non-deterministic.)
 - **Dependencies** — ordering / `Depends-on:` when the plan implies it (e.g. a BE change that must land before its FE counterpart).
 
 If the plan surfaced adjacent problems, **split them into their own work orders** — do not bundle them into this one (archivist's rule: each follow-up is its own ticket).
@@ -164,7 +183,7 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 - **The work order is English only.** The artifact's readers are an agent and a reviewing team.
 - **Interactive replies adapt to the user.** Talk to the user in the language they're using in the conversation; honor their CLAUDE.md / language-preference memory if present; default to matching the conversation. Keep technical terms, identifiers, and all code in English regardless. (This skill ships in a shared kit — never hardcode a single human language.)
 - **Self-contained.** No reference the absent reader can't resolve. Inline what a session-local note pointed to. **Specifically: never carry a path the agent cannot open from inside the target repo** — paths starting with `../`, absolute paths outside the project root, or session-local locations (`session-working-space/`, `~/.claude/`, `/Users/…`) must be inlined or their key facts summarized; carrying the path is always wrong.
-- **Never guess skill or agent-type names.** If the plan implies a specific skill (`skills:`) or sub-agent (`agent-type:`), confirm the exact name with the user — the daemon hard-blocks the issue pre-claim if any declared name is unknown. A typo parks the issue `agent-blocked` before a single line of code is written.
+- **Never guess skill or agent-type names.** If the plan implies a specific skill (`skills:`) or sub-agent (`agent-type:`), confirm the exact name with the user — the daemon hard-blocks the issue pre-claim if any declared name is unknown. A typo parks the issue `agent-blocked` before a single line of code is written. This applies to **per-phase** `agent-type:`/`skills:` in a `## Phases` section equally — the daemon union-validates every phase's declarations pre-claim; one unknown name in any phase hard-blocks the whole issue.
 - **Read-only.** Produce a document. Posting and code edits belong to other tools.
 
 ## Quick reference
@@ -174,7 +193,7 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 2. Gate             — precise target? recoverable AC? constraints present? — else bounce back
 2.5 Classify        — table of [knowledge/constraint] vs [choreography] per section → wait for correction
 3. Transform        — TRUST the plan (no re-explore); keep knowledge, drop choreography
-4. Write order      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Agent Config (skills/agent-type/model when plan implies them) + Deps
+4. Write order      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Phases (named agent-phase chain → ## Phases with ### Phase N: sub-blocks, per-phase agent-type/model) + Agent Config (issue-level model/skills/agent-type; cascade default for phases) + Deps
 5. Stop/handoff     — to /create-issue if present, else output; never post or edit code
 ```
 
