@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   type: gate
   status: experimental
   stack: any (language- and framework-agnostic)
@@ -55,6 +55,33 @@ Before transforming, confirm the plan is sharp enough to yield a work order. It 
 
 If any answer is no, **stop and report the gap** ("the plan doesn't state how to verify success" / "this describes a symptom, not the change"). Bounce it back for sharpening. A confident work order built on a soft plan is the worst output — the agent will implement the wrong thing, in scope, and pass CI.
 
+## Step 2.5 — Confirm classification before transforming
+
+After the gate passes, **before writing the work order**, scan the plan's major sections and surface your classification. Plans arrive from many sources (session output, agent hand-off, any path) and may express structural constraints as implementation steps — without an explicit "enforced by X" signal. Without a confirmation step, drafter guesses from framing alone and silently demotes what are actually hard constraints.
+
+Present a compact table:
+
+| Section / heading | Classification | Signal that drove the call |
+|---|---|---|
+| "§1 BE contract" | knowledge — keep verbatim | external system spec |
+| "§4 folder tree" | **constraint or choreography?** | no enforcement signal found |
+| "§10 build order" | choreography — demote | step-by-step, no automated gate |
+
+Then ask: **"Correct any misclassification before I transform — a wrong call here produces a wrong work order."**
+
+Wait for the user's response (even "looks right, go ahead") before proceeding to Step 3.
+
+**Classify as knowledge / constraint (keep verbatim + extract why):**
+- Anything referenced by an automated enforcement mechanism — linter, CI gate, pre-commit hook, test suite, type-checker — regardless of how it's phrased in the plan
+- Wire schemas or field lists derived from an external system (API spec, BE DTO, DB schema)
+- Business rules with code-level evidence (line numbers, exception class names, `@Annotation` references)
+- Decisions explicitly locked or user-approved in the plan
+
+**Classify as choreography (demote to recommended approach):**
+- Explicit step sequences ("then do X", "after Y, do Z") with no automated enforcement signal
+- Build order or chunk sequences — the agent sequences its own work
+- Agent workflow coordination (implement → pre-commit → test) — keep the sequence as prose in `## Design`, not as mandated steps
+
 ## Step 3 — Transform: lossless on knowledge, lossy on choreography
 
 The plan is **authoritative**. **Do not re-explore the codebase** — the plan's discovered facts (table names, symbols, the constraints, the traps) are the analysis you're paid to preserve, not to re-derive. Re-grepping to "verify" burns tokens for nothing. Only flag a fact that is internally contradictory.
@@ -69,6 +96,12 @@ Two moves at once:
 - A multi-phase agent sequence (e.g. "implement → pre-commit → test") → prose in `## Design`; `agent-type:` covers the primary agent only; the daemon has no per-phase config today
 
 If the plan implies either, **confirm the exact names with the user before writing** — the daemon hard-blocks the issue pre-claim if any declared name is unknown (see Operating rules).
+
+**Path-scope check (mandatory before filing into sections):** scan the plan for every file path reference. For each path, ask: can the agent resolve this from inside the target repo's working directory?
+
+- Paths starting with `../`, absolute paths outside the project root, or paths to session-local locations (`session-working-space/`, `~/.claude/plans/`, `/Users/…`, `/tmp/…`) are **invisible to the agent**. Do not carry them into the work order.
+- **Action:** inline the relevant content (quote the section, table, or fact the path pointed to) rather than referencing the path. If the content is too large to inline usefully, summarize the key facts that the agent needs and note that the full source is a session-local file unavailable at run time.
+- Paths within the target repo (`src/`, `docs/`, `scripts/`, relative paths that resolve under the project root) are safe to carry as-is.
 
 Re-file the plan into the work-order sections (Step 4). The same self-contained rule that serves the agent makes it readable to the absent teammate — strip every session-local reference and inline what it pointed to.
 
@@ -117,18 +150,19 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 - **Acceptance criteria are checkable or they don't count.** "Works correctly" is not an AC; "sort=name returns Thai dictionary order, เ-word before ฮ-word" is.
 - **The work order is English only.** The artifact's readers are an agent and a reviewing team.
 - **Interactive replies adapt to the user.** Talk to the user in the language they're using in the conversation; honor their CLAUDE.md / language-preference memory if present; default to matching the conversation. Keep technical terms, identifiers, and all code in English regardless. (This skill ships in a shared kit — never hardcode a single human language.)
-- **Self-contained.** No reference the absent reader can't resolve. Inline what a session-local note pointed to.
+- **Self-contained.** No reference the absent reader can't resolve. Inline what a session-local note pointed to. **Specifically: never carry a path the agent cannot open from inside the target repo** — paths starting with `../`, absolute paths outside the project root, or session-local locations (`session-working-space/`, `~/.claude/`, `/Users/…`) must be inlined or their key facts summarized; carrying the path is always wrong.
 - **Never guess skill or agent-type names.** If the plan implies a specific skill (`skills:`) or sub-agent (`agent-type:`), confirm the exact name with the user — the daemon hard-blocks the issue pre-claim if any declared name is unknown. A typo parks the issue `agent-blocked` before a single line of code is written.
 - **Read-only.** Produce a document. Posting and code edits belong to other tools.
 
 ## Quick reference
 
 ```
-1. Locate plan   — path / in-context / ask. Never assume a fixed location.
-2. Gate          — precise target? recoverable AC? constraints present? — else bounce back
-3. Transform     — TRUST the plan (no re-explore); keep knowledge, drop choreography
-4. Write order   — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Agent Config (skills/agent-type/model when plan implies them) + Deps
-5. Stop/handoff  — to /create-issue if present, else output; never post or edit code
+1. Locate plan      — path / in-context / ask. Never assume a fixed location.
+2. Gate             — precise target? recoverable AC? constraints present? — else bounce back
+2.5 Classify        — table of [knowledge/constraint] vs [choreography] per section → wait for correction
+3. Transform        — TRUST the plan (no re-explore); keep knowledge, drop choreography
+4. Write order      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Agent Config (skills/agent-type/model when plan implies them) + Deps
+5. Stop/handoff     — to /create-issue if present, else output; never post or edit code
 ```
 
 The drafter's rule: **the work order is the whole conversation** — the crew can't ask you anything once the job starts. Put it all on the page; name what not to touch.
