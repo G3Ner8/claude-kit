@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
   type: gate
   status: experimental
   stack: any (language- and framework-agnostic)
@@ -97,11 +97,24 @@ Two moves at once:
 
 If the plan implies either, **confirm the exact names with the user before writing** — the daemon hard-blocks the issue pre-claim if any declared name is unknown (see Operating rules).
 
-**Path-scope check (mandatory before filing into sections):** scan the plan for every file path reference. For each path, ask: can the agent resolve this from inside the target repo's working directory?
+**Path-scope check (mandatory before filing into sections):** scan the plan for every file path reference. For each path, ask: can the SDC agent resolve this from inside the target repo's working directory? Drafter runs locally where all repos are accessible — this is the only window to resolve external references before the work order leaves.
 
-- Paths starting with `../`, absolute paths outside the project root, or paths to session-local locations (`session-working-space/`, `~/.claude/plans/`, `/Users/…`, `/tmp/…`) are **invisible to the agent**. Do not carry them into the work order.
-- **Action:** inline the relevant content (quote the section, table, or fact the path pointed to) rather than referencing the path. If the content is too large to inline usefully, summarize the key facts that the agent needs and note that the full source is a session-local file unavailable at run time.
-- Paths within the target repo (`src/`, `docs/`, `scripts/`, relative paths that resolve under the project root) are safe to carry as-is.
+Classify each path as **external** or **in-repo**:
+
+- **External (invisible to SDC agent)** — flag any of:
+  - Starts with `../` or is an absolute path outside the project root
+  - Session-local locations: `session-working-space/`, `~/.claude/`, `/Users/…`, `/tmp/…`
+  - Belongs to a sibling repo by content signal: Java source paths (`src/main/java/`, `.java` extension), Python packages, Go modules, or any structure incompatible with the target repo's stack. A `.java` path is unresolvable in a TypeScript/React repo regardless of whether it has a `../` prefix.
+- **In-repo (safe to carry)** — paths that resolve under the target repo root and match its stack: `src/`, `docs/`, `scripts/`, and relative paths consistent with the target repo's technology.
+
+**Action for external paths — inline while local, never carry the path:**
+
+1. **Plan cites specific lines** (e.g. `Controller.java:87-91`, `impl L207-213`): use `Read` to open that file and read **only those lines**. Inline verbatim with a provenance note:
+   > *(inlined from `<path>:<lines>` — not accessible to SDC agent)*
+2. **Plan cites a whole file with no line range** (e.g. `session-working-space/plans/foo.md`): `Read` only the sections the plan's own text references. Do not read beyond what the plan cited — that is re-exploration and violates the "trust the plan" rule.
+3. **Read fails** (file moved, wrong path): summarize the facts the plan itself states about that file. Note the source is unresolvable. Never guess content.
+
+**Boundary — re-exploration vs. reference resolution:** reading an external file to inline the section the plan already pointed to is resolution, not re-exploration. Reading beyond the cited section to find new facts is re-exploration. Rule: read only what the plan pointed to, inline it, stop.
 
 Re-file the plan into the work-order sections (Step 4). The same self-contained rule that serves the agent makes it readable to the absent teammate — strip every session-local reference and inline what it pointed to.
 
