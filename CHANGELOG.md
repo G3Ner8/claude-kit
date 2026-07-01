@@ -6,6 +6,26 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.10.0
+- `drafter` 0.7.0 — 0.9.0's `skills:` pairing ("invoke via the Skill tool") was based on the
+  daemon's own docs describing `agent-type:`/`skills:` as best-effort; this release corrects it
+  against **empirical evidence** from a diagnostic canary persona/skill run eight times under
+  varying conditions in a real SDC-onboarded repo. Findings: (1) real `Agent`/`Skill`-tool
+  invocation of *any* project-defined target fails outright every time ("not registered" /
+  "Unknown skill"), confirmed via live trace capture, not inferred; (2) reading the target file
+  directly and applying it inline works reliably every time it was tried — so `skills:` naming a
+  **project** skill (bare name) now gets the same read-directly pairing `agent-type:` already
+  had, replacing the invoke-via-Skill-tool instruction that doesn't work for that case; (3) a
+  **plugin** skill (`<plugin>:<skill>`) has no resolvable path in the target repo, so it keeps the
+  invoke-the-skill instruction — but that path is flagged as unverified now, not presented as
+  equally solid; (4) the best-effort gap is **transitive** — if a named persona/skill's own
+  instructions reference invoking a further skill/agent internally, that nested call hits the
+  identical failure, confirmed empirically, and rewriting the shared persona file itself is the
+  wrong fix (it also degrades real invocation in normal interactive sessions, which works
+  correctly and shouldn't be touched) — drafter now scans each named persona/skill file for its
+  own internal references and writes a matching override into the issue body for each one found,
+  confirmed to reliably beat the persona file's own wording.
+
 ### `dev-core` 0.9.0
 - `drafter` 0.6.0 — force runtime use of Agent Configuration declarations. Both `agent-type:` and
   `skills:` are daemon-validated but **best-effort at runtime** (the "agent/skill not invoked"
