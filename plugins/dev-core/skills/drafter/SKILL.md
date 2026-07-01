@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.6.0"
+  version: "0.7.0"
   type: gate
   status: experimental
   stack: any (language- and framework-agnostic)
@@ -98,6 +98,8 @@ Two moves at once:
 - A specific sub-agent to delegate to (e.g. "hand to an implement agent", "run through the test agent") → candidate for `agent-type:` in Agent Configuration
 - A multi-phase agent sequence with distinct sub-agents (e.g. `implement → polish → pre-commit`) → a first-class **`## Phases`** section (Step 4) — see there for the format. Confirm per-phase names with the user (see Operating rules).
 
+**Transitive-reference scan (mandatory whenever a plan names an `agent-type:`/`skills:` target):** open the target repo's `.claude/agents/<name>.md` (or `.claude/skills/<name>/SKILL.md`) and check whether *it* internally references invoking a further named skill or sub-agent. If it does, that nested reference needs its own read-directly override written into the issue body too (see Operating rules) — the best-effort gap this whole section exists to route around is transitive, so fixing only the name the plan explicitly asked for is not sufficient if that target itself chains further.
+
 **Path-scope check (mandatory before filing into sections):** scan the plan for every file path reference. For each path, ask: can the SDC agent resolve this from inside the target repo's working directory? Drafter runs locally where all repos are accessible — this is the only window to resolve external references before the work order leaves.
 
 Classify each path as **external** or **in-repo**:
@@ -152,15 +154,22 @@ The work-order document is **English only** — its reader is a coding agent and
   ```
   *Phase titles and `agent-type:` values above are illustrative — substitute the target repo's actual `.claude/agents/` names (confirm with the user; see Operating rules).*
   **Every declaration in Agent Configuration is best-effort — pair it with a body instruction
-  that forces use** (see the Agent Configuration bullets below for the full principle). Here:
-  each phase whose `agent-type:` names a repo-defined agent opens with the read-the-persona line
-  above; a phase targeting a Claude Code built-in (`general-purpose`, `Explore`, `Plan`) has no
-  persona file and skips the line; a phase declaring `skills:` instead adds "invoke the `<name>`
-  skill (Skill tool) at the relevant step."
+  that forces use** (see the Agent Configuration bullets below for the full principle — confirmed
+  empirically, not just theoretical; see Operating rules). Here: each phase whose `agent-type:`
+  names a repo-defined agent opens with the read-the-persona line above; a phase targeting a
+  Claude Code built-in (`general-purpose`, `Explore`, `Plan`) has no persona file and skips the
+  line; a phase declaring `skills:` for a **project** skill (bare name) gets the equivalent
+  "read `.claude/skills/<name>/SKILL.md` directly and follow it" line; a **plugin** skill
+  (`<plugin>:<skill>`) has no resolvable path in the target repo, so it keeps "invoke the
+  `<name>` skill (Skill tool) at the relevant step" (unverified — see Operating rules). Also scan
+  each named persona/skill file for its own internal references to further skills/agents and add
+  a matching override for each one found (see Operating rules) — the best-effort gap is
+  transitive, so a phase that only fixes its own `agent-type:`/`skills:` pairing can still fail
+  silently the moment the persona it reached tries to invoke something else internally.
   A runner with first-class phases (e.g. SDC's daemon) runs phases in order, one committed run each on the same branch, one MR after the last phase. Omit a phase's `model:` to cascade to the issue-level default (then `sonnet`). **Drop human-confirm gates** — deterministic per-phase execution replaces them. A bare `## Phases` heading with no `### Phase` sub-blocks is NOT valid — always emit ≥1 sub-block.
 - **Agent Configuration** *(include when the plan specifies any of these; omit the section entirely otherwise)*:
   - `model:` — infer from task complexity: `opus` for heavy/architectural work, `haiku` for trivial/mechanical, `sonnet` otherwise. Acts as the cascade default for any `## Phases` sub-block that omits its own `model:`.
-  - `skills:` — when the plan names skills to invoke. Bare name = project skill (`.claude/skills/<name>/SKILL.md` in the target repo); `<plugin>:<skill>` = plugin skill installed on the agent. Comma-separated, case-sensitive kebab-case. Daemon-validated pre-claim (see Operating rules) — and pair each with an invoke-the-skill instruction in the body (see Operating rules).
+  - `skills:` — when the plan names skills to invoke. Bare name = project skill (`.claude/skills/<name>/SKILL.md` in the target repo — pair with a read-directly instruction; confirmed to work empirically, see Operating rules); `<plugin>:<skill>` = plugin skill installed on the agent (pair with an invoke-the-skill instruction — unverified, see Operating rules; no resolvable path exists in the target repo to fall back on). Comma-separated, case-sensitive kebab-case. Daemon-validated pre-claim (see Operating rules).
   - `agent-type:` — when the plan delegates to a specific sub-agent type. Valid names are the repo's `.claude/agents/` entries and Claude Code built-ins (`general-purpose`, `Explore`, `Plan`). Daemon-validated pre-claim, same rule as `skills:`. Best-effort at runtime — pair a repo-defined name with a read-the-persona instruction in the body (see Operating rules; built-ins are exempt).
   - Multi-phase agent chains → use the **`## Phases`** section (above), not issue-level `agent-type:`. Issue-level `agent-type:`/`model:` then act as the cascade default for any phase that omits its own. (Targets without first-class phases: fall back to a prose chain in `## Design` and name the sub-agents — best-effort, non-deterministic.)
 - **Dependencies** — ordering / `Depends-on:` when the plan implies it (e.g. a BE change that must land before its FE counterpart).
@@ -194,7 +203,11 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 - **Interactive replies adapt to the user.** Talk to the user in the language they're using in the conversation; honor their CLAUDE.md / language-preference memory if present; default to matching the conversation. Keep technical terms, identifiers, and all code in English regardless. (This skill ships in a shared kit — never hardcode a single human language.)
 - **Self-contained.** No reference the absent reader can't resolve. Inline what a session-local note pointed to. **Specifically: never carry a path the agent cannot open from inside the target repo** — paths starting with `../`, absolute paths outside the project root, or session-local locations (`session-working-space/`, `~/.claude/`, `/Users/…`) must be inlined or their key facts summarized; carrying the path is always wrong.
 - **Never guess skill or agent-type names.** If the plan implies a specific skill (`skills:`) or sub-agent (`agent-type:`), confirm the exact name with the user — the daemon hard-blocks the issue pre-claim if any declared name is unknown. A typo parks the issue `agent-blocked` before a single line of code is written. This applies to **per-phase** `agent-type:`/`skills:` in a `## Phases` section equally — the daemon union-validates every phase's declarations pre-claim; one unknown name in any phase hard-blocks the whole issue.
-- **Every Agent Configuration declaration is best-effort at runtime — pair it with a body instruction that forces use.** Pre-claim validation only checks the name exists; it never guarantees the agent actually delegates or invokes it mid-run. So: a repo-defined `agent-type:` (issue-level or per-phase) gets a "read the target repo's `.claude/agents/<name>.md` and follow it directly" line in that phase/issue body (Claude Code built-ins — `general-purpose`, `Explore`, `Plan` — have no persona file; skip the line for them). A `skills:` entry gets an "invoke the `<name>` skill via the Skill tool at the relevant step" line — invocation, not a read instruction, since a plugin skill has no path inside the target repo.
+- **Every Agent Configuration declaration is best-effort at runtime — pair it with a body instruction that forces use.** Pre-claim validation only checks the name exists; it never guarantees the agent actually delegates or invokes it mid-run. **This is confirmed empirically, not just theoretical**: a diagnostic canary persona/skill, run eight times under varying conditions in a real SDC-onboarded repo, showed real `Agent`/`Skill`-tool invocation of a project-defined target fails outright ("not registered in this harness" / "Unknown skill") every single time, while reading the target file directly and applying its instructions inline works reliably every time it was tried. So:
+  - A repo-defined `agent-type:` (issue-level or per-phase) gets a "read the target repo's `.claude/agents/<name>.md` and follow it directly — don't rely on `agent-type:` alone" line in that phase/issue body (Claude Code built-ins — `general-purpose`, `Explore`, `Plan` — have no persona file; skip the line for them).
+  - A `skills:` entry naming a **project** skill (bare name, resolvable as `.claude/skills/<name>/SKILL.md` in the target repo) gets the equivalent treatment: "read `.claude/skills/<name>/SKILL.md` directly and follow it — don't rely on the Skill tool to invoke it." Confirmed to work exactly like the `agent-type:` case.
+  - A `skills:` entry naming a **plugin** skill (`<plugin>:<skill>`) has no path resolvable inside the target repo, so read-directly isn't available as a substitute — it still gets an "invoke the `<name>` skill via the Skill tool at the relevant step" line, but **this specific case has not been empirically verified** (only the project-skill case was tested) — treat it as an unconfirmed assumption, not a settled fact, if it matters for the task at hand.
+- **The best-effort gap is transitive — fixing only the outermost declaration is not sufficient.** If the persona file named by `agent-type:` (or the skill named by `skills:`) itself contains its own instruction to invoke a *further* skill or agent-type internally, that nested invocation hits the identical failure — confirmed empirically. It doesn't matter whether the failing tool call originates from the top-level prompt or from inside a persona the model is currently following via a read-directly instruction; it's the same session hitting the same gap. **Do not fix this by rewriting the persona/skill file itself** — those files are typically also used in normal interactive sessions, where real invocation works correctly (confirmed: real subagent delegation and real Skill-tool invocation both succeed in an interactive session), so blanket-rewriting them to always "read directly" would degrade that working case for no reason. Instead: when a persona/skill file drafter is pairing with a read-directly instruction contains its own internal reference to invoking a further named skill or agent-type, add an explicit override for each one directly into the issue body — "if `<X>`'s instructions lead you to invoke `<Y>`, read `<Y>`'s file directly and follow it instead of invoking it via a tool call" — proactively, at draft time. This is the same habit as the path-scope check above, extended to scan for internal `.claude/agents/`/`.claude/skills/` references inside any persona/skill file drafter names, not just external file paths in the plan. Confirmed to work: an issue-level override written this way beats the persona file's own literal wording.
 - **Read-only.** Produce a document. Posting and code edits belong to other tools.
 
 ## Quick reference
@@ -204,7 +217,7 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 2. Gate             — precise target? recoverable AC? constraints present? — else bounce back
 2.5 Classify        — table of [knowledge/constraint] vs [choreography] per section → wait for correction
 3. Transform        — TRUST the plan (no re-explore); keep knowledge, drop choreography
-4. Write order      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Phases (named agent-phase chain → ## Phases with ### Phase N: sub-blocks, per-phase agent-type/model, each agent-type/skills paired w/ read-the-persona / invoke-the-skill line) + Agent Config (issue-level model/skills/agent-type; cascade default for phases) + Deps
+4. Write order      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Phases (named agent-phase chain → ## Phases with ### Phase N: sub-blocks, per-phase agent-type/model; agent-type + project-skill paired w/ read-directly line, plugin-skill paired w/ invoke-the-skill line [unverified], any internal skill/agent reference found inside a named persona/skill gets its own override too — the gap is transitive) + Agent Config (issue-level model/skills/agent-type; cascade default for phases) + Deps
 5. Stop/handoff     — to /create-issue if present, else output; never post or edit code
 ```
 
