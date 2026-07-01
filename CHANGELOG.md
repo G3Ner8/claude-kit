@@ -6,6 +6,15 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.9.0
+- `drafter` 0.6.0 — force runtime use of Agent Configuration declarations. Both `agent-type:` and
+  `skills:` are daemon-validated but **best-effort at runtime** (the "agent/skill not invoked"
+  symptom), so drafter now pairs each with an explicit body instruction: read the target repo's
+  `.claude/agents/<name>.md` for a repo-defined `agent-type:` (built-ins `general-purpose`/
+  `Explore`/`Plan` exempt — no file), and invoke-the-skill (Skill tool) for each `skills:` entry
+  (project or plugin). Also dedups the validation rule (was stated 3×) into one canonical
+  Operating-rules bullet — light trim, no behavior change.
+
 ### `dev-core` 0.5.0
 - `drafter` 0.2.0 — add `skills:` / `agent-type:` awareness for SDC agent tasks. Step 3 now scans the plan for agent orchestration intent (skills to invoke, sub-agent to delegate to, multi-phase sequences) and asks the user to confirm exact names before writing. Step 4 adds an **Agent Configuration** section to the work-order template with `model:`, `skills:`, and `agent-type:` rules including the daemon's hard-block semantics. Operating rules add: never guess skill or agent-type names — a wrong name parks the issue `agent-blocked` pre-claim.
 
