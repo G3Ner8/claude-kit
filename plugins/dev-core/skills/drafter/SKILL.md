@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.7.0"
+  version: "0.11.0"
   type: gate
   status: experimental
   stack: any (language- and framework-agnostic)
@@ -43,23 +43,44 @@ The plan can arrive three ways. Take it from wherever it is — **do not assume 
 
 Also settle two things (infer from the plan when you can; ask only if unclear):
 - **Issue type** — bug / feature / refactor / chore / research. Drives which discipline leans in (a bug leans detective; a feature leans inspector).
-- **Where it's going** — does the target repo have an issue-filing skill (e.g. SDC `/create-issue`)? Decides the handoff in Step 5.
+- **Where it's going** — does the target repo have an issue-filing skill (e.g. SDC `/create-issue`)? Decides the handoff in Step 7.
 
-## Step 2 — Gate the plan (refuse a soft plan; never guess to fill the template)
+## Step 2 — Triage (worth repackaging? sharp enough?)
 
-Before transforming, confirm the plan is sharp enough to yield a work order. It is **not** your job to invent missing analysis. Check:
+Two checks against the plan you just loaded — one analysis pass, one decision. Both can stop the run; neither invents missing analysis. They are different questions: *worth it* asks whether the plan is **thick enough** to be worth repackaging; *sharp enough* asks whether it's **precise enough** to repackage. A plan can be sharp but thin (→ redirect), or thick but soft (→ bounce).
 
+**Worth it?** Drafter's value is preserving discovered knowledge a fresh grilling pass can't recover, and resolving what's invisible from inside the target repo. Does the plan carry at least one of:
+- **Discovered knowledge** — a named root cause, a confirmed trap, or a constraint with a *why* that a fresh read of the target repo wouldn't turn up on its own;
+- **External references** — anything outside the target repo (another session/repo, a `session-working-space/` note) that needs inlining before an SDC agent can see it;
+- **Orchestration intent** — a multi-phase agent chain or named skills/agent-types that need a read-directly pairing (see Operating rules) to fire at runtime?
+
+If none apply, there's nothing to repackage — the target's own issue-filing skill will explore the repo and grill the same gaps for less overhead. Say so and recommend the direct route: *"This plan has no discovered facts drafter would lose — `create-issue` can grill and draft it directly, probably faster. Hand it there, or build a work order anyway?"* Proceed only if the user says continue.
+
+**Sharp enough?** If it's worth it, confirm the plan is sharp enough to yield a work order:
 - Can you name the **precise target** in one line — the actual change or the named root cause, not a symptom? (detective)
 - Can you recover at least one **checkable acceptance criterion** — a concrete "done looks like X" you could verify? (inspector)
 - Are the **constraints / facts** the agent needs present, or at least clearly implied?
 
-If any answer is no, **stop and report the gap** ("the plan doesn't state how to verify success" / "this describes a symptom, not the change"). Bounce it back for sharpening. A confident work order built on a soft plan is the worst output — the agent will implement the wrong thing, in scope, and pass CI.
+If any answer is no, **stop and report the gap** ("the plan doesn't state how to verify success" / "this describes a symptom, not the change") and bounce it back for sharpening. A confident work order built on a soft plan is the worst output — the agent implements the wrong thing, in scope, and passes CI.
 
-## Step 2.5 — Confirm classification before transforming
+## Step 3 — Classify before transforming
 
-After the gate passes, **before writing the work order**, scan the plan's major sections and surface your classification. Plans arrive from many sources (session output, agent hand-off, any path) and may express structural constraints as implementation steps — without an explicit "enforced by X" signal. Without a confirmation step, drafter guesses from framing alone and silently demotes what are actually hard constraints.
+After triage, **before writing the work order**, classify the plan's major sections so a structural constraint isn't silently demoted. Plans arrive from many sources and may express hard constraints as implementation steps — without an explicit "enforced by X" signal. Without this step drafter guesses from framing alone.
 
-Present a compact table:
+**Classify as knowledge / constraint (keep verbatim + extract why):**
+- Anything referenced by an automated enforcement mechanism — linter, CI gate, pre-commit hook, test suite, type-checker — however it's phrased
+- Wire schemas / field lists derived from an external system (API spec, BE DTO, DB schema)
+- Business rules with code-level evidence (line numbers, exception class names, `@Annotation` references)
+- Decisions explicitly locked or user-approved in the plan
+
+**Classify as choreography (demote to recommended approach):**
+- Explicit step sequences ("then do X", "after Y, do Z") with no automated enforcement signal
+- Build order / chunk sequences — the agent sequences its own work
+- **Human-gate coordination** — "human reviews", manual `git commit`, "wait for approval" arrows between steps. SDC is autonomous and one-shot; these gates cannot exist, so drop them.
+
+**Not choreography — named agent-phase chains are load-bearing workflow:** a plan that sequences distinct named sub-agents in order (e.g. `implement → polish → pre-commit`), especially when stages need different models, maps to a first-class `## Phases` section (Step 5). Drop only the human-confirm gates wrapped around the chain; keep the chain itself.
+
+Then present a compact table and ask for correction:
 
 | Section / heading | Classification | Signal that drove the call |
 |---|---|---|
@@ -67,25 +88,11 @@ Present a compact table:
 | "§4 folder tree" | **constraint or choreography?** | no enforcement signal found |
 | "§10 build order" | choreography — demote | step-by-step, no automated gate |
 
-Then ask: **"Correct any misclassification before I transform — a wrong call here produces a wrong work order."**
+**Phase-split check (fold into the same message, no extra round-trip):** scan the plan for sections of materially different difficulty — a cheap setup step next to a hard algorithm, or a trivial docs/cleanup tail — not merely a long plan. Uniform-effort plans, however long, don't qualify. If found, append a proposed split: *"This plan also has parts of different weight — e.g. [light section] vs. [heavy section]. Split into `## Phases` with a `model:` per phase? Proposed: Phase 1 [...] (`sonnet`), Phase 2 [...] (`opus`)."* A suggestion, never a default — proceed single-pass if the user declines. Skip it if the plan already explicitly names a sub-agent chain (Step 5 will formalize that; this check is only for plans that don't).
 
-Wait for the user's response (even "looks right, go ahead") before proceeding to Step 3.
+Then ask: **"Correct any misclassification before I transform — a wrong call here produces a wrong work order."** Wait for the user's response (even "looks right, go ahead") before proceeding to Step 4.
 
-**Classify as knowledge / constraint (keep verbatim + extract why):**
-- Anything referenced by an automated enforcement mechanism — linter, CI gate, pre-commit hook, test suite, type-checker — regardless of how it's phrased in the plan
-- Wire schemas or field lists derived from an external system (API spec, BE DTO, DB schema)
-- Business rules with code-level evidence (line numbers, exception class names, `@Annotation` references)
-- Decisions explicitly locked or user-approved in the plan
-
-**Classify as choreography (demote to recommended approach):**
-- Explicit step sequences ("then do X", "after Y, do Z") with no automated enforcement signal
-- Build order or chunk sequences — the agent sequences its own work
-- **Human-gate coordination** — "human reviews", manual `git commit`, "wait for approval" arrows between steps. SDC is autonomous and one-shot; these gates cannot exist, so drop them.
-
-**Not choreography — named agent-phase chains are load-bearing workflow:**
-A plan that sequences distinct named sub-agents in order (e.g. `implement → polish → pre-commit`) — especially when stages need different models — is **not** droppable choreography. It maps to a first-class `## Phases` section in the work order (Step 4). Drop only the human-confirm gates wrapped around the chain; keep the chain itself.
-
-## Step 3 — Transform: lossless on knowledge, lossy on choreography
+## Step 4 — Transform: lossless on knowledge, lossy on choreography
 
 The plan is **authoritative**. **Do not re-explore the codebase** — the plan's discovered facts (table names, symbols, the constraints, the traps) are the analysis you're paid to preserve, not to re-derive. Re-grepping to "verify" burns tokens for nothing. Only flag a fact that is internally contradictory.
 
@@ -96,11 +103,11 @@ Two moves at once:
 **Scan for agent orchestration intent.** Before filing into sections, identify in the plan:
 - Specific skills the agent should invoke (e.g. "run react-audit", "use the inspector") → candidate for `skills:` in Agent Configuration
 - A specific sub-agent to delegate to (e.g. "hand to an implement agent", "run through the test agent") → candidate for `agent-type:` in Agent Configuration
-- A multi-phase agent sequence with distinct sub-agents (e.g. `implement → polish → pre-commit`) → a first-class **`## Phases`** section (Step 4) — see there for the format. Confirm per-phase names with the user (see Operating rules).
+- A multi-phase agent sequence with distinct sub-agents (e.g. `implement → polish → pre-commit`) → a first-class **`## Phases`** section (Step 5). Confirm per-phase names with the user (see Operating rules).
 
-**Transitive-reference scan (mandatory whenever a plan names an `agent-type:`/`skills:` target):** open the target repo's `.claude/agents/<name>.md` (or `.claude/skills/<name>/SKILL.md`) and check whether *it* internally references invoking a further named skill or sub-agent. If it does, that nested reference needs its own read-directly override written into the issue body too (see Operating rules) — the best-effort gap this whole section exists to route around is transitive, so fixing only the name the plan explicitly asked for is not sufficient if that target itself chains further.
+**Transitive-reference scan (mandatory whenever a plan names an `agent-type:`/`skills:` target):** open the target repo's `.claude/agents/<name>.md` (or `.claude/skills/<name>/SKILL.md`) and check whether *it* internally references invoking a further named skill or sub-agent. If it does, that nested reference needs its own read-directly override written into the issue body too (see Operating rules) — the best-effort gap is transitive, so fixing only the name the plan explicitly asked for is not sufficient if that target itself chains further.
 
-**Path-scope check (mandatory before filing into sections):** scan the plan for every file path reference. For each path, ask: can the SDC agent resolve this from inside the target repo's working directory? Drafter runs locally where all repos are accessible — this is the only window to resolve external references before the work order leaves.
+**Path-scope check (mandatory before filing into sections):** scan the plan for every file path reference. For each, ask: can the SDC agent resolve this from inside the target repo's working directory? Drafter runs locally where all repos are accessible — this is the only window to resolve external references before the work order leaves.
 
 Classify each path as **external** or **in-repo**:
 
@@ -119,9 +126,9 @@ Classify each path as **external** or **in-repo**:
 
 **Boundary — re-exploration vs. reference resolution:** reading an external file to inline the section the plan already pointed to is resolution, not re-exploration. Reading beyond the cited section to find new facts is re-exploration. Rule: read only what the plan pointed to, inline it, stop.
 
-Re-file the plan into the work-order sections (Step 4). The same self-contained rule that serves the agent makes it readable to the absent teammate — strip every session-local reference and inline what it pointed to.
+Re-file the plan into the work-order sections (Step 5). The same self-contained rule that serves the agent makes it readable to the absent teammate — strip every session-local reference and inline what it pointed to.
 
-## Step 4 — Write the work order (English only)
+## Step 5 — Write the work order (English only)
 
 The work-order document is **English only** — its reader is a coding agent and a code-reviewing team; this matches the docs/issues-in-English convention. Produce these sections (this is the generic shape; it maps cleanly onto an SDC `agent-task` template):
 
@@ -152,25 +159,11 @@ The work-order document is **English only** — its reader is a coding agent and
   Read the target repo's `.claude/agents/pre-commit-agent.md` and follow it directly. Run the
   project's gates (type-check, lint, tests, structure checks) over the full diff.
   ```
-  *Phase titles and `agent-type:` values above are illustrative — substitute the target repo's actual `.claude/agents/` names (confirm with the user; see Operating rules).*
-  **Every declaration in Agent Configuration is best-effort — pair it with a body instruction
-  that forces use** (see the Agent Configuration bullets below for the full principle — confirmed
-  empirically, not just theoretical; see Operating rules). Here: each phase whose `agent-type:`
-  names a repo-defined agent opens with the read-the-persona line above; a phase targeting a
-  Claude Code built-in (`general-purpose`, `Explore`, `Plan`) has no persona file and skips the
-  line; a phase declaring `skills:` for a **project** skill (bare name) gets the equivalent
-  "read `.claude/skills/<name>/SKILL.md` directly and follow it" line; a **plugin** skill
-  (`<plugin>:<skill>`) has no resolvable path in the target repo, so it keeps "invoke the
-  `<name>` skill (Skill tool) at the relevant step" (unverified — see Operating rules). Also scan
-  each named persona/skill file for its own internal references to further skills/agents and add
-  a matching override for each one found (see Operating rules) — the best-effort gap is
-  transitive, so a phase that only fixes its own `agent-type:`/`skills:` pairing can still fail
-  silently the moment the persona it reached tries to invoke something else internally.
-  A runner with first-class phases (e.g. SDC's daemon) runs phases in order, one committed run each on the same branch, one MR after the last phase. Omit a phase's `model:` to cascade to the issue-level default (then `sonnet`). **Drop human-confirm gates** — deterministic per-phase execution replaces them. A bare `## Phases` heading with no `### Phase` sub-blocks is NOT valid — always emit ≥1 sub-block.
+  *Phase titles and `agent-type:` values above are illustrative — substitute the target repo's actual `.claude/agents/` names (confirm with the user; see Operating rules).* Each phase pairs its declaration with the body instruction that forces use (the read-the-persona line shown above for a repo-defined `agent-type:`; the equivalent read-directly line for a project `skills:` entry; an invoke-the-skill line for a plugin skill, `<plugin>:<skill>`, unverified; built-ins — `general-purpose`, `Explore`, `Plan` — have no persona file, so skip the line). Scan each named persona/skill for its own internal skill/agent references and add an override for each (the gap is transitive). **Full rule + evidence: Operating rules.** A runner with first-class phases (e.g. SDC's daemon) runs phases in order, one committed run each on the same branch, one MR after the last. Omit a phase's `model:` to cascade to the issue-level default (then `sonnet`). **Drop human-confirm gates** — deterministic per-phase execution replaces them. A bare `## Phases` heading with no `### Phase` sub-blocks is invalid — always emit ≥1 sub-block.
 - **Agent Configuration** *(include when the plan specifies any of these; omit the section entirely otherwise)*:
   - `model:` — infer from task complexity: `opus` for heavy/architectural work, `haiku` for trivial/mechanical, `sonnet` otherwise. Acts as the cascade default for any `## Phases` sub-block that omits its own `model:`.
-  - `skills:` — when the plan names skills to invoke. Bare name = project skill (`.claude/skills/<name>/SKILL.md` in the target repo — pair with a read-directly instruction; confirmed to work empirically, see Operating rules); `<plugin>:<skill>` = plugin skill installed on the agent (pair with an invoke-the-skill instruction — unverified, see Operating rules; no resolvable path exists in the target repo to fall back on). Comma-separated, case-sensitive kebab-case. Daemon-validated pre-claim (see Operating rules).
-  - `agent-type:` — when the plan delegates to a specific sub-agent type. Valid names are the repo's `.claude/agents/` entries and Claude Code built-ins (`general-purpose`, `Explore`, `Plan`). Daemon-validated pre-claim, same rule as `skills:`. Best-effort at runtime — pair a repo-defined name with a read-the-persona instruction in the body (see Operating rules; built-ins are exempt).
+  - `skills:` — when the plan names skills to invoke. Bare name = project skill (`.claude/skills/<name>/SKILL.md` in the target repo); `<plugin>:<skill>` = plugin skill installed on the agent. Comma-separated, case-sensitive kebab-case. Daemon-validated pre-claim, and best-effort at runtime — pair with a body instruction that forces use (see Operating rules).
+  - `agent-type:` — when the plan delegates to a specific sub-agent type. Valid names are the repo's `.claude/agents/` entries and Claude Code built-ins (`general-purpose`, `Explore`, `Plan`). Daemon-validated pre-claim, same rule as `skills:`; pair a repo-defined name with a read-the-persona instruction (see Operating rules; built-ins are exempt).
   - Multi-phase agent chains → use the **`## Phases`** section (above), not issue-level `agent-type:`. Issue-level `agent-type:`/`model:` then act as the cascade default for any phase that omits its own. (Targets without first-class phases: fall back to a prose chain in `## Design` and name the sub-agents — best-effort, non-deterministic.)
 - **Dependencies** — ordering / `Depends-on:` when the plan implies it (e.g. a BE change that must land before its FE counterpart).
 
@@ -184,7 +177,18 @@ Weight **the quality of the work the agent will do** first — precision over pr
 - Don't polish narrative for its own sake.
 - Readability target is **review-grade**: enough that a teammate can judge whether the resulting MR matches scope — not enough to re-derive the work. "Good enough to understand" is acceptable. The Summary and each constraint's *why* are the exception — keep them, because they're agent-quality wearing a readability coat.
 
-## Step 5 — Stop / handoff
+## Step 6 — Self-check before handoff (inspector pass on your own output)
+
+Before handing off, run the same lens `inspector` would run on the resulting MR — but against the work order you just wrote, while a fix is still a paragraph and not a rework of the agent's PR:
+
+- **Acceptance Criteria** — is each one checkable as stated, or does one read like "works correctly" / "handles edge cases properly"? Vague AC is a bounce-back to Step 5, not a ship.
+- **Constraints** — does every constraint carry its *why*? A constraint without a why reads as a preference, not a rule — the agent (or a reviewer) will discount it.
+- **Assumptions** — does every place where the agent could otherwise guess appear here, paired with the "if this proves false, park and ask — don't guess" instruction? A silent gap here is the same failure Step 2 was gating on, reintroduced during transformation.
+- **Out of scope** — does it name the *specific* adjacent work this plan's own Design/Constraints make it tempting to also touch, or is it a generic "no unrelated changes" that blocks nothing in particular?
+
+This is not a second pass at the plan (Step 2 already gated the source) — it's a gate on what you produced. If any check fails, fix that section now; don't hand off hoping the daemon or a human reviewer catches it, since a passing gate + a vague AC is exactly the "wrong thing, in scope, passes CI" failure this skill exists to prevent.
+
+## Step 7 — Stop / handoff
 
 Drafter produces the work order and stops. It **never posts the issue or edits code itself.**
 
@@ -203,22 +207,23 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 - **Interactive replies adapt to the user.** Talk to the user in the language they're using in the conversation; honor their CLAUDE.md / language-preference memory if present; default to matching the conversation. Keep technical terms, identifiers, and all code in English regardless. (This skill ships in a shared kit — never hardcode a single human language.)
 - **Self-contained.** No reference the absent reader can't resolve. Inline what a session-local note pointed to. **Specifically: never carry a path the agent cannot open from inside the target repo** — paths starting with `../`, absolute paths outside the project root, or session-local locations (`session-working-space/`, `~/.claude/`, `/Users/…`) must be inlined or their key facts summarized; carrying the path is always wrong.
 - **Never guess skill or agent-type names.** If the plan implies a specific skill (`skills:`) or sub-agent (`agent-type:`), confirm the exact name with the user — the daemon hard-blocks the issue pre-claim if any declared name is unknown. A typo parks the issue `agent-blocked` before a single line of code is written. This applies to **per-phase** `agent-type:`/`skills:` in a `## Phases` section equally — the daemon union-validates every phase's declarations pre-claim; one unknown name in any phase hard-blocks the whole issue.
-- **Every Agent Configuration declaration is best-effort at runtime — pair it with a body instruction that forces use.** Pre-claim validation only checks the name exists; it never guarantees the agent actually delegates or invokes it mid-run. **This is confirmed empirically, not just theoretical**: a diagnostic canary persona/skill, run eight times under varying conditions in a real SDC-onboarded repo, showed real `Agent`/`Skill`-tool invocation of a project-defined target fails outright ("not registered in this harness" / "Unknown skill") every single time, while reading the target file directly and applying its instructions inline works reliably every time it was tried. So:
-  - A repo-defined `agent-type:` (issue-level or per-phase) gets a "read the target repo's `.claude/agents/<name>.md` and follow it directly — don't rely on `agent-type:` alone" line in that phase/issue body (Claude Code built-ins — `general-purpose`, `Explore`, `Plan` — have no persona file; skip the line for them).
-  - A `skills:` entry naming a **project** skill (bare name, resolvable as `.claude/skills/<name>/SKILL.md` in the target repo) gets the equivalent treatment: "read `.claude/skills/<name>/SKILL.md` directly and follow it — don't rely on the Skill tool to invoke it." Confirmed to work exactly like the `agent-type:` case.
-  - A `skills:` entry naming a **plugin** skill (`<plugin>:<skill>`) has no path resolvable inside the target repo, so read-directly isn't available as a substitute — it still gets an "invoke the `<name>` skill via the Skill tool at the relevant step" line, but **this specific case has not been empirically verified** (only the project-skill case was tested) — treat it as an unconfirmed assumption, not a settled fact, if it matters for the task at hand.
-- **The best-effort gap is transitive — fixing only the outermost declaration is not sufficient.** If the persona file named by `agent-type:` (or the skill named by `skills:`) itself contains its own instruction to invoke a *further* skill or agent-type internally, that nested invocation hits the identical failure — confirmed empirically. It doesn't matter whether the failing tool call originates from the top-level prompt or from inside a persona the model is currently following via a read-directly instruction; it's the same session hitting the same gap. **Do not fix this by rewriting the persona/skill file itself** — those files are typically also used in normal interactive sessions, where real invocation works correctly (confirmed: real subagent delegation and real Skill-tool invocation both succeed in an interactive session), so blanket-rewriting them to always "read directly" would degrade that working case for no reason. Instead: when a persona/skill file drafter is pairing with a read-directly instruction contains its own internal reference to invoking a further named skill or agent-type, add an explicit override for each one directly into the issue body — "if `<X>`'s instructions lead you to invoke `<Y>`, read `<Y>`'s file directly and follow it instead of invoking it via a tool call" — proactively, at draft time. This is the same habit as the path-scope check above, extended to scan for internal `.claude/agents/`/`.claude/skills/` references inside any persona/skill file drafter names, not just external file paths in the plan. Confirmed to work: an issue-level override written this way beats the persona file's own literal wording.
+- **Every Agent Configuration declaration is best-effort at runtime — pair it with a body instruction that forces use.** Pre-claim validation only checks the name exists; it never guarantees the agent delegates or invokes it mid-run. Confirmed empirically (a canary persona/skill run in a real SDC-onboarded repo): real `Agent`/`Skill`-tool invocation of a project-defined target fails every time ("not registered in this harness" / "Unknown skill"); reading the target file directly and applying it inline works every time. So:
+  - A repo-defined `agent-type:` (issue-level or per-phase) gets a "read the target repo's `.claude/agents/<name>.md` and follow it directly — don't rely on `agent-type:` alone" line in that phase/issue body (built-ins — `general-purpose`, `Explore`, `Plan` — have no persona file; skip the line).
+  - A `skills:` entry naming a **project** skill (bare name, resolvable as `.claude/skills/<name>/SKILL.md`) gets the equivalent: "read `.claude/skills/<name>/SKILL.md` directly and follow it — don't rely on the Skill tool." Confirmed to work like the `agent-type:` case.
+  - A `skills:` entry naming a **plugin** skill (`<plugin>:<skill>`) has no path resolvable inside the target repo, so read-directly isn't available — it still gets an "invoke the `<name>` skill via the Skill tool" line, but **this case is unverified** (only the project-skill case was tested); treat it as an unconfirmed assumption if it matters.
+- **The best-effort gap is transitive — fixing only the outermost declaration is not sufficient.** If the persona file named by `agent-type:` (or the skill named by `skills:`) itself instructs invoking a *further* skill or agent-type, that nested invocation hits the identical failure — confirmed empirically. It's the same session hitting the same gap whether the call originates from the top-level prompt or from inside a persona being followed via a read-directly instruction. **Do not fix this by rewriting the persona/skill file itself** — those files are also used in normal interactive sessions where real invocation works correctly, so blanket-rewriting them to "read directly" degrades that working case for no reason. Instead, at draft time, add an explicit override into the issue body for each nested reference: "if `<X>`'s instructions lead you to invoke `<Y>`, read `<Y>`'s file directly and follow it instead of invoking it via a tool call." This is the path-scope habit extended to scan for internal `.claude/agents/`/`.claude/skills/` references inside any persona/skill drafter names. Confirmed to work: an issue-level override written this way beats the persona file's own wording.
 - **Read-only.** Produce a document. Posting and code edits belong to other tools.
 
 ## Quick reference
 
 ```
-1. Locate plan      — path / in-context / ask. Never assume a fixed location.
-2. Gate             — precise target? recoverable AC? constraints present? — else bounce back
-2.5 Classify        — table of [knowledge/constraint] vs [choreography] per section → wait for correction
-3. Transform        — TRUST the plan (no re-explore); keep knowledge, drop choreography
-4. Write order      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Phases (named agent-phase chain → ## Phases with ### Phase N: sub-blocks, per-phase agent-type/model; agent-type + project-skill paired w/ read-directly line, plugin-skill paired w/ invoke-the-skill line [unverified], any internal skill/agent reference found inside a named persona/skill gets its own override too — the gap is transitive) + Agent Config (issue-level model/skills/agent-type; cascade default for phases) + Deps
-5. Stop/handoff     — to /create-issue if present, else output; never post or edit code
+1. Locate     — path / in-context / ask. Never assume a fixed location.
+2. Triage     — worth repackaging (discovered knowledge / external refs / orchestration intent)? sharp enough (target / AC / constraints)? — else redirect to create-issue or bounce back
+3. Classify   — knowledge/constraint vs choreography per section (rules first, then table); flag difficulty variance → propose Phase split w/ per-phase model; wait for correction
+4. Transform  — TRUST the plan (no re-explore); keep knowledge, drop choreography; scan orchestration intent + external paths, inline what SDC can't see
+5. Write      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Phases (named chain → ### Phase N: sub-blocks, per-phase agent-type/model, each paired w/ read-directly body line; gap is transitive) + Agent Config + Deps
+6. Self-check — inspector pass on your OWN output: AC checkable? constraints have why? guess-points are Assumptions? out-of-scope specific? — fail → fix, don't ship
+7. Handoff    — to /create-issue if present, else output; never post or edit code
 ```
 
 The drafter's rule: **the work order is the whole conversation** — the crew can't ask you anything once the job starts. Put it all on the page; name what not to touch.

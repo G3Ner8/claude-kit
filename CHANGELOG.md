@@ -6,6 +6,51 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.14.0
+- `drafter` 0.11.0 — structural consolidation, no change to the work order produced. (1) Merged
+  the separate "worth it?" bail-out (old Step 1.5) and the sharpness gate (old Step 2) into one
+  **Step 2 — Triage** that asks both questions in one analysis pass, cutting a user round-trip and
+  removing a forward-reference. (2) Fixed old Step 2.5's inverted order — the knowledge/choreography
+  classification rules now precede the "present table + confirm" instruction (previously the reader
+  was told to confirm the table before being told how to classify), and corrected the phase-split
+  note's temporal reference to a step that hadn't run yet. (3) Renumbered to integer steps
+  (1 Locate → 2 Triage → 3 Classify → 4 Transform → 5 Write → 6 Self-check → 7 Handoff), removing
+  the `.5` proliferation. (4) De-duplicated the best-effort-gap / read-directly rule, which was
+  stated three times — the full rule + evidence now lives once in Operating rules; the Phases block
+  and Agent Configuration bullets point to it instead of re-inlining it. (5) Compressed the
+  empirical-canary provenance to one clause (the full story stays here in the changelog) and
+  trimmed the Quick reference. Net: fewer tokens loaded per invocation, one less interactive stop,
+  same output.
+
+### `dev-core` 0.13.0
+- `drafter` 0.10.0 — new Step 1.5, an explicit bail-out check run right after the plan is located:
+  does it carry discovered knowledge (root cause / trap / constraint-with-why) a fresh grilling
+  pass wouldn't recover, external references that need inlining, or orchestration intent that
+  needs the read-directly pairing? If none apply, drafter now says so and recommends handing the
+  plan straight to `create-issue` (or the target's issue-filing skill) instead of repackaging it —
+  a thin, self-contained ask gets no value from the transformation and `create-issue`'s own
+  grilling pre-pass produces the same result for less overhead. Distinct from Step 2's gate: Step
+  2 asks if the plan is sharp enough, this asks if it's thick enough to be worth repackaging.
+
+### `dev-core` 0.12.0
+- `drafter` 0.9.0 — new Step 4.5, a self-check on drafter's own output before handoff: does every
+  Acceptance Criterion read as checkable (not "works correctly"), does every Constraint carry its
+  why, does every place the agent could otherwise guess appear as an Assumption with the
+  park-and-ask instruction, and does Out of scope name the specific adjacent temptation rather
+  than a generic disclaimer. Runs the same lens `inspector` would apply to the resulting MR, but
+  against the work order itself, so a gap is a paragraph fix here instead of a wrong-but-passing
+  MR later. Not a second pass at the source plan (Step 2 already gated that) — a gate on the
+  transformation's own output.
+
+### `dev-core` 0.11.0
+- `drafter` 0.8.0 — Step 2.5 now scans the plan for sections with materially different
+  difficulty (cheap setup vs. a hard core vs. a trivial tail) and, if found, proposes a
+  `## Phases` split with a per-phase `model:` in the same confirmation message — folded into
+  the existing classification question, no extra round-trip. Gated on difficulty variance, not
+  plan length; a long but uniform-effort plan doesn't trigger it. Never a default — the user
+  can decline and drafter proceeds as a single pass. Skipped when Step 3's orchestration-intent
+  scan already found an explicit named sub-agent chain in the plan (that path is authoritative).
+
 ### `dev-core` 0.10.0
 - `drafter` 0.7.0 — 0.9.0's `skills:` pairing ("invoke via the Skill tool") was based on the
   daemon's own docs describing `agent-type:`/`skills:` as best-effort; this release corrects it
