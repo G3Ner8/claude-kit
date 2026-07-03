@@ -6,6 +6,20 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.15.0
+- `archivist` 0.2.0 — added the language rule the tier already applied in `drafter` but the
+  siblings never inherited: the post-mortem document is English only (it lands in a shared
+  record — repo docs, wiki, tracker — same rule as any git-bound artifact), while interactive
+  replies adapt to the user's conversation language, technical terms and code staying English.
+
+### `dev-core` 0.14.1
+- `drafter` 0.11.1 — date-stamped the empirical best-effort-gap claim (verified 2026-07) and added
+  an observable tripwire: if a future SDC transcript shows a successful `Agent`/`Skill`-tool
+  invocation of a project-defined target, the read-directly workaround is obsolete — re-run the
+  canary and simplify the rule. The claim previously read as timeless; it's a snapshot of the
+  harness and will rot silently when the harness fixes registration (failure mode is benign —
+  redundant boilerplate, not wrong behavior — hence a tripwire, not a hard expiry).
+
 ### `dev-core` 0.14.0
 - `drafter` 0.11.0 — structural consolidation, no change to the work order produced. (1) Merged
   the separate "worth it?" bail-out (old Step 1.5) and the sharpness gate (old Step 2) into one
