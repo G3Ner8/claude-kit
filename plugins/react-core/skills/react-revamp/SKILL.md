@@ -1,10 +1,10 @@
 ---
 name: react-revamp
-description: Propose a production-grade UX/UI flow revamp for a single frontend page. Reviews the target page against canonical reference pages and (if provided) the live API surface, then proposes a detailed execution plan with layout sketches, state maps, and best practices. Use when asked to "revamp the flow on page X", "redesign the user flow for X", "fix the UX flow on page X", or invoked as `/react-revamp`. Read-only — produces a proposal; never edits code without explicit approval.
+description: Propose a production-grade UX/UI flow revamp for a single frontend page — reviews it against canonical reference pages (and the live API surface if provided), then proposes an execution plan with layout sketches and state maps. Read-only proposal; never edits without approval. Triggers - "revamp the flow on page X", "redesign the user flow for X", `/react-revamp`.
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   type: gate
   status: stable
   derived_from: project-internal (was: legacy flow agent)

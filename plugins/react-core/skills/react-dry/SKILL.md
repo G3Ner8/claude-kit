@@ -1,10 +1,10 @@
 ---
 name: react-dry
-description: Audit every usage of one or more UI components across a codebase. Find CSS/style/class divergence, magic numbers, design-token bypasses, and a11y/state-parity gaps. Produces a comparison table of variants seen across call sites — discuss findings BEFORE planning detailed fixes. Use when asked to "audit Button usages", "standardize Table styles across pages", "DRY up our Card components", or invoked as `/react-dry`. Read-only — findings table first, never edits without explicit approval.
+description: Audit every usage of one or more UI components across a codebase — CSS/style divergence, magic numbers, design-token bypasses, a11y/state-parity gaps. Produces a variant comparison table across call sites; read-only, findings discussed before fixes. Triggers - "audit Button usages", "standardize Table styles", "DRY up our Card components", `/react-dry`.
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   type: gate
   status: stable
   derived_from: project-internal (was: legacy unify agent)

@@ -1,10 +1,10 @@
 ---
 name: react-audit
-description: Read-only audit of one or more frontend feature folders against canonical baseline features. Single-mode (one target → per-area findings) or multi-mode (multiple targets → divergence matrix). Phases: Navigation → UI Components → Visuals → optional API. Use for "audit feature X", "check feature X against baseline", "align features X, Y, Z", or "consistency audit". Produces findings + execution plan; no edits without explicit approval.
+description: Read-only audit of frontend feature folders against canonical baseline features — single-mode (one target → per-area findings) or multi-mode (multiple targets → divergence matrix), phased Navigation → UI Components → Visuals → optional API. Produces findings + execution plan; no edits without approval. Triggers - "audit feature X", "align features X, Y, Z", "consistency audit".
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   type: gate
   status: stable
   derived_from: project-internal (consolidates legacy inspect + align agents)

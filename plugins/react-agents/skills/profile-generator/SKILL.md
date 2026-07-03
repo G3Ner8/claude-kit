@@ -1,10 +1,10 @@
 ---
 name: profile-generator
-description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet) for any React 19 / Vite SPA. Auto-scans the project (package.json, filesystem, MD docs) to pre-fill ~25 placeholders, then asks the user only what can't be inferred (~5-12 questions for a typical scaffolded project). Substitutes the result into agent templates from the `react-agents` plugin and writes the filled-in profile to a user-specified path. The output is a self-contained plugin folder ready to copy into `.claude/agents/` or publish as its own marketplace plugin.
+description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet) for any React 19 / Vite SPA. Auto-scans the project to pre-fill most placeholders, asks only what can't be inferred, and writes a self-contained profile ready to copy into `.claude/agents/`. Triggers - `/profile-generator`, "generate a profile", "scaffold project agents".
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.3.0"
+  version: "1.3.1"
   type: action
   status: stable
   derived_from: project-internal

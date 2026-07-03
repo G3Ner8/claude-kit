@@ -1,10 +1,10 @@
 ---
 name: detective
-description: A debugging discipline for any stack — reproduce the failure, follow the fail path inward, falsify hypotheses, and name the cause BEFORE proposing a fix. Stops the "patch the symptom" reflex. Use when something is broken and the cause is not yet clear, while triaging — before touching code. Triggers - "debug X", "diagnose X", "investigate X", "why is X broken", "X isn't working", "track down the X bug".
+description: A debugging discipline for any stack — reproduce the failure, follow the fail path inward, falsify hypotheses, and name the cause BEFORE proposing a fix. Use while triaging anything broken whose cause isn't clear yet, before touching code. Triggers - "debug X", "diagnose X", "investigate X", "why is X broken", "X isn't working".
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   type: reference
   status: experimental
   stack: any (language- and framework-agnostic)

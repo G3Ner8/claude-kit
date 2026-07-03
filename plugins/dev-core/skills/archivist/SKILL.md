@@ -1,10 +1,10 @@
 ---
 name: archivist
-description: Standardized incident record (a post-mortem / RCA document) for production incidents, bug fixes worth recording, or recurring failure modes. Captures impact, timeline, single root cause, fix, prevention, and follow-ups — shaped so a future reader who wasn't there can learn the lesson. Use after the incident is resolved and the fix is merged — never during firefighting. Triggers - "archive this incident", "write up X for the record", "incident write-up for X", "document the X outage", "lessons learned from X".
+description: Standardized incident post-mortem / RCA document — impact, timeline, single root cause, fix, prevention follow-ups — shaped so a future reader who wasn't there learns the lesson. Use after the incident is resolved and the fix is merged, never during firefighting. Triggers - "archive this incident", "incident write-up for X", "document the X outage", "lessons learned from X".
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.3.0"
+  version: "0.3.1"
   type: gate
   status: experimental
   stack: any

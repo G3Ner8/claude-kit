@@ -1,10 +1,10 @@
 ---
 name: inspector
-description: Intent-validation review for a diff (or PR) — does the change actually do what the original task asked for, no more, no less? Compares stated intent against the actual diff and surfaces scope creep, missed requirements, and silent assumptions. Complements code-quality review (lint, `react-audit`) — inspector checks alignment to intent, not code quality. Use after pre-commit passes but before merge. Triggers - "inspect this diff", "does this PR match the task", "second opinion on this PR", "intent check", "scope creep check".
+description: Intent-validation review for a diff or PR — does the change do what the original task asked, no more, no less? Surfaces scope creep, missed requirements, and silent assumptions; checks alignment to intent, not code quality. Use after pre-commit passes, before merge. Triggers - "inspect this diff", "does this PR match the task", "second opinion on this PR", "intent check", "scope creep check".
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   type: gate
   status: experimental
   stack: any (language-agnostic)

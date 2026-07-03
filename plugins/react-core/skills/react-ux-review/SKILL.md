@@ -1,10 +1,10 @@
 ---
 name: react-ux-review
-description: Read-only UX/UI workflow critic. Compares a target React page against canonical Polished baseline pages on workflow dimensions (dirty tracking, validation feedback, error recovery, keyboard shortcuts, loading states, unsaved-guard coverage) — not just visual tokens. Use for "review ux on page X", "best practice check for page X", "audit ux flow", or as a mandatory pre-step before `react-revamp` / `web-implement` redesign. Produces a workflow divergence table + severity rating + remediation plan; never edits.
+description: Read-only UX/UI workflow critic — compares a target React page against canonical baseline pages on workflow dimensions (dirty tracking, validation feedback, error recovery, loading states, unsaved-guard coverage), not just visual tokens. Produces a divergence table + remediation plan; never edits. Mandatory pre-step before `react-revamp`. Triggers - "review ux on page X", "audit ux flow", "best practice check for page X".
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   type: gate
   status: stable
   derived_from: project-internal (companion to react-revamp + react-audit)
