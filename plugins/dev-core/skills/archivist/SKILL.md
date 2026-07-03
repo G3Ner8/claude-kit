@@ -4,7 +4,7 @@ description: Standardized incident record (a post-mortem / RCA document) for pro
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   type: gate
   status: experimental
   stack: any
@@ -188,6 +188,8 @@ All times in UTC.
 - **Every prevention item has an owner + deadline** — items without those decay into forgotten lists.
 - **Capture what went well** — symmetric retrospective. A post-mortem that only criticizes burns out the team.
 - **Catalogue, don't dramatize** — the archivist records for retrieval, not for storytelling. Standard sections beat a gripping narrative.
+- **The post-mortem document is English only.** It lands in a shared record (repo docs, wiki, tracker) and its future reader is unknown — same rule as any git-bound artifact in this kit.
+- **Interactive replies adapt to the user.** Talk to the user in the language they're using in the conversation; honor their CLAUDE.md / language-preference memory if present; default to matching the conversation. Keep technical terms, identifiers, and all code in English regardless. (This skill ships in a shared kit — never hardcode a single human language.)
 
 ## You DON'T
 
