@@ -4,7 +4,7 @@ description: Intent-validation review for a diff (or PR) — does the change act
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   type: gate
   status: experimental
   stack: any (language-agnostic)
@@ -39,12 +39,14 @@ Skip this skill for:
 
 ## Step 1 — Gather inputs (MANDATORY before any work)
 
-Do not run `git diff` / `Glob` / `Read` until you have these two inputs collected via `AskUserQuestion`:
+Two inputs are required. Take them from the invocation first — the prompt, the issue / work-order body, or a calling agent's handoff often carries them already; don't re-ask what's already provided:
 
-1. **Stated intent** — what the original task asked for. Paste the requester's words verbatim, or the issue/ticket title + description.
-2. **Diff scope** — confirm what to inspect: staged + unstaged, last commit, a branch range, a PR. Default: staged + unstaged.
+1. **Stated intent** — what the original task asked for. The requester's words verbatim, or the issue/ticket title + description.
+2. **Diff scope** — what to inspect: staged + unstaged, last commit, a branch range, a PR. Default: staged + unstaged.
 
-If either is missing or ambiguous, stop and ask. **Do not infer intent from the diff itself** — that's circular, and it's exactly how a bad diff passes inspection (it always matches its own intent).
+Only what's missing or ambiguous gets asked via `AskUserQuestion`. Do not run `git diff` / `Glob` / `Read` until both are settled.
+
+If intent is missing and there is no user to ask (headless run), stop and report "no stated intent provided" instead of proceeding. **Never infer intent from the diff itself** — that's circular, and it's exactly how a bad diff passes inspection (it always matches its own intent).
 
 ## Step 2 — Read the diff in full
 

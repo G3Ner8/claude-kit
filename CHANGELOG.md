@@ -6,6 +6,16 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.16.0
+- `inspector` 0.2.0, `archivist` 0.3.0 — Step 1 now takes inputs from the invocation first
+  (the prompt, an issue / work-order body, a calling agent's handoff, a `detective` case
+  ledger) and asks via `AskUserQuestion` only for what's still missing, instead of always
+  stopping to ask. Removes a wasted round-trip when the inputs were pasted along with the
+  invocation, and unblocks headless use — e.g. inspector as a phase in an SDC chain. In a
+  headless run with a required input missing, both skills stop and report the gap rather
+  than guessing: inspector never infers intent from the diff (circular), archivist never
+  drafts around a missing input (a "TBD" post-mortem gets filed and forgotten).
+
 ### `dev-core` 0.15.0
 - `archivist` 0.2.0 — added the language rule the tier already applied in `drafter` but the
   siblings never inherited: the post-mortem document is English only (it lands in a shared
