@@ -9,6 +9,9 @@
 #   2. Drafts (_in-progress/) and archived skills (_deprecated/) MUST NOT
 #      appear in any public README.
 #   3. marketplace.json plugin entries MUST point to existing folders.
+#   4. marketplace.json version MUST equal the plugin's plugin.json version —
+#      the marketplace version is the consumers' cache key (CLAUDE.md Section 12);
+#      a missed mirror means installed consumers silently keep the old copy.
 #
 # Pair with `validate-frontmatter.sh` — that script handles per-file fields;
 # this one handles cross-file alignment.
@@ -113,6 +116,30 @@ else
   done < <(grep -oE '"source"[[:space:]]*:[[:space:]]*"[^"]+"' "$marketplace" \
              | sed -E 's/.*"source"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
 fi
+
+echo ""
+
+# ─── Rule 4: marketplace.json version mirrors each plugin.json ───────────────
+
+echo "── rule 4: marketplace.json version mirrors plugin.json ──"
+for pj in "$REPO_ROOT"/plugins/*/.claude-plugin/plugin.json; do
+  [[ -f "$pj" ]] || continue
+  pname="$(grep -oE '"name"[[:space:]]*:[[:space:]]*"[^"]+"' "$pj" | head -1 | sed -E 's/.*"([^"]+)"/\1/')"
+  pver="$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$pj" | head -1 | sed -E 's/.*"([^"]+)"/\1/')"
+  mver="$(grep -A8 "\"name\"[[:space:]]*:[[:space:]]*\"$pname\"" "$marketplace" 2>/dev/null \
+            | grep -m1 -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' \
+            | sed -E 's/.*"([^"]+)"/\1/')"
+  if [[ -z "$mver" ]]; then
+    echo "❌ $pname — no marketplace.json entry (or entry has no version field)"
+    fail_count=$((fail_count + 1))
+  elif [[ "$mver" == "$pver" ]]; then
+    echo "✓  $pname — $pver"
+    ok_count=$((ok_count + 1))
+  else
+    echo "❌ $pname — plugin.json $pver but marketplace.json $mver (mirror the bump: marketplace version is the consumers' cache key)"
+    fail_count=$((fail_count + 1))
+  fi
+done
 
 echo ""
 
