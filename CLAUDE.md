@@ -47,34 +47,22 @@ claude-kit/
 │   ├── validate-contract.sh
 │   └── validate-frontmatter.sh
 └── plugins/
-    ├── dev-core/                       # cross-cutting tier — stack-agnostic personas
-    │   ├── .claude-plugin/plugin.json
-    │   └── skills/
-    │       ├── drafter/SKILL.md         # plan → agent work order
-    │       ├── detective/SKILL.md       # debug discipline
-    │       ├── inspector/SKILL.md       # intent-validation review
-    │       ├── archivist/SKILL.md       # incident post-mortem
-    │       └── surveyor/SKILL.md        # project-status survey (declared vs ground truth)
-    ├── react-core/
-    │   ├── .claude-plugin/plugin.json
-    │   └── skills/
-    │       ├── react-audit/
-    │       │   ├── SKILL.md       # mandatory
-    │       │   └── README.md      # optional — only when SKILL.md > 400 lines
-    │       └── _in-progress/      # underscore = excluded from default scan
-    │           └── react-draft-x/
-    └── react-agents/
+    └── <plugin>/                # dev-core · react-core · react-agents
         ├── .claude-plugin/plugin.json
-        ├── docs/PLACEHOLDER-REFERENCE.md
+        ├── README.md
         ├── skills/
-        │   └── profile-generator/
-        └── templates/
-            └── agents/
-                ├── implement.template.md
-                ├── polish.template.md
-                ├── pre-commit.template.md
-                └── test.template.md
+        │   ├── <name>/
+        │   │   ├── SKILL.md     # mandatory
+        │   │   └── README.md    # optional — only when SKILL.md > 400 lines
+        │   ├── _in-progress/    # drafts — underscore = excluded from default scan
+        │   └── _deprecated/     # retired skills kept for archival
+        ├── docs/                # react-agents only (PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md)
+        └── templates/agents/    # react-agents only (<role>.template.md)
 ```
+
+The tree shows **shape, not inventory** — the authoritative skill list per
+plugin is the Section 1 table plus each plugin's README (rule 1 of the
+contract validator keeps those in sync with reality).
 
 **`_in-progress/`** (underscore prefix) holds drafts. The validator and the
 marketplace scan both skip underscore-prefixed folders. Drafts move out of
@@ -353,6 +341,7 @@ Before committing, run:
 1. **Public skills discoverable** — every skill with `status: stable` or `experimental` MUST be referenced from a public surface (root `README.md`, plugin `README.md`, or plugin `plugin.json`). Phase 2: warn. Phase 3 GA: fail (run with `--strict`).
 2. **Hidden skills not advertised** — anything under `_in-progress/` or `_deprecated/` MUST NOT appear in any README (always fails).
 3. **Marketplace integrity** — every `source` in `.claude-plugin/marketplace.json` points to an existing plugin folder.
+4. **Version mirror** — every plugin's `marketplace.json` version equals its `plugin.json` version. The marketplace version is the consumers' cache key (Section 12 step 3); a missed mirror means installed consumers silently keep the old cached copy (always fails).
 
 CI integration (future): run both validators on PR — block merge on failure.
 

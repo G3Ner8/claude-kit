@@ -21,6 +21,14 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 - Root `README.md` install comments reframed by audience instead of optional/required:
   `dev-core` = any stack (the foundational tier), `react-*` = React 19 / Vite projects only.
   The old `# optional` tag on dev-core predated the tier model and read as a demotion.
+- `validate-contract.sh` rule 4: marketplace.json version must equal each plugin's
+  plugin.json version. The mirror step (CLAUDE.md Section 12) was documented but
+  unenforced — a missed mirror means installed consumers silently keep the old cached
+  copy. Verified with a negative test (deliberate mismatch fails, exit 1).
+- CLAUDE.md Section 2 layout tree pruned to shape-only: it enumerated every skill folder
+  (and had already rotted — it listed `_in-progress/react-draft-x`, which doesn't exist).
+  The authoritative skill inventory is the Section 1 table + plugin READMEs, kept honest
+  by contract rule 1.
 
 ### `dev-core` 0.16.0
 - `inspector` 0.2.0, `archivist` 0.3.0 — Step 1 now takes inputs from the invocation first
