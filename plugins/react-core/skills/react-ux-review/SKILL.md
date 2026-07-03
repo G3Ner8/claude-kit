@@ -4,12 +4,11 @@ description: Read-only UX/UI workflow critic — compares a target React page ag
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   type: gate
   status: stable
-  derived_from: project-internal (companion to react-revamp + react-audit)
-  stack: framework-agnostic procedure; examples target React 19 codebases with form-heavy pages
-  scope: Read-only workflow critique — single page or small page cluster
+  stack: React 19 + Vite (procedure portable; examples assume React, form-heavy pages)
+  scope: read-only — produces a workflow divergence table + remediation plan; no edits
 ---
 
 # React UX Workflow Review

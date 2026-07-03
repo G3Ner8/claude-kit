@@ -6,6 +6,39 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `react-agents` 0.5.2
+- `profile-generator` 1.3.2 — frontmatter normalize (decision D11): `stack` now states the
+  target project it scans ("React 19 / Vite SPA") instead of "Claude Code plugin
+  marketplace"; `scope` finally declares the mutation ("writes files — … auto-install
+  copies agents into .claude/agents/") — the action skill's most load-bearing fact, which
+  the old "Project profile scaffolding" never said; `derived_from: project-internal`
+  dropped.
+
+### `react-core` 0.5.2
+- Frontmatter normalize across all eight skills (decision D11): `stack` = target-codebase
+  requirement ("React 19 + Vite" + per-skill extras; the "framework-agnostic procedure"
+  phrasing that argued with the tier is gone), `scope` = mutation contract + deliverable
+  (react-composition/react-perf had stack info in the scope slot), four
+  "project-internal" `derived_from` lineage notes deleted (CHANGELOG carries lineage),
+  react-test-patterns' evidence-base note deleted from frontmatter (its body's
+  "Canonical baseline" section already states it). `react-audit` 1.0.2, `react-dry`
+  1.0.2, `react-revamp` 1.0.2, `react-ux-review` 1.0.2, `react-perf` 2.0.2,
+  `react-composition` 1.0.1, `react-debug` 1.0.1, `react-test-patterns` 1.1.2.
+
+### `dev-core` 0.16.2
+- Frontmatter normalize (decision D11): `stack` collapses four spellings of "any" to
+  `any` (surveyor keeps its real requirement: "any (needs git; glab/gh optional)");
+  detective's scope moves to the uniform reference pattern. `drafter` 0.11.3,
+  `detective` 0.1.2, `inspector` 0.2.2, `surveyor` 0.2.2; `archivist` already matched
+  the convention — untouched.
+- CLAUDE.md companion fixes: Section 3.1 comments now carry the stack/scope/derived_from
+  convention; Section 4's gate definition reworded ("structured workflow → deliverable →
+  stop" — "blocks workflow" never described drafter/archivist/surveyor); Sections 3.3 + 4
+  stop claiming no action skill exists (profile-generator is one; owes
+  Verification/Rollback at its next structural touch); Section 3.2 admits
+  discipline-style references (detective, react-debug); Section 5's dead "description
+  says experimental" rule dropped.
+
 ### `react-agents` 0.5.1
 - `profile-generator` 1.3.1 — description diet (see dev-core 0.16.1 below). 585 → 383 chars.
 

@@ -4,12 +4,11 @@ description: Audit every usage of one or more UI components across a codebase â€
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   type: gate
   status: stable
-  derived_from: project-internal (was: legacy unify agent)
-  stack: framework-agnostic procedure; examples target React 19 + Tailwind codebases
-  scope: Read-only component-usage audit
+  stack: React 19 + Vite + Tailwind (procedure portable; examples assume React)
+  scope: read-only â€” produces a variant comparison table; no edits
 ---
 
 # React Component DRY Audit

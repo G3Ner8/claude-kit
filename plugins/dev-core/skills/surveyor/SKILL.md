@@ -4,10 +4,10 @@ description: Survey the real state of a project — reconcile DECLARED status (b
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.1"
+  version: "0.2.2"
   type: gate
   status: experimental
-  stack: any (language-agnostic; git + optional glab/gh)
+  stack: any (needs git; glab/gh optional)
   scope: read-only by default — produces a status report + drift table; doc syncs only on explicit approval
 ---
 

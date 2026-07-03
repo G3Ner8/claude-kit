@@ -4,11 +4,11 @@ description: A debugging discipline for any stack — reproduce the failure, fol
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
   type: reference
   status: experimental
-  stack: any (language- and framework-agnostic)
-  scope: investigation discipline — narrows to a named root cause; the fix happens after
+  stack: any
+  scope: read-only — reference, consulted during work
 ---
 
 # Detective — debug discipline

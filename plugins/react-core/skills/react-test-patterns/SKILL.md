@@ -4,12 +4,11 @@ description: Reusable test patterns for React 19 SPAs on Vitest + React Testing 
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.1.1"
+  version: "1.1.2"
   type: reference
   status: stable
   stack: React 19 + Vitest 4 + @testing-library/react 16 + @testing-library/user-event 14 + MSW 2 + jsdom
-  scope: Read-mostly knowledge; consumed by test-writer agents and human reviewers
-  derived_from: A production React feature test suite (54 tests, 8 files across the 5 layers below — see "Canonical baseline")
+  scope: read-only — reference, consulted during work
 ---
 
 # React Test Patterns

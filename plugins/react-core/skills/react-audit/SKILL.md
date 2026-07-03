@@ -4,12 +4,11 @@ description: Read-only audit of frontend feature folders against canonical basel
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   type: gate
   status: stable
-  derived_from: project-internal (consolidates legacy inspect + align agents)
-  stack: framework-agnostic procedure; examples target React 19 codebases
-  scope: Read-only audit
+  stack: React 19 + Vite (procedure portable; examples assume React)
+  scope: read-only — produces findings + execution plan; no edits
 ---
 
 # React Feature Audit

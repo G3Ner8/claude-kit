@@ -10,19 +10,19 @@
       "name": "dev-core",
       "source": "./plugins/dev-core",
       "description": "Cross-cutting, stack-agnostic engineering disciplines as personas: drafter (plan → scope-tight work order for a headless agent), detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem), surveyor (survey real project status: declared vs ground truth). claude-kit's foundational tier.",
-      "version": "0.16.1"
+      "version": "0.16.2"
     },
     {
       "name": "react-core",
       "source": "./plugins/react-core",
       "description": "React 19 / Vite SPA skills: perf, composition, audit, revamp, ux-review, dry, test-patterns, debug. Stack-agnostic across any web-React project.",
-      "version": "0.5.1"
+      "version": "0.5.2"
     },
     {
       "name": "react-agents",
       "source": "./plugins/react-agents",
       "description": "Templates for the implement/polish/pre-commit/test agent quartet + a profile-generator skill that scaffolds a project-specific profile interactively.",
-      "version": "0.5.1"
+      "version": "0.5.2"
     }
   ]
 }

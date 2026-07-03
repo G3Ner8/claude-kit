@@ -4,12 +4,11 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.3.1"
+  version: "1.3.2"
   type: action
   status: stable
-  derived_from: project-internal
-  stack: Claude Code plugin marketplace
-  scope: Project profile scaffolding
+  stack: React 19 / Vite SPA (the target project it scans)
+  scope: writes files — generated profile to the output folder; auto-install copies agents into .claude/agents/
 ---
 
 # profile-generator
