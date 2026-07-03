@@ -1,10 +1,10 @@
 ---
 name: react-perf
-description: Curated React 19 performance rules for client-side SPAs (Vite + TanStack Query stack). Use when writing, reviewing, or refactoring React components, hooks, data fetching, or bundle configuration. Covers waterfalls, bundle size, re-renders, rendering work, and modern React 19 APIs (useTransition, useDeferredValue, useSuspenseQuery, resource hints, useEffectEvent). Does NOT cover Next.js/RSC/SSR patterns.
+description: Curated React 19 performance rules for client-side SPAs (Vite + TanStack Query). Use when writing, reviewing, or refactoring React components, hooks, data fetching, or bundle config. Covers waterfalls, bundle size, re-renders, rendering work, and modern React 19 APIs. Does NOT cover Next.js/RSC/SSR.
 license: MIT
 user-invocable: true
 metadata:
-  version: "2.0.0"
+  version: "2.0.1"
   type: reference
   status: stable
   stack: React 19, Vite, TanStack Query, TypeScript

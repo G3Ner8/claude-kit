@@ -1,10 +1,10 @@
 ---
 name: surveyor
-description: Survey the real state of a project — reconcile DECLARED status (backlog/plan files, status docs, MEMORY.md, tracker issues) against GROUND TRUTH (merged git history, MR/issue state, the actual code) and report the drift. Then recommend what to work on next by feasibility, and offer to sync the stale docs. Read-only by default; doc edits only on explicit go-ahead. Use for "where are we", "what's actually done", "is the backlog still accurate", "what should I do next", "update the status". Triggers - "project status", "survey the project", "what's left", "where are we", "is X actually done", "reconcile the backlog", "what's next".
+description: Survey the real state of a project — reconcile DECLARED status (backlog, status docs, memory files, tracker issues) against GROUND TRUTH (merged git history, MR/issue state, the actual code), report the drift, then recommend next work by feasibility and offer to sync stale docs. Read-only by default. Triggers - "project status", "where are we", "what's left", "what's actually done", "is X actually done", "reconcile the backlog", "what's next".
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   type: gate
   status: experimental
   stack: any (language-agnostic; git + optional glab/gh)

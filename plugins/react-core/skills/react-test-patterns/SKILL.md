@@ -1,10 +1,10 @@
 ---
 name: react-test-patterns
-description: Reusable test patterns for React 19 SPAs running Vitest + React Testing Library + MSW (Mock Service Worker). Covers the 5-layer test pyramid (schema → API client → hook → component → integration), how to wire each layer's wrapper / mock / assertions, coverage targets per layer, TypeScript narrowing pitfalls inside MSW closures, i18n test-namespace conventions, and common anti-patterns. Use this skill before writing or reviewing vitest tests for any React feature so layer boundaries, fixtures, and confidence targets stay consistent across features.
+description: Reusable test patterns for React 19 SPAs on Vitest + React Testing Library + MSW. Covers the 5-layer test pyramid (schema → API client → hook → component → integration), per-layer wrappers/mocks/coverage targets, MSW TypeScript pitfalls, i18n namespaces, and anti-patterns. Consult before writing or reviewing vitest tests so layer boundaries and fixtures stay consistent across features.
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
   type: reference
   status: stable
   stack: React 19 + Vitest 4 + @testing-library/react 16 + @testing-library/user-event 14 + MSW 2 + jsdom

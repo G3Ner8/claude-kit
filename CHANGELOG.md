@@ -6,6 +6,24 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `react-agents` 0.5.1
+- `profile-generator` 1.3.1 — description diet (see dev-core 0.16.1 below). 585 → 383 chars.
+
+### `react-core` 0.5.1
+- Description diet across six skills (see dev-core 0.16.1 below): `react-audit` 1.0.1,
+  `react-dry` 1.0.1, `react-revamp` 1.0.1, `react-ux-review` 1.0.1, `react-perf` 2.0.1,
+  `react-test-patterns` 1.1.1. `react-debug` and `react-composition` were already lean —
+  untouched.
+
+### `dev-core` 0.16.1
+- Description diet: frontmatter `description` fields are loaded into every session of
+  every consumer, and the 14 skills totalled ~6.9KB (worst: surveyor at 638 chars).
+  Trimmed 12 of 14 to ≤450 chars — merged duplicated "Use for"/"Triggers" lists, dropped
+  near-duplicate trigger phrasings, kept every distinct trigger surface and core
+  directive. Total 6,866 → 5,369 chars (-22%). No body changes. All five dev-core skills
+  patch-bumped: `drafter` 0.11.2, `detective` 0.1.1, `inspector` 0.2.1, `archivist`
+  0.3.1, `surveyor` 0.2.1.
+
 ### Kit-wide
 - `scripts/bump-version.sh` (new) — one command for the version-bump ritual (CLAUDE.md
   Section 12 steps 2-4): bumps `plugin.json`, mirrors `marketplace.json`, inserts a

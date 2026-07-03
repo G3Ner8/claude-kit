@@ -1,10 +1,10 @@
 ---
 name: drafter
-description: Turn a crystallized analysis plan into a scope-tight, checkable work order for a headless coding agent (e.g. an SDC agent-ready issue). Preserves the discovered knowledge (root cause, constraints, the traps), drops the rigid implementation choreography, and makes acceptance criteria the contract. Use when an analysis/plan is ready and you want to hand the work off for autonomous implementation. Triggers - "turn this plan into an issue", "file this for the agent", "make a work order from this plan", "hand this to SDC", "draft an agent-ready issue".
+description: Turn a crystallized analysis plan into a scope-tight, checkable work order for a headless coding agent (e.g. an SDC agent-ready issue) — preserves discovered knowledge (root cause, constraints, traps), drops implementation choreography, makes acceptance criteria the contract. Triggers - "turn this plan into an issue", "make a work order from this plan", "hand this to SDC", "draft an agent-ready issue".
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.11.1"
+  version: "0.11.2"
   type: gate
   status: experimental
   stack: any (language- and framework-agnostic)
