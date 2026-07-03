@@ -6,6 +6,19 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### Kit-wide
+- Removed `_archive/pps-web-profile/` (decision D10). The worked example was generated from
+  pre-1.x templates and had drifted from what `/profile-generator` produces today, and it
+  carried project-internal detail in a public repo. `react-agents/docs/PLACEHOLDER-REFERENCE.md`
+  example values are the reference instead. Files remain in git history; removal is from the
+  current tree only.
+- Root `README.md` refresh: per-plugin status in the table (dev-core experimental,
+  react-core / react-agents stable), a one-line lifecycle pitch for the dev-core personas,
+  and the profile-generator output flow updated to the current default
+  (`/tmp/<project>-profile` → copy `agents/*.md` into `.claude/agents/`).
+- `react-agents` README: "Working reference" now points to `docs/PLACEHOLDER-REFERENCE.md`
+  (the two links into `_archive/` were removed with it).
+
 ### `dev-core` 0.16.0
 - `inspector` 0.2.0, `archivist` 0.3.0 — Step 1 now takes inputs from the invocation first
   (the prompt, an issue / work-order body, a calling agent's handoff, a `detective` case

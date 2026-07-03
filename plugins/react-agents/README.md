@@ -93,11 +93,9 @@ Each agent **stops after proposing** — it acts only when you reply with your a
 **`test`** — write or expand tests
 > "write tests for orders" → coverage-gap audit → plan → **STOP** → "<apply>" → chunked test writing → coverage delta.
 
-The archived [`_archive/pps-web-profile/`](../../_archive/pps-web-profile/) shows a full real (Thai-output) example.
-
 ## Working reference
 
-The Aware `pps-web` profile is kept as a worked example under [`_archive/pps-web-profile/`](../../_archive/pps-web-profile/) — read it to see what a filled-in profile looks like. It is not published to the marketplace; generate your own with `/profile-generator`.
+Example values for every placeholder — drawn from a real generated profile — are documented in [`docs/PLACEHOLDER-REFERENCE.md`](./docs/PLACEHOLDER-REFERENCE.md). A filled-in profile is project-specific and lives in the consuming project's own repo; generate yours with `/profile-generator`.
 
 ## License
 

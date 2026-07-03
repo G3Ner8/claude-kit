@@ -6,9 +6,11 @@ A tiered [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marke
 
 | Plugin | What | Scope |
 | --- | --- | --- |
-| [`dev-core`](./plugins/dev-core/) | `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `surveyor` (project-status survey) | Any stack |
-| [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite |
-| [`react-agents`](./plugins/react-agents/) | `/profile-generator` + agent templates (build → polish → pre-commit → test) | React 19 / Vite |
+| [`dev-core`](./plugins/dev-core/) | `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `surveyor` (project-status survey) | Any stack · experimental |
+| [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite · stable |
+| [`react-agents`](./plugins/react-agents/) | `/profile-generator` + agent templates (build → polish → pre-commit → test) | React 19 / Vite · stable |
+
+The `dev-core` five are personas spanning the work lifecycle: **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **surveyor** surveys where it all stands.
 
 ## Install
 
@@ -31,9 +33,7 @@ For the agent quartet (implement / polish / pre-commit / test), generate a proje
 /profile-generator
 ```
 
-A short interview scans your repo and writes a filled-in profile (4 agents + manifest) to a folder you pick. See [`react-agents`](./plugins/react-agents/) for how the agents work and which skills each one calls.
-
-> `_archive/pps-web-profile/` is a worked example of generator output (not published to the marketplace).
+A short interview scans your repo and writes a filled-in profile (4 agents + manifest) to a transient folder (default `/tmp/<project>-profile`); copy the `agents/*.md` into your project's `.claude/agents/` and discard the rest. See [`react-agents`](./plugins/react-agents/) for how the agents work and which skills each one calls, and [`PLACEHOLDER-REFERENCE.md`](./plugins/react-agents/docs/PLACEHOLDER-REFERENCE.md) for example values of every placeholder.
 
 ## Versioning & license
 
