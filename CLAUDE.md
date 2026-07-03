@@ -41,11 +41,7 @@ claude-kit/
 ├── CHANGELOG.md                 # kit-wide release notes
 ├── .claude-plugin/
 │   └── marketplace.json         # plugin catalog
-├── scripts/                     # validators + helpers (Phase 1.4)
-│   ├── list-skills.sh
-│   ├── link-skills.sh
-│   ├── validate-contract.sh
-│   └── validate-frontmatter.sh
+├── scripts/                     # validators + helpers (see Section 10)
 └── plugins/
     └── <plugin>/                # dev-core · react-core · react-agents
         ├── .claude-plugin/plugin.json
@@ -324,6 +320,7 @@ Before committing, run:
 ./scripts/validate-frontmatter.sh    # per-file: every SKILL.md has required fields
 ./scripts/validate-contract.sh       # cross-file: public/hidden contract alignment
 ./scripts/list-skills.sh             # sanity check the marketplace catalog
+./scripts/link-check.sh              # relative markdown links resolve
 ```
 
 ### Per-file rules (`validate-frontmatter.sh`)
@@ -384,6 +381,10 @@ CI integration (future): run both validators on PR — block merge on failure.
 3. **Mirror the bump in `.claude-plugin/marketplace.json`** — the version
    there must match `plugin.json`
 4. Add an entry to `CHANGELOG.md` under `## [Unreleased]`
+
+Steps 2-4's bookkeeping is one command: `./scripts/bump-version.sh <plugin>
+<patch|minor|major>` — it bumps `plugin.json`, mirrors `marketplace.json`, and
+inserts the CHANGELOG stub (fill in the TODO). Step 1 stays manual.
 
 **To create a new project profile**:
 1. Invoke `react-agents/skills/profile-generator` interactively
