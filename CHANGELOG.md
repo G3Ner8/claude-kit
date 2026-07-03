@@ -6,7 +6,17 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
-_Nothing yet._
+### Kit-wide
+- `scripts/bump-version.sh` (new) — one command for the version-bump ritual (CLAUDE.md
+  Section 12 steps 2-4): bumps `plugin.json`, mirrors `marketplace.json`, inserts a
+  CHANGELOG stub. The skill's own `metadata.version` stays manual. Verifies its own
+  mirror with the same extraction rule 4 uses.
+- `scripts/link-check.sh` (new) + CI job — every relative markdown link in tracked `.md`
+  files must resolve; external URLs, anchors, and template placeholders are skipped.
+  Motivated by the `_archive/` removal, where two dead README links were only caught by
+  a manual grep.
+- CLAUDE.md Section 2 tree: scripts folder shown as one line (see Section 10) instead of
+  enumerating filenames that rot as helpers are added.
 
 ## [0.2.0] — 2026-07-03
 
