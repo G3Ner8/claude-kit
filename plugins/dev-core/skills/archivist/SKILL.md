@@ -4,7 +4,7 @@ description: Standardized incident record (a post-mortem / RCA document) for pro
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   type: gate
   status: experimental
   stack: any
@@ -37,7 +37,7 @@ If you arrived here straight from a `detective` (or `react-debug`) session, the 
 
 ## Step 1 — Gather inputs (MANDATORY before drafting)
 
-Use `AskUserQuestion` to collect:
+Five inputs are required. Take them from what's already in front of you first — the invocation, the conversation (a `detective` case ledger maps directly onto these), or a document the user pointed to; don't re-ask what's already provided:
 
 1. **What happened** (one sentence) — the headline. "Login failed for 12% of users for 47 minutes."
 2. **When** — start and end timestamps (or "ongoing" if the impact tail extends).
@@ -45,7 +45,7 @@ Use `AskUserQuestion` to collect:
 4. **Resolution** — what stopped the bleeding? **Time-to-resolve** if known.
 5. **Suspected root cause** — the user's best current understanding. The post-mortem will refine this.
 
-If the user doesn't have one of these, ask before drafting. A post-mortem with placeholder values ("TBD") is worse than no post-mortem — it gets filed and forgotten.
+Only what's still missing gets asked via `AskUserQuestion`. If an input is missing and there is no user to ask (headless run), stop and report which inputs are missing rather than drafting around them — a post-mortem with placeholder values ("TBD") is worse than no post-mortem; it gets filed and forgotten.
 
 ## Step 2 — Build the timeline
 
