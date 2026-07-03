@@ -27,7 +27,7 @@ claude-kit is a **tiered** personal kit. Skills/agents are organised by how wide
 
 Dependency direction is **one-way**: a profile depends on `react-agents` → `react-core`; domain tiers may reference `dev-core` but never the reverse. A plugin never depends on something downstream of it.
 
-A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). The Aware `pps-web` profile is kept under `_archive/pps-web-profile/` as a worked example only; it is excluded from the marketplace scan. A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
+A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). Example placeholder values are documented in `react-agents/docs/PLACEHOLDER-REFERENCE.md` (the old `_archive/pps-web-profile/` worked example was removed — see D10). A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
 
 ---
 
@@ -74,15 +74,6 @@ claude-kit/
                 ├── polish.template.md
                 ├── pre-commit.template.md
                 └── test.template.md
-
-_archive/                          # kept in repo, excluded from marketplace scan
-└── pps-web-profile/               # worked example of a generated profile
-    ├── .claude-plugin/plugin.json
-    └── agents/                    # generated from react-agents templates
-        ├── web-implement.md
-        ├── web-polish.md
-        ├── web-pre-commit.md
-        └── web-test.md
 ```
 
 **`_in-progress/`** (underscore prefix) holds drafts. The validator and the
@@ -423,8 +414,9 @@ CI integration (future): run both validators on PR — block merge on failure.
 ## 13. What's NOT covered here
 
 - **Individual skill mechanics** — read each `SKILL.md`
-- **Profile-specific conventions** (e.g. pps-web's MC-1..MC-7) — read the
-  profile's own root CLAUDE.md or referenced docs
+- **Profile-specific conventions** (e.g. a project's MC-1..MC-7-style
+  mandatory-convention rules) — read the profile's own root CLAUDE.md or
+  referenced docs
 - **Marketplace publication mechanics** — see `INSTALL.md`
 - **Skill versioning semantics** — SemVer; major bump = breaking change to
   frontmatter or core procedure
@@ -446,6 +438,7 @@ Foundational decisions resolved during the Phase 1 foundation pass.
 | D7 | dev-core skill names: functional (`scrutinize`/`post-mortem`) vs persona | persona names — `detective` (debug), `inspector` (review, was `scrutinize`), `archivist` (post-mortem). Distinctive + map to lifecycle moments (find → gate → preserve); persona = the opening voice of each SKILL.md. Adds `detective` as the framework-agnostic debug discipline (`react-debug` stays its React-specialized cousin in `react-core`). Supersedes D6 naming. | ✅ 2026-05-27 |
 | D8 | Name for the project-status-survey skill | `surveyor` — persona that reads as its job (walks the ground, measures real status vs the declared map). Selection rule extends D7: **legibility first** — the name must telegraph the function (loanword-transparent, like `detective`/`inspector`) over period-flavor; rejected `scrutineer`/`scrivener` as too opaque. | ✅ 2026-06-17 |
 | D9 | `foreman` is the industrial-era outlier in the otherwise older-craft persona set — rename? | renamed `foreman` → `drafter`. Same job (turns a crystallized plan into a precise work order for a headless agent), but the name reads as its function (drafts the order) and fits the set's register. Applies the D8 legibility rule; extends D7. Shipped in the same change as `surveyor` (dev-core 0.3.0). | ✅ 2026-06-17 |
+| D10 | Keep `_archive/pps-web-profile/` as the worked example vs delete | deleted. The example was generated from pre-1.x templates and had drifted — it misrepresented current `/profile-generator` output — and it carried project-internal detail in a public repo. `react-agents/docs/PLACEHOLDER-REFERENCE.md` example values are the reference instead. Supersedes the worked-example note this file carried in Section 1 (the archiving itself was a CHANGELOG-level move, not a numbered decision). Git history still contains the files; removal is from the current tree only. | ✅ 2026-07-03 |
 
 Future decisions append to this table; never edit a resolved row in place —
 add a new row referencing the prior decision instead.
