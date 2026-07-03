@@ -4,10 +4,10 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.11.2"
+  version: "0.11.3"
   type: gate
   status: experimental
-  stack: any (language- and framework-agnostic)
+  stack: any
   scope: read-only — transforms a plan into a work-spec document; never edits code, never posts on its own
 ---
 

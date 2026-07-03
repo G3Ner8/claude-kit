@@ -4,12 +4,11 @@ description: Propose a production-grade UX/UI flow revamp for a single frontend 
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   type: gate
   status: stable
-  derived_from: project-internal (was: legacy flow agent)
-  stack: framework-agnostic procedure; examples target React 19 codebases
-  scope: Read-only proposal — single page only
+  stack: React 19 + Vite (procedure portable; examples assume React)
+  scope: read-only — produces a revamp proposal for a single page; no edits
 ---
 
 # React Page Flow Revamp

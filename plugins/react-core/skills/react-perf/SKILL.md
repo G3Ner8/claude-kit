@@ -4,11 +4,11 @@ description: Curated React 19 performance rules for client-side SPAs (Vite + Tan
 license: MIT
 user-invocable: true
 metadata:
-  version: "2.0.1"
+  version: "2.0.2"
   type: reference
   status: stable
-  stack: React 19, Vite, TanStack Query, TypeScript
-  scope: SPA / CSR only
+  stack: React 19 + Vite + TanStack Query + TypeScript (SPA / CSR only)
+  scope: read-only — reference, consulted during work
 ---
 
 # React Performance (SPA / Vite / TanStack Query)

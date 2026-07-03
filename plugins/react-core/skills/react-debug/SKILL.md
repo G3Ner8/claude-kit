@@ -4,11 +4,11 @@ description: A 5-step debug discipline for "data not flowing" bugs in a React SP
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   type: reference
   status: stable
-  stack: React 19, TanStack Query / SWR, any HTTP backend
-  scope: data-fetch debugging (FE chain + BE contract)
+  stack: React 19 + TanStack Query / SWR + any HTTP backend
+  scope: read-only — reference, consulted during work
 ---
 
 # React Debug Protocol

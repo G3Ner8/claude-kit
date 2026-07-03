@@ -85,9 +85,9 @@ metadata:
   version: "1.0.0"                            # REQUIRED — SemVer; bump on breaking changes
   type: gate | reference | action             # REQUIRED — see Section 4
   status: stable | experimental | deprecated  # REQUIRED — see Section 5
-  stack: <one-line stack expectations>        # OPTIONAL — when applicable (e.g. "React 19 + Vitest 4")
-  scope: <one-line scope statement>           # OPTIONAL — read-only / mutates / etc.
-  derived_from: <upstream ref>                # OPTIONAL — only when forked / adapted
+  stack: <target-codebase requirement>        # OPTIONAL — what the target repo must be: "any" for the dev-core tier; "React 19 + Vite" (+ skill-specific additions) for the react tier
+  scope: <mutation contract + deliverable>    # OPTIONAL — gate: "read-only — produces <X>"; reference: "read-only — reference, consulted during work"; action: "writes files — <what/where>"
+  derived_from: <upstream ref>                # OPTIONAL — ONLY a genuine external fork/adaptation; internal lineage belongs in CHANGELOG.md, not here
 ---
 ```
 
@@ -146,12 +146,17 @@ structure — it's a manual, not a workflow:
 ```
 
 Reference skills **don't have a Step N** because there is nothing to "run" —
-they are consulted during other work.
+they are consulted during other work. A **discipline-style reference** (e.g.
+`detective`, `react-debug`) may use ordered moves instead of by-domain
+headings — it is still a reference as long as it has no input-gathering step
+and no stop/report gate; you consult it while working, you don't run it.
 
-### 3.3 Body skeleton (action skill — future)
+### 3.3 Body skeleton (action skill)
 
-Reserved for skills that mutate code on their own (no agent in the loop).
-None exist today. When introduced, must include:
+For skills that mutate files on their own (no agent in the loop). One exists
+today — `profile-generator`. It predates this skeleton and ships
+`## Pre-conditions` only; `## Verification` / `## Rollback` are owed at its
+next structural touch. An action skill must include:
 
 ```markdown
 ## Pre-conditions (refuse if any missing)
@@ -166,9 +171,9 @@ None exist today. When introduced, must include:
 
 | Type | What it does | Who calls it | Example |
 |---|---|---|---|
-| **gate** | Blocks workflow — runs an audit/review/proposal, then stops; no edits | Agent (Step 0) or user (`/audit`) | `react-audit`, `react-ux-review`, `react-revamp`, `react-dry` |
+| **gate** | Structured workflow — a multi-step flow that ends in a deliverable (findings / proposal / work order / document), then stops; no edits | Agent (Step 0) or user (`/audit`) | `react-audit`, `inspector`, `drafter`, `surveyor` |
 | **reference** | Manual that's consulted during work — no workflow, no stop | Agent (during apply) or user (read inline) | `react-perf`, `react-composition`, `react-test-patterns` |
-| **action** | Mutates code on its own (no agent needed) — refuses unless preconditions met | User (`/skill-name`) or another agent | *none today — reserved* |
+| **action** | Mutates files on its own (no agent needed) — refuses unless preconditions met | User (`/skill-name`) or another agent | `profile-generator` |
 
 Why the distinction matters:
 - **Agents invoke gate skills synchronously in Step 0**. If a skill is mistyped as `reference` but actually has a workflow, agents won't wait for its output.
@@ -182,7 +187,7 @@ Why the distinction matters:
 | Status | Meaning | Where it lives |
 |---|---|---|
 | **stable** | Battle-tested on 2+ real features; SKILL.md complete + cited in agents | `plugins/<plugin>/skills/<name>/` |
-| **experimental** | Written + tested once; may still drift; `description` says "experimental" | `plugins/<plugin>/skills/<name>/` (with `status: experimental` in frontmatter) |
+| **experimental** | Written + tested once; may still drift (the `status` field carries the flag — don't restate it in `description`) | `plugins/<plugin>/skills/<name>/` (with `status: experimental` in frontmatter) |
 | **deprecated** | Retired; kept for archival | `plugins/<plugin>/skills/_deprecated/<name>/` (folder move) |
 
 Draft work that isn't ready for any of the above lives in
@@ -429,6 +434,7 @@ Foundational decisions resolved during the Phase 1 foundation pass.
 | D8 | Name for the project-status-survey skill | `surveyor` — persona that reads as its job (walks the ground, measures real status vs the declared map). Selection rule extends D7: **legibility first** — the name must telegraph the function (loanword-transparent, like `detective`/`inspector`) over period-flavor; rejected `scrutineer`/`scrivener` as too opaque. | ✅ 2026-06-17 |
 | D9 | `foreman` is the industrial-era outlier in the otherwise older-craft persona set — rename? | renamed `foreman` → `drafter`. Same job (turns a crystallized plan into a precise work order for a headless agent), but the name reads as its function (drafts the order) and fits the set's register. Applies the D8 legibility rule; extends D7. Shipped in the same change as `surveyor` (dev-core 0.3.0). | ✅ 2026-06-17 |
 | D10 | Keep `_archive/pps-web-profile/` as the worked example vs delete | deleted. The example was generated from pre-1.x templates and had drifted — it misrepresented current `/profile-generator` output — and it carried project-internal detail in a public repo. `react-agents/docs/PLACEHOLDER-REFERENCE.md` example values are the reference instead. Supersedes the worked-example note this file carried in Section 1 (the archiving itself was a CHANGELOG-level move, not a numbered decision). Git history still contains the files; removal is from the current tree only. | ✅ 2026-07-03 |
+| D11 | Frontmatter `stack`/`scope`/`derived_from` had drifted into three dialects — normalize or leave? | normalized (Section 3.1 comments now carry the convention): `stack` = target-codebase requirement ("any" for dev-core; "React 19 + Vite" + extras for the react tier); `scope` = mutation contract + deliverable, patterned by type (gate "read-only — produces <X>" / reference "read-only — reference, consulted during work" / action "writes files — <what/where>"); `derived_from` reserved for genuine external forks — all six "project-internal" lineage notes deleted (CHANGELOG carries lineage). Companion doc fixes: gate's Section 4 definition reworded from "blocks workflow" to "structured workflow → deliverable → stop" (matches drafter/archivist/surveyor); Section 3.3/4 stop claiming no action skill exists (`profile-generator` is one; owes Verification/Rollback sections at its next touch); Section 3.2 admits discipline-style references (ordered moves, no stop gate); Section 5's dead "description says experimental" rule dropped (status field carries it). | ✅ 2026-07-03 |
 
 Future decisions append to this table; never edit a resolved row in place —
 add a new row referencing the prior decision instead.
