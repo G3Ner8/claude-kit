@@ -16,16 +16,16 @@ The `dev-core` five are personas spanning the work lifecycle: **drafter** writes
 
 ```
 /plugin marketplace add G3Ner8/claude-kit
-/plugin install dev-core@claude-kit       # optional — any stack
-/plugin install react-core@claude-kit
-/plugin install react-agents@claude-kit
+/plugin install dev-core@claude-kit       # any stack — the foundational tier
+/plugin install react-core@claude-kit     # React 19 / Vite projects only
+/plugin install react-agents@claude-kit   # React 19 / Vite projects only
 ```
 
 Update later with `/plugin marketplace update`.
 
 ## Use it
 
-Skills work immediately — invoke any with `/<skill>` (`/react-perf`, `/detective`, …) or let your agents call them.
+Skills work immediately — invoke any with `/<skill>` (`/detective`, `/react-perf`, …) or let your agents call them.
 
 For the agent quartet (implement / polish / pre-commit / test), generate a project-specific profile:
 

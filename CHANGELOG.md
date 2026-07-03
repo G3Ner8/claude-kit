@@ -18,6 +18,9 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   (`/tmp/<project>-profile` → copy `agents/*.md` into `.claude/agents/`).
 - `react-agents` README: "Working reference" now points to `docs/PLACEHOLDER-REFERENCE.md`
   (the two links into `_archive/` were removed with it).
+- Root `README.md` install comments reframed by audience instead of optional/required:
+  `dev-core` = any stack (the foundational tier), `react-*` = React 19 / Vite projects only.
+  The old `# optional` tag on dev-core predated the tier model and read as a demotion.
 
 ### `dev-core` 0.16.0
 - `inspector` 0.2.0, `archivist` 0.3.0 — Step 1 now takes inputs from the invocation first
