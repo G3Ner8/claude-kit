@@ -6,6 +6,16 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.2.0] — 2026-07-03
+
+Everything since extraction: the new stack-agnostic `dev-core` tier (five persona
+skills, iterated to 0.16.0), react-agents template decoupling + profile-generator
+auto-install, the react-perf cleanroom rewrite, and repo hygiene (validator rules,
+`_archive/` removal, README refresh). Plugin versions at this release: `dev-core`
+0.16.0 · `react-core` 0.5.0 · `react-agents` 0.5.0.
+
 ### Kit-wide
 - Removed `_archive/pps-web-profile/` (decision D10). The worked example was generated from
   pre-1.x templates and had drifted from what `/profile-generator` produces today, and it
