@@ -6,11 +6,11 @@ A tiered [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marke
 
 | Plugin | What | Scope |
 | --- | --- | --- |
-| [`dev-core`](./plugins/dev-core/) | `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `surveyor` (project-status survey) | Any stack · experimental |
+| [`dev-core`](./plugins/dev-core/) | `architect` (spec → implementation plan) · `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `surveyor` (project-status survey) | Any stack · experimental |
 | [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite · stable |
 | [`react-agents`](./plugins/react-agents/) | `/profile-generator` + agent templates (build → polish → pre-commit → test) | React 19 / Vite · stable |
 
-The `dev-core` five are personas spanning the work lifecycle: **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **surveyor** surveys where it all stands.
+The `dev-core` six are personas spanning the work lifecycle: **architect** designs the plan, **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **surveyor** surveys where it all stands.
 
 ## Install
 
