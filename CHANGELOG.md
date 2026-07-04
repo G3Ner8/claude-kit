@@ -6,6 +6,17 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.17.0
+- New skill `architect` 0.1.0 (decision D12): designs an implementation plan from a spec
+  before any code is touched — explores the codebase, names the target and its traps,
+  grills open design forks before designing, locks interfaces, decomposes into
+  independently testable tasks with checkable acceptance criteria. Upstream of `drafter`
+  in the worksite metaphor drafter already referenced ("the architect's rough notes");
+  its plan format is knowledge-first so it clears drafter's own triage gate. Promoted out
+  of `_in-progress/` after two full headless dry-runs validated the workflow end to end.
+- `drafter` 0.11.4 — cross-references `architect` in the opening persona line and the
+  skip-trigger, closing the loop now that both personas exist.
+
 ### `react-agents` 0.5.2
 - `profile-generator` 1.3.2 — frontmatter normalize (decision D11): `stack` now states the
   target project it scans ("React 19 / Vite SPA") instead of "Claude Code plugin
