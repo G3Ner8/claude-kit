@@ -6,6 +6,26 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.1.0
+- New plugin (decision D13): the cross-role tier of claude-kit — personal work-awareness
+  skills, independent of stack or role. Where dev-core disciplines work *on a codebase*,
+  work-core reports on *your own work* across projects.
+- New skill `sitrep` 0.1.0 (action, experimental): personal situation report — daily
+  standup / weekly review (default) / monthly rollup, assembled from local ground truth:
+  Claude Code session JSONLs, git history, open MR/PR state via glab/gh. A deterministic
+  stdlib-only collector (`collect.py`, zero model calls) compresses raw logs into a small
+  digest (prototyped on a real week: 69MB → 6.5KB, 1.2s); the session model composes a
+  one-page briefing under a fixed four-section contract (Accomplished / Effort / Open
+  loops / Next up) with open-loop carry-over between briefings. Window handling:
+  `--days N` rolling or `--month YYYY-MM` calendar; stats are window-clipped (a session
+  spanning the edge counts only in-window activity, marked `(cont.)`); long windows add a
+  week × project effort table, short windows a day × project log feeding a timesheet-draft
+  appendix (hours marked `~`, user-adjusted; meetings pulled from a calendar connector
+  when reachable, declared a blind spot when not); repos are discovered from every
+  distinct session cwd
+  (quiet repos aggregated to one line). Demand gate per D13: stays experimental until a
+  second real user asks.
+
 ### `dev-core` 0.17.0
 - New skill `architect` 0.1.0 (decision D12): designs an implementation plan from a spec
   before any code is touched — explores the codebase, names the target and its traps,

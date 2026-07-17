@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "claude-kit",
-  "description": "Claude Code skills + agents, tiered. dev-core (stack-agnostic disciplines) · react-core (React 19 / Vite skills) · react-agents (templates + profile-generator).",
+  "description": "Claude Code skills + agents, tiered. dev-core (stack-agnostic disciplines) · react-core (React 19 / Vite skills) · react-agents (templates + profile-generator) · work-core (cross-role work-awareness).",
   "owner": {
     "name": "Chettawat Phosri"
   },
@@ -23,6 +23,12 @@
       "source": "./plugins/react-agents",
       "description": "Templates for the implement/polish/pre-commit/test agent quartet + a profile-generator skill that scaffolds a project-specific profile interactively.",
       "version": "0.5.2"
+    },
+    {
+      "name": "work-core",
+      "source": "./plugins/work-core",
+      "description": "Cross-role personal work-awareness skills: sitrep (situation report — recap + effort + open loops from local ground truth: Claude Code session logs, git, MR/PR state). The role-neutral tier of claude-kit.",
+      "version": "0.1.0"
     }
   ]
 }

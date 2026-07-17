@@ -5,6 +5,8 @@ node_modules/
 *.log
 .idea/
 .vscode/
+__pycache__/
+*.pyc
 
 # Working documents — design WIP, audit findings, exploration notes.
 # Public kit ships finished docs only (CLAUDE.md, README.md, SKILL.md per
