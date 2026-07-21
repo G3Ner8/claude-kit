@@ -6,6 +6,17 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.1.2
+- `sitrep` 0.1.2: collector now fetches MRs/PRs **merged inside the window**
+  (`glab mr list --merged` / `gh pr list --state merged`, filtered by
+  merged_at/mergedAt) and emits them as `✓ merged` lines alongside the existing
+  `⚠ open` ones. Fixes a correctness bug: the collector only ever queried *open*
+  MRs, so a merged MR reached the digest only as absence — ambiguous — and the
+  composer, seeing no signal, would infer "waiting to merge" from a branch name
+  and carry it as a stale open loop forever. Contract tightened to match: MR/PR
+  status comes only from the digest's Git section (never inferred from a
+  branch), and a carried open loop is cleared when the digest shows it merged.
+
 ### `work-core` 0.1.1
 - `sitrep` 0.1.1: Accomplished section contract now requires a bold project
   header (project — hours — one-line theme) followed by one sub-bullet per
