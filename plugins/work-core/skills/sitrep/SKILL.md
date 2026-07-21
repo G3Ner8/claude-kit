@@ -4,7 +4,7 @@ description: Personal situation report — recap what you worked on, what it cos
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
   type: action
   status: experimental
   stack: any (needs ~/.claude/projects session logs + git; gh/glab optional for PR/MR state)
@@ -85,6 +85,10 @@ briefing from memory of the conversation.
    shows them resolved; resolved ones are listed as done. This is the memory
    between reports — dropping it silently defeats the skill's purpose.
 
+   An MR/PR carried as an open loop is resolved when the digest's Git section
+   lists it under `✓ merged` — mark it done, do not re-carry it. A merge shows
+   up as that positive line, never as mere absence from the open list.
+
 3. **Compose** the briefing per the contract below and write it to `~/.sitrep/`
    (create the directory if needed), named by period:
    `sitrep-YYYY-MM-DD.md` (daily) · `sitrep-YYYY-Wnn.md` (weekly) ·
@@ -114,6 +118,10 @@ briefing from memory of the conversation.
      plus carry-overs from the previous briefing. Every carried loop states
      its age — "(since W28)" / "(3rd week open)" — so a loop that survives
      multiple briefings escalates visually instead of blending in.
+     **MR/PR status comes only from the digest's Git section** (`⚠ open` /
+     `✓ merged`) — never infer "waiting to merge" from a branch name or a
+     session mentioning an MR. A pushed branch with no matching `⚠ open` line
+     is at most "pushed, MR state unknown", not an open MR.
   4. **Next up** — a short ranked list derived from the open loops.
 - **Timesheet draft appendix** (daily + weekly, after the four sections): a
   compact table `date | project or meeting | summary | ~hours` built from the

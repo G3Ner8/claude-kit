@@ -8,8 +8,9 @@ or --month YYYY-MM calendar):
   in-window activity), subagent transcripts included in token totals
 - git repos discovered from EVERY distinct session cwd: commits in window,
   uncommitted files, current branch
-- open MR/PR state via glab (GitLab) or gh (GitHub), best-effort — reflects NOW,
-  not the window end
+- MR/PR state via glab (GitLab) or gh (GitHub), best-effort: open MRs/PRs
+  (current state = open loops) plus MRs/PRs merged inside the window (= what
+  shipped, and the positive signal that clears a carried-over open loop)
 
 Emits ONE compact markdown digest on stdout (working data for the composing
 session — never pasted into the briefing verbatim). Zero model calls; stdlib
@@ -79,6 +80,20 @@ def run(cmd, cwd=None, timeout=15):
         return r.stdout.strip() if r.returncode == 0 else ""
     except Exception:
         return ""
+
+
+def merged_in_window(json_str, ts_field, cutoff, until):
+    """Items from a `glab/gh ... -F json` list merged inside the window, newest
+    first. `glab mr list --merged` / `gh pr list --state merged` return recent
+    merges regardless of date, so the window filter happens here."""
+    try:
+        items = json.loads(json_str)
+    except Exception:
+        return []
+    hits = [(parse_ts(it.get(ts_field) or ""), it) for it in items]
+    hits = [(ts, it) for ts, it in hits if ts and cutoff <= ts < until]
+    hits.sort(key=lambda x: -x[0].timestamp())
+    return [it for _, it in hits]
 
 
 def window_from_args(args, now):
@@ -298,25 +313,33 @@ def main():
         remote = run(["git", "remote", "get-url", "origin"], top)
         mr_lines = []
         if "gitlab" in remote:
-            mrs = run(["glab", "mr", "list"], top, timeout=12)
-            if mrs:
-                opens = [l for l in mrs.splitlines() if l.strip().startswith("!")]
-                mr_lines = [f"- ⚠ open MR: {clip(l, 120)}" for l in opens[:MR_CAP]] \
-                    or ["- open MRs: none"]
+            opens = run(["glab", "mr", "list"], top, timeout=12)
+            if opens:
+                ol = [l for l in opens.splitlines() if l.strip().startswith("!")]
+                mr_lines += [f"- ⚠ open MR: {clip(l, 120)}" for l in ol[:MR_CAP]]
             else:
-                mr_lines = ["- (MR state unavailable — glab missing or failed; blind spot)"]
+                mr_lines.append("- (open-MR state unavailable — glab missing or failed; blind spot)")
+            merged = merged_in_window(
+                run(["glab", "mr", "list", "--merged", "-F", "json", "--per-page", "40"], top, timeout=12),
+                "merged_at", cutoff, until)
+            mr_lines += [f"- ✓ merged !{m['iid']}: {clip(m['title'], 100)}" for m in merged[:MR_CAP]]
         elif "github" in remote:
-            prs = run(["gh", "pr", "list", "--state", "open",
-                       "--json", "number,title,headRefName"], top, timeout=12)
-            if prs and prs != "[]":
+            opens = run(["gh", "pr", "list", "--state", "open",
+                         "--json", "number,title,headRefName"], top, timeout=12)
+            if opens and opens != "[]":
                 try:
-                    parsed = json.loads(prs)
+                    parsed = json.loads(opens)
                 except Exception:
                     parsed = []
-                mr_lines = [f"- ⚠ open PR #{p['number']}: {p['title']} ({p['headRefName']})"
-                            for p in parsed[:MR_CAP]]
-        has_open = any(l.startswith("- ⚠") for l in mr_lines)
-        if not log and not dirty and not has_open:
+                mr_lines += [f"- ⚠ open PR #{p['number']}: {p['title']} ({p['headRefName']})"
+                             for p in parsed[:MR_CAP]]
+            merged = merged_in_window(
+                run(["gh", "pr", "list", "--state", "merged", "--json",
+                     "number,title,mergedAt", "--limit", "40"], top, timeout=12),
+                "mergedAt", cutoff, until)
+            mr_lines += [f"- ✓ merged PR #{m['number']}: {clip(m['title'], 100)}" for m in merged[:MR_CAP]]
+        has_mr = any(l.startswith(("- ⚠", "- ✓")) for l in mr_lines)
+        if not log and not dirty and not has_mr:
             return name, None  # quiet repo
         out = [f"### {name} (on `{branch}`)"]
         if log:
