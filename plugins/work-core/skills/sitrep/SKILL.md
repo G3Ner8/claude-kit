@@ -4,7 +4,7 @@ description: Personal situation report — recap what you worked on, what it cos
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   type: action
   status: experimental
   stack: any (needs ~/.claude/projects session logs + git; gh/glab optional for PR/MR state)
@@ -100,9 +100,12 @@ briefing from memory of the conversation.
   headers in the conversation's language. **Order exception:** `daily` leads
   with Open loops (a standup answers "what's next" before "what happened");
   weekly and monthly keep the retrospective order as listed:
-  1. **Accomplished** — outcomes grouped by project, heaviest first. Merged
-     MRs, shipped features, decisions closed. Every MR/issue/PR mentioned is a
-     markdown link to its URL.
+  1. **Accomplished** — outcomes grouped by project, heaviest first. Each
+     project is a bold header line (project — ~hours — one-line theme)
+     followed by one sub-bullet per distinct outcome (an issue closed, an MR
+     merged/pending, a decision made) — never crammed into one paragraph
+     joined by "·". Merged MRs, shipped features, decisions closed. Every
+     MR/issue/PR mentioned is a markdown link to its URL.
   2. **Effort** — time and tokens, always paired with what they bought
      ("7.4h + 1.6M tokens → the R1/R2/R3 issue split"). Never bare totals.
      Omit this section in `daily`.
