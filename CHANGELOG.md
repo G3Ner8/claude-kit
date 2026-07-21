@@ -6,6 +6,13 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.1.1
+- `sitrep` 0.1.1: Accomplished section contract now requires a bold project
+  header (project — hours — one-line theme) followed by one sub-bullet per
+  distinct outcome, instead of one dense paragraph joined by "·" — the closed
+  work per project was hard to scan when multiple issues/MRs/decisions were
+  crammed onto a single line.
+
 ### `work-core` 0.1.0
 - New plugin (decision D13): the cross-role tier of claude-kit — personal work-awareness
   skills, independent of stack or role. Where dev-core disciplines work *on a codebase*,
