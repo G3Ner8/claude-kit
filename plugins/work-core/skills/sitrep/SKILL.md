@@ -4,7 +4,7 @@ description: Personal situation report — recap what you worked on, what it cos
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.2"
+  version: "0.1.3"
   type: action
   status: experimental
   stack: any (needs ~/.claude/projects session logs + git; gh/glab optional for PR/MR state)
@@ -74,11 +74,20 @@ briefing from memory of the conversation.
    from it, but never paste it into the briefing.
 
    **Meetings (optional but attempt it):** local logs cannot see work away from
-   the keyboard. If a calendar connector is reachable (ToolSearch for
-   "outlook calendar events" — e.g. the Microsoft 365 connector), pull the
-   window's calendar events (title, start, duration) and treat them as work
-   items alongside the digest. If no calendar tool is available, declare the
-   blind spot in the footer — never reconstruct meetings from memory.
+   the keyboard — meetings are the single biggest blind spot. If a calendar
+   connector is reachable (ToolSearch for "calendar events" — e.g. the
+   Microsoft 365 / Outlook connector, or Google Calendar), pull the window's
+   events (title, start, duration), drop cancelled ones and all-day OOO items,
+   and treat the rest as work items alongside the digest. Two traps:
+   - **Convert to the user's local timezone** before placing on a day — the
+     connector often returns UTC (`{dateTime, timeZone}`); a raw UTC time lands
+     on the wrong day/hour.
+   - A meeting may **overlap** a session that ran at the same time — flag it in
+     the timesheet (`~` hours, user adjusts), don't assume it's additive.
+
+   If no calendar connector is reachable, declare the blind spot in the footer
+   **and tell the user how to close it** ("connect the Microsoft 365 connector
+   via `/mcp` to include meetings") — never reconstruct meetings from memory.
 
 2. **Carry over** — read the most recent briefing in `~/.sitrep/` (any period).
    Unchecked open loops from it carry into the new briefing unless the digest
@@ -112,7 +121,10 @@ briefing from memory of the conversation.
      MR/issue/PR mentioned is a markdown link to its URL.
   2. **Effort** — time and tokens, always paired with what they bought
      ("7.4h + 1.6M tokens → the R1/R2/R3 issue split"). Never bare totals.
-     Omit this section in `daily`.
+     When calendar data is present, add one summary line separating the two
+     kinds of time ("~30h keyboard + ~10h meetings") — keyboard time is
+     measured from activity windows, meeting time from calendar durations; keep
+     them distinct, never merge into one total. Omit this section in `daily`.
   3. **Open loops** — markdown checkboxes. Unmerged branches, open MRs,
      uncommitted files, sessions that ended mid-task, decisions left hanging,
      plus carry-overs from the previous briefing. Every carried loop states
@@ -137,7 +149,9 @@ briefing from memory of the conversation.
   nothing is silently dropped.
 - Footer, always: data provenance (sessions/repos scanned, digest size), the
   disclaimer that time is an activity-window estimate and not a timesheet, and
-  any blind spots the digest declared (e.g. MR state unavailable).
+  any blind spots the digest declared (e.g. MR state unavailable). A blind spot
+  the user can close carries the fix — no calendar connector → "connect
+  Microsoft 365 via `/mcp` to include meetings".
 - Facts come from the digest only. A thing the digest cannot see is reported as
   unknown, not guessed.
 
