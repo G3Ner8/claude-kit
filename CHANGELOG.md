@@ -6,6 +6,18 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.1.3
+- `sitrep` 0.1.3: sharpen the calendar/meetings support (proven end-to-end
+  against a real Microsoft 365 connector). The Meetings step is now
+  connector-agnostic (M365/Outlook or Google Calendar), drops cancelled + OOO
+  events, and spells out two traps found in real use — convert event times to
+  the user's local timezone before placing them on a day, and flag meetings
+  that overlap a concurrent session rather than assuming additive hours. The
+  Effort section gains a summary line separating keyboard time from meeting
+  time (never merged into one total). Blind-spot declarations the user can
+  close now carry the fix (no calendar connector → "connect Microsoft 365 via
+  /mcp"). Guidance-only; no collector code change.
+
 ### `work-core` 0.1.2
 - `sitrep` 0.1.2: collector now fetches MRs/PRs **merged inside the window**
   (`glab mr list --merged` / `gh pr list --state merged`, filtered by
