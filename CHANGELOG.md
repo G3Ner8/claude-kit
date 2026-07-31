@@ -6,6 +6,90 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.2.0
+- `sitrep` 0.2.0: trust, safety and cost fixes, all found by auditing real
+  briefings against the collector that produced them.
+  - **Credentials are redacted before the digest leaves the collector.** Session
+    gists are raw user prompt text, and a live bearer token was sitting in a real
+    digest — API keys, passwords and connection strings get pasted into prompts
+    routinely. From the digest a secret reaches the model's context and then a
+    briefing file that gets pasted into chats and timesheets. `scrub()` now
+    replaces credential-shaped runs (`Bearer …`, `sk_`/`ghp_`/`glpat_`/`awr_`/
+    `xoxb_` prefixes, AWS `AKIA…`, JWTs, `password=`/`token=`/`api_key=`
+    assignments, and credentials embedded in URLs) with `[redacted]`, keeping the
+    label where the match was an assignment. It runs before truncation, so a
+    secret cut mid-string cannot leak its prefix, and covers every path out of
+    the collector: session gists, MR/PR titles, and commit subjects. Redaction
+    belongs in the deterministic layer — the model is never handed a live
+    credential and trusted to summarize around it. A matching operating rule
+    forbids writing any secret into a briefing, from the digest or elsewhere.
+  - **Loop re-verification is capped at 12 per run**, oldest first, with anything
+    past the cap re-carried as `(unverified this run)` and named in the footer —
+    each check is a network call, and the re-verify step shipped in this same
+    release had no bound. `git fetch` is likewise scoped to the repo owning the
+    loop rather than every repo scanned.
+  - **Leaner in tokens.** The skill body cost more per invocation (3,441 tok) than
+    the data it processes, so the prose was cut without dropping a rule
+    (3,441 → 3,078). Digest side: `end:` gists halved to 80 chars (a session's
+    last words are mostly mid-thought prose) and merged MR/PR titles capped at 5
+    instead of 8 (they repeat far more than open ones) — a 7-day digest went
+    2,732 → 2,420 tok. Runtime was measured at 2.2-2.8s and deliberately left
+    alone. Net: ~6,200 → ~5,500 tok per run.
+  - **Project labels were silently truncated.** The label came from the encoded
+    project directory name, where `/` is stored as `-` — so a hyphen inside a
+    real directory name was indistinguishable from a path separator and every
+    hyphenated project lost its head: `claude-kit` → "kit", `pps-web` → "web",
+    `spec-distiller` → "distiller". Worse, `~/Workspace` and `carsol-workspace`
+    both reduced to "workspace" and the collision check missed them (they differ
+    only by case). The composing model had been quietly repairing these names
+    from conversation context — a guess presented as ground truth, against the
+    skill's own digest-only rule. Labels now come from the session's real `cwd`,
+    resolved to its git toplevel: exact, and it splits work that shared a parent
+    directory. Collision widening now matches case-insensitively, and a session
+    with no `cwd` on any event falls back to the old derivation marked `?`.
+  - **Carried open loops are re-verified against live state.** Absence from the
+    digest was treated as evidence a loop was still open, but the digest only
+    sees merges inside the window, in repos that happened to be a session cwd —
+    so work finished last month looked identical to work still pending. Two
+    loops were reported as open for 3-4 weeks after they closed. Step 2 now
+    requires a window-free `glab mr view` / `gh pr view` per carried id (and a
+    `git fetch` + range check for loops with no id), records the verification
+    date in the footer, and names "pushed with no MR opened" as the heavier
+    state it is.
+  - **Repo discovery is no longer limited to this window's session cwds.** The
+    collector keeps a self-maintaining cache of every repo it has ever resolved
+    (`~/.sitrep/repos.json`) and scans the union, so work that shipped in a repo
+    you never opened locally this window — an agent's MR, a teammate's merge —
+    still reaches Accomplished. A week where pps-web saw 4 merged MRs against
+    0.3h of keyboard time was the motivating case. Entries whose path is gone
+    are pruned each run; a corrupt or unwritable cache degrades to "this run's
+    discoveries only" rather than failing. Scanning is capped at 20 repos, this
+    run's own repos take contested slots first, and anything the cap drops is
+    named in the Git header (the cache file itself keeps the full list).
+  - **Commits and MRs/PRs are attributed, because the repo cache made that
+    mandatory.** Found by running the skill end-to-end: a cached repo is by
+    definition one no session opened this window, so its history is as likely to
+    be a teammate's as yours — the first real run offered 173 of a colleague's
+    commits and 10 of their merged MRs as raw material for a report headed "what
+    I did this week". Commits are now split against the repo's own
+    `git config user.email`: yours are listed, everyone else's collapse to one
+    `ⓘ NOT yours: N commits by <author>` line, and every MR/PR carries `by
+    <username>`. A plain `--author=me` filter was rejected — it would drop work an
+    agent identity committed on your behalf, which is exactly what the cache
+    exists to surface; naming the author lets the briefing judge instead. Side
+    benefit: a repo with 108 of someone else's commits went from eight listed
+    commit lines plus a "+100 more" to a single line, so the fix is leaner too.
+  - **Effort closes with a delta against the previous same-period briefing.**
+    Comparing "~8.8h this week vs ~30.1h last week" was being done by hand or
+    not at all. The contract now requires it, restricted to like periods, and
+    suppressed when a log horizon makes the earlier total a floor.
+  - **The collector declares its own log horizon.** Claude Code prunes session
+    logs after `cleanupPeriodDays` (default 30), so a window reaching further
+    back reported the pruned span as zero activity rather than as missing data —
+    `--month` on a past month was the worst case. The digest now emits a
+    `⚠ Log horizon` line naming the uncovered span, and the briefing must treat
+    those effort figures as a floor. Git and MR/PR data are unaffected.
+
 ### `work-core` 0.1.3
 - `sitrep` 0.1.3: sharpen the calendar/meetings support (proven end-to-end
   against a real Microsoft 365 connector). The Meetings step is now
