@@ -28,7 +28,7 @@
       "name": "work-core",
       "source": "./plugins/work-core",
       "description": "Cross-role personal work-awareness skills: sitrep (situation report — recap + effort + open loops from local ground truth: Claude Code session logs, git, MR/PR state). The role-neutral tier of claude-kit.",
-      "version": "0.1.3"
+      "version": "0.2.0"
     }
   ]
 }

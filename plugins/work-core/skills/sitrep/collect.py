@@ -6,8 +6,11 @@ or --month YYYY-MM calendar):
 - Claude Code session JSONLs (~/.claude/projects): per-session gist + token spend,
   clipped to the window (a session spanning the window edge counts only its
   in-window activity), subagent transcripts included in token totals
-- git repos discovered from EVERY distinct session cwd: commits in window,
-  uncommitted files, current branch
+- git repos from every session cwd PLUS a self-maintaining cross-run cache
+  (~/.sitrep/repos.json), so work that shipped in a repo untouched this window
+  still surfaces: commits in window, uncommitted files, current branch. Commits
+  and MRs/PRs are attributed — a cached repo's history may well be someone
+  else's, and a report headed "what I did" must not absorb it
 - MR/PR state via glab (GitLab) or gh (GitHub), best-effort: open MRs/PRs
   (current state = open loops) plus MRs/PRs merged inside the window (= what
   shipped, and the positive signal that clears a carried-over open loop)
@@ -18,6 +21,7 @@ only. Hard caps everywhere, and whatever a cap cuts is counted, never hidden.
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 from collections import defaultdict
@@ -27,10 +31,14 @@ from pathlib import Path
 
 TOP_SESSIONS = 10
 GIST_CHARS = 160
+TAIL_CHARS = 80  # a session's last words rarely carry signal — half the budget
 GAP_MIN = 10  # inter-event gaps longer than this don't count as active time
 GIT_LOG_CAP = 8
 MR_CAP = 8
+MERGED_CAP = 5  # merged titles repeat far more than open ones; cap them tighter
 TREND_MIN_DAYS = 14  # windows longer than this get the week × project table
+REPO_CACHE = Path.home() / ".sitrep" / "repos.json"
+REPO_CAP = 20  # each repo costs git + MR/PR calls; bounds worst-case runtime
 
 
 def parse_ts(s):
@@ -53,8 +61,32 @@ def first_text(content):
     return ""
 
 
+# Session gists are raw user prompt text: API keys, passwords and connection
+# strings get pasted into prompts routinely, and from the digest a secret reaches
+# a model's context and then a briefing file that may be pasted into a chat or a
+# timesheet. Redaction has to happen in the deterministic layer — the model must
+# never be handed a live credential and trusted to summarize around it.
+SECRET_RE = re.compile(
+    r"Bearer\s+[A-Za-z0-9._~+/=-]{12,}"
+    r"|\b(?:sk|pk|ghp|gho|ghu|ghs|glpat|awr|xox[bpaes]|npm)[_-][A-Za-z0-9_-]{10,}"
+    r"|\bAKIA[0-9A-Z]{12,}"
+    r"|\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*"
+    r"|(?P<kw>\b(?:pass(?:word)?|passwd|secret|token|api[_-]?key|auth)\s*[:=]\s*)"
+    r"['\"]?[^\s'\"]{8,}"
+    r"|\b[a-z][a-z0-9+.-]*://[^\s/@:]+:[^\s/@]+@",
+    re.I,
+)
+
+
+def scrub(s):
+    """Replace credential-shaped runs with a marker, keeping the label when the
+    match was a `key = value` assignment (the fact matters, the value must not)."""
+    return SECRET_RE.sub(lambda m: (m.group("kw") or "") + "[redacted]", s or "")
+
+
 def clip(s, n=GIST_CHARS):
-    s = " ".join((s or "").split())
+    # scrub before truncating: a secret cut mid-string still leaks its prefix
+    s = " ".join(scrub(s).split())
     return s[: n - 1] + "…" if len(s) > n else s
 
 
@@ -96,6 +128,33 @@ def merged_in_window(json_str, ts_field, cutoff, until):
     return [it for _, it in hits]
 
 
+def repo_set(discovered, path=REPO_CACHE):
+    """(repos to scan, n from cache, n cut by the cap) — this run's discoveries
+    unioned with every repo seen on a previous run.
+
+    Session cwds only reveal repos opened locally, so work that shipped in a repo
+    untouched this window (a teammate's merge, an agent's MR) would be invisible.
+    The cache is self-maintaining: entries whose path is gone are dropped, and it
+    is rewritten every run. A missing or corrupt cache is not an error.
+    """
+    known = set()
+    try:
+        known = {p for p in json.loads(path.read_text()) if isinstance(p, str)}
+    except Exception:
+        pass
+    live = {p for p in known | discovered if Path(p, ".git").exists()}
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(sorted(live), indent=0))
+    except OSError:
+        pass  # cache is an optimisation; failing to persist must not fail the run
+    # this run's own repos always win a contested cap slot — they are the active ones
+    active = sorted(live & discovered)
+    extra = sorted(live - discovered)
+    kept = active + extra[: max(0, REPO_CAP - len(active))]
+    return kept, len(extra), len(live) - len(kept)
+
+
 def window_from_args(args, now):
     """(cutoff, until, label) — rolling days or a calendar month in local time."""
     if args.month:
@@ -134,22 +193,27 @@ def main():
     sub_tok = 0
     sub_files = 0
     all_cwds = set()
+    oldest_log = None  # earliest mtime seen, incl. files skipped as out-of-window
 
     for f in proj_root.rglob("*.jsonl"):
         rel = f.relative_to(proj_root)
         if "memory" in rel.parts:
             continue
         try:
-            if datetime.fromtimestamp(f.stat().st_mtime, timezone.utc) < cutoff:
-                continue  # file untouched since before the window — nothing in range
+            mtime = datetime.fromtimestamp(f.stat().st_mtime, timezone.utc)
         except OSError:
             continue  # deleted mid-scan
+        if oldest_log is None or mtime < oldest_log:
+            oldest_log = mtime
+        if mtime < cutoff:
+            continue  # file untouched since before the window — nothing in range
         proj = rel.parts[0]
         is_main = len(rel.parts) == 2  # deeper files are subagent transcripts
         ask, tail, model = "", "", ""
         out_tok = n_user = 0
         times = []
         started_before = False
+        cwd_hits = defaultdict(int)  # this session's own cwds — the label source
         try:
             with open(f, errors="replace") as fh:
                 for line in fh:
@@ -179,6 +243,7 @@ def main():
                     if in_window:
                         times.append(ts)
                         if ev.get("cwd"):
+                            cwd_hits[ev["cwd"]] += 1
                             all_cwds.add(ev["cwd"])
                     if ev.get("type") == "user" and not ev.get("isSidechain"):
                         txt = first_text(msg.get("content"))
@@ -203,32 +268,63 @@ def main():
             if b - a < timedelta(minutes=GAP_MIN):
                 active += b - a
         sessions.append({
-            "proj": proj,  # full dir name; mapped to a display name after the scan
+            "dir": proj,  # encoded project dir — lossy fallback only (see label pass)
+            "cwd": max(cwd_hits, key=cwd_hits.get) if cwd_hits else "",
             "start": times[0],
             "active_min": int(active.total_seconds() / 60),
             "out_tok": out_tok,
             "n_user": n_user,
             "model": model.split("-2")[0] if model else "?",
             "ask": clip(ask),
-            "tail": clip(tail),
+            "tail": clip(tail, TAIL_CHARS),
             "cont": started_before,
         })
 
-    # ---- display names: last path segment, widened to two segments on collision
-    # (two project dirs ending in the same segment must not merge silently)
-    disp = {p: p.strip("-").split("-")[-1] for p in {s["proj"] for s in sessions}}
+    # ---- resolve every session cwd to its git toplevel. Done here rather than
+    # with the git section because labels depend on it: the encoded project dir
+    # name is LOSSY — `/` became `-`, so a hyphen inside a real directory name
+    # is indistinguishable from a separator (`…-Workspace-claude-kit` → "kit",
+    # `…-Aware-Payroll-pps-web` → "web"). The cwd on each event is the real path.
+    repo_of = {}
+    for cwd in all_cwds:
+        top = run(["git", "-C", cwd, "rev-parse", "--show-toplevel"])
+        if top:
+            repo_of[cwd] = top
+
+    repo_tops, n_cached, repo_cut = repo_set(set(repo_of.values()))
+
+    # ---- display names: repo (or cwd) basename, widened to two segments on
+    # collision — matched case-insensitively, since `Workspace` and `workspace`
+    # read as the same project to a human even though they differ as dict keys
+    label_paths = {repo_of.get(c, c) for c in all_cwds} | set(repo_tops)
+    disp = {p: Path(p).name for p in label_paths}
     seen = defaultdict(list)
     for p, d in disp.items():
-        seen[d].append(p)
+        seen[d.lower()].append(p)
     for d, ps in seen.items():
         if len(ps) > 1:
             for p in ps:
-                disp[p] = "-".join(p.strip("-").split("-")[-2:])
+                disp[p] = "/".join(Path(p).parts[-2:])
     for s in sessions:
-        s["proj"] = disp[s["proj"]]
+        # a session with no cwd on any in-window event falls back to the lossy
+        # dir name — marked `?` so the briefing never presents it as exact
+        s["proj"] = disp.get(repo_of.get(s["cwd"], s["cwd"])) \
+            or (s["dir"].strip("-").split("-")[-1] + "?")
 
     # ---- emit digest
     print(f"# sitrep digest — {label}")
+
+    # A window reaching back past the oldest surviving log is a measurement gap,
+    # not a quiet week — Claude Code prunes session logs after cleanupPeriodDays
+    # (default 30). Declare it; effort stats below are a floor, not a total.
+    if oldest_log and (oldest_log - cutoff).days >= 1:
+        print(f"\n⚠ **Log horizon:** oldest session log on disk is "
+              f"{oldest_log.astimezone().date()}, {(oldest_log - cutoff).days}d after the "
+              f"window opens. Nothing survives for {cutoff.date()} → "
+              f"{oldest_log.astimezone().date()} (unused, or pruned by `cleanupPeriodDays`, "
+              f"default 30) — session/effort figures for that span are MISSING, not zero. "
+              f"Git and MR/PR data below are unaffected.")
+
     print(f"\n## Sessions ({len(sessions)} with in-window activity, top {TOP_SESSIONS} "
           f"by output tokens; stats are window-clipped)\n")
     sessions.sort(key=lambda s: -s["out_tok"])
@@ -295,19 +391,29 @@ def main():
         for (wk, proj), (n, mins, tok) in sorted(trend.items()):
             print(f"| {wk} | {proj} | {n} | {mins / 60:.1f}h | {tok:,} |")
 
-    # ---- git: every distinct session cwd resolved to its repo toplevel
-    repos = {}
-    for cwd in all_cwds:
-        top = run(["git", "-C", cwd, "rev-parse", "--show-toplevel"])
-        if top:
-            repos[top] = Path(top).name
-    print(f"\n## Git ({label})\n")
+    # ---- git: session-cwd repos plus the cross-run cache
+    repos = {top: disp.get(top, Path(top).name) for top in repo_tops}
+    src = f"{len(set(repo_of.values()))} from session cwds"
+    if n_cached:
+        src += f" + {n_cached} from cache (`~/.sitrep/repos.json`)"
+    if repo_cut:
+        src += f"; **{repo_cut} cached repos NOT scanned** ({REPO_CAP}-repo cap)"
+    print(f"\n## Git ({label}) — {len(repos)} repos: {src}\n")
     since, until_arg = cutoff.isoformat(), until.isoformat()
 
     def repo_report(top, name):
         """Full report block for one repo — runs in a worker thread because the
         MR/PR lookups are network calls; serial repos made the whole scan crawl."""
-        log = run(["git", "log", "--oneline", "--since", since, "--until", until_arg, "--all"], top)
+        # Authorship is not optional here. A cached repo is by definition one this
+        # window's sessions never opened, so its history is as likely to be a
+        # teammate's as yours — and a report headed "what I did" must not absorb
+        # it. Commits are split by author email against this repo's own identity.
+        me = run(["git", "config", "user.email"], top)
+        log = run(["git", "log", "--since", since, "--until", until_arg, "--all",
+                   "--format=%h\t%ae\t%s"], top)
+        rows = [l.split("\t", 2) for l in log.splitlines() if l.count("\t") >= 2]
+        mine = [r for r in rows if me and r[1] == me]
+        others = [r for r in rows if not (me and r[1] == me)]
         dirty = run(["git", "status", "--porcelain"], top)
         branch = run(["git", "branch", "--show-current"], top) or "detached"
         remote = run(["git", "remote", "get-url", "origin"], top)
@@ -322,7 +428,8 @@ def main():
             merged = merged_in_window(
                 run(["glab", "mr", "list", "--merged", "-F", "json", "--per-page", "40"], top, timeout=12),
                 "merged_at", cutoff, until)
-            mr_lines += [f"- ✓ merged !{m['iid']}: {clip(m['title'], 100)}" for m in merged[:MR_CAP]]
+            mr_lines += [f"- ✓ merged !{m['iid']} by {(m.get('author') or {}).get('username', '?')}"
+                         f": {clip(m['title'], 100)}" for m in merged[:MERGED_CAP]]
         elif "github" in remote:
             opens = run(["gh", "pr", "list", "--state", "open",
                          "--json", "number,title,headRefName"], top, timeout=12)
@@ -335,20 +442,32 @@ def main():
                              for p in parsed[:MR_CAP]]
             merged = merged_in_window(
                 run(["gh", "pr", "list", "--state", "merged", "--json",
-                     "number,title,mergedAt", "--limit", "40"], top, timeout=12),
+                     "number,title,mergedAt,author", "--limit", "40"], top, timeout=12),
                 "mergedAt", cutoff, until)
-            mr_lines += [f"- ✓ merged PR #{m['number']}: {clip(m['title'], 100)}" for m in merged[:MR_CAP]]
+            mr_lines += [f"- ✓ merged PR #{m['number']} by {(m.get('author') or {}).get('login', '?')}"
+                         f": {clip(m['title'], 100)}" for m in merged[:MERGED_CAP]]
         has_mr = any(l.startswith(("- ⚠", "- ✓")) for l in mr_lines)
-        if not log and not dirty and not has_mr:
+        if not rows and not dirty and not has_mr:
             return name, None  # quiet repo
         out = [f"### {name} (on `{branch}`)"]
-        if log:
-            lines = log.splitlines()
-            out += [f"- {l}" for l in lines[:GIT_LOG_CAP]]
-            if len(lines) > GIT_LOG_CAP:
-                out.append(f"- (+{len(lines) - GIT_LOG_CAP} more commits)")
-        else:
+        if mine:
+            out += [f"- {h} {scrub(s)}" for h, _, s in mine[:GIT_LOG_CAP]]
+            if len(mine) > GIT_LOG_CAP:
+                out.append(f"- (+{len(mine) - GIT_LOG_CAP} more of your commits)")
+        elif not rows:
             out.append("- (no commits in window)")
+        if others:
+            # named, counted, never listed as yours — an agent identity committing
+            # on your behalf shows up here too, which is why they are not dropped
+            who = defaultdict(int)
+            for _, ae, _ in others:
+                who[ae.split("@")[0]] += 1
+            ranked = sorted(who.items(), key=lambda x: -x[1])[:3]
+            # one author needs no count — it equals the total already stated
+            top_who = ranked[0][0] if len(who) == 1 else \
+                ", ".join(f"{a} {n}" for a, n in ranked)
+            out.append(f"- ⓘ NOT yours: {len(others)} commits by {top_who}"
+                       + (f" (+{len(who) - 3} more authors)" if len(who) > 3 else ""))
         if dirty:
             out.append(f"- ⚠ uncommitted: {len(dirty.splitlines())} files")
         out += mr_lines
