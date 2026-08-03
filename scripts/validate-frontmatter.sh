@@ -191,7 +191,11 @@ validate_skill() {
   else
     echo "❌ $rel_path"
     for e in "${errors[@]}"; do echo "     error: $e"; done
-    for w in "${warnings[@]}"; do echo "     warn:  $w"; done
+    # Guard the expansion: under `set -u`, bash 3.2 (macOS default) treats
+    # "${empty[@]}" as unbound — errors with no warnings would abort the run.
+    if [[ ${#warnings[@]} -gt 0 ]]; then
+      for w in "${warnings[@]}"; do echo "     warn:  $w"; done
+    fi
     fail_count=$((fail_count + 1))
   fi
 }

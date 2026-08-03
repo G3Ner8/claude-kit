@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.11.4"
+  version: "0.12.0"
   type: gate
   status: experimental
   stack: any
@@ -136,7 +136,7 @@ The work-order document is **English only** — its reader is a coding agent and
 - **Design** — the target / root cause and the **recommended** approach, in readable prose. Carry the "trap" here so the agent doesn't fall into it.
 - **Constraints** — discovered ground truth the agent must honor, **each with its why** (e.g. "no Flyway in the project → use a runtime native query, not a migration"). The why is the guardrail; without it the agent does the wrong thing.
 - **Assumptions** — pinned defaults the agent may rely on. State that if one proves false at runtime, the agent should **park and ask, not guess**.
-- **Acceptance Criteria** — the **hard contract**: checkable, verifiable items. This is what the MR is measured against.
+- **Acceptance Criteria** — the **hard contract**: checkable, verifiable items. This is what the MR is measured against. Close the list with the **intent gate**: "before merge, the MR is checked against this work order with `dev-core:inspector` — anything built beyond the order's scope or missing from its AC is a bounce-back, not a follow-up." The agent can't run this on itself; naming it in the contract is what stops the check from being remembered-or-not.
 - **Test Cases** — Given / When / Then. At least one.
 - **Out of scope / Non-goals** — explicit. Pre-empts scope creep; names adjacent work that is deliberately *not* in this order.
 - **Phases** *(emit only when the plan carries a named multi-stage agent chain AND the target supports first-class phases, e.g. SDC)* — one `### Phase N: <title>` sub-block per stage, each carrying its own `agent-type:` / optional `model:` / `skills:` line (same format as Agent Configuration) plus that stage's instructions. Format:
@@ -195,6 +195,8 @@ Drafter produces the work order and stops. It **never posts the issue or edits c
 - If the target repo has an issue-filing skill (SDC `/create-issue`): offer to hand the drafted Description to it — that skill grounds against the repo and posts. Don't duplicate its job; don't re-grill what it will grill.
 - Otherwise: output the work order for the user to file manually.
 
+**Always close the handoff reply with the pending gate**, in one line: *"When the agent's MR lands, run `/dev-core:inspector` against this order before merge."* Step 6 checked the order; nothing has yet checked the **work**. Drafter is the last point where that gate can be named while the user is still looking — the agent finishes hours later, in another session, and an unnamed gate is a skipped gate.
+
 ## Operating rules
 
 Governance — what drafter MUST / MUST NOT do regardless of input:
@@ -203,6 +205,7 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 - **Never guess to fill the template.** A missing AC or an unnamed target is a *bounce-back* (Step 2), not a blank you invent past.
 - **Lossless on discovered knowledge, lossy on choreography.** Preserve the traps and facts; demote step-by-step to recommendation.
 - **Acceptance criteria are checkable or they don't count.** "Works correctly" is not an AC; "sort=name returns Thai dictionary order, เ-word before ฮ-word" is.
+- **Name the pre-merge intent gate — every time, in both places.** Once inside the order (final AC) and once in the handoff reply. Step 6's self-check is drafter grading its own paper; it says nothing about whether the agent built what the order asked. Absorbing inspector's lens into Step 6 does **not** discharge the downstream run.
 - **The work order is English only.** The artifact's readers are an agent and a reviewing team.
 - **Interactive replies adapt to the user.** Talk to the user in the language they're using in the conversation; honor their CLAUDE.md / language-preference memory if present; default to matching the conversation. Keep technical terms, identifiers, and all code in English regardless. (This skill ships in a shared kit — never hardcode a single human language.)
 - **Self-contained.** No reference the absent reader can't resolve. Inline what a session-local note pointed to. **Specifically: never carry a path the agent cannot open from inside the target repo** — paths starting with `../`, absolute paths outside the project root, or session-local locations (`session-working-space/`, `~/.claude/`, `/Users/…`) must be inlined or their key facts summarized; carrying the path is always wrong.
@@ -223,7 +226,7 @@ Governance — what drafter MUST / MUST NOT do regardless of input:
 4. Transform  — TRUST the plan (no re-explore); keep knowledge, drop choreography; scan orchestration intent + external paths, inline what SDC can't see
 5. Write      — English; Summary + Design + Constraints(+why) + Assumptions + AC + Tests + Non-goals + Phases (named chain → ### Phase N: sub-blocks, per-phase agent-type/model, each paired w/ read-directly body line; gap is transitive) + Agent Config + Deps
 6. Self-check — inspector pass on your OWN output: AC checkable? constraints have why? guess-points are Assumptions? out-of-scope specific? — fail → fix, don't ship
-7. Handoff    — to /create-issue if present, else output; never post or edit code
+7. Handoff    — to /create-issue if present, else output; never post or edit code; close the reply with the pending gate: run /dev-core:inspector on the MR before merge
 ```
 
 The drafter's rule: **the work order is the whole conversation** — the crew can't ask you anything once the job starts. Put it all on the page; name what not to touch.

@@ -1,10 +1,10 @@
 ---
 name: surveyor
-description: Survey the real state of a project — reconcile DECLARED status (backlog, status docs, memory files, tracker issues) against GROUND TRUTH (merged git history, MR/issue state, the actual code), report the drift, then recommend next work by feasibility and offer to sync stale docs. Read-only by default. Triggers - "project status", "where are we", "what's left", "what's actually done", "is X actually done", "reconcile the backlog", "what's next".
+description: Survey the real state of a project — reconcile DECLARED status (backlog, status docs, memory files, tracker issues) against GROUND TRUTH (merged git history, MR/issue state, the actual code), report the drift, and offer to sync stale docs. Answers "is the status right", not "what should I do next". Read-only by default. Triggers - "project status", "where are we", "what's left", "what's actually done", "is X actually done", "reconcile the backlog", "is the backlog still right".
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.2"
+  version: "0.3.0"
   type: gate
   status: experimental
   stack: any (needs git; glab/gh optional)
@@ -21,20 +21,21 @@ Status drifts from reality for ordinary reasons: a doc says "done" because someo
 
 ## When to use
 
-- "Where are we / what's left", "is the backlog still right", "what's actually done", "what should I pick up next", "update the status".
+- "Where are we / what's left", "is the backlog still right", "what's actually done", "update the status".
 - After a stretch of work, to reconcile the plan/backlog with what actually landed.
 - Before planning the next sprint/session, to get an honest starting point.
 
 Skip this skill for:
 
 - A single yes/no fact you can check in one command ("did PR #42 merge?") — just check it.
+- "What should I work on next" — the survey tells you what's *true*, not what to do about it. Ranked open work with ages and carry-overs is `work-core:sitrep`'s Open loops / Next up.
 - Writing new work items from scratch (that's a planning task, not a survey).
 - Trivial repos with no status docs and no tracker — there's nothing to reconcile.
 
 ## What this skill does NOT do
 
 - It does not lecture. The discipline transfers by *showing the work* — every verdict carries the check that produced it — not by tagging principles. No "↳ this teaches you X" lines.
-- It does not decide business priority. Next-up is ranked by *feasibility* (what's ready, what's blocked); the value call stays with the human.
+- It does not rank or recommend what to work on next — not by business priority, and not by feasibility either. A survey that ends in a work order is one step from choosing the work, which is the one call that has to stay with the human: pick wrong and the rework cascades through everyone downstream. The drift table tells you what's blocked and what's ready; deciding is yours (or `work-core:sitrep`'s, for your own open loops).
 - It does not edit anything by default. It reports, then offers syncs, and applies only the ones approved.
 
 ## Step 1 — Detect the terrain
@@ -97,20 +98,7 @@ Drift: N · In sync: M · Couldn't verify: K
 
 Verdicts: `✅` in sync · `⚠️` drift (declared ≠ ground) · `❓` couldn't verify (say why — e.g. "merged: yes; deployed: not checkable from here").
 
-## Step 5 — Next up (recommend, don't decide)
-
-Rank the unfinished / blocked work by **feasibility**, with the reason visible. Signals you can actually check: dependency readiness (is the thing it needs done?), blocked state, scope/size, and drift severity (a badly-wrong status is worth correcting early).
-
-```
-## Next up (by feasibility — business priority is yours to set)
-1. Approval — deps ready + merged, unblocked → can start now
-2. PVD — deps ready, but 3 screens, larger scope
-3. ~~Month-end~~ — BLOCKED: needs BE close/reopen (absent) before any work
-```
-
-End with one line making the boundary explicit: this is a feasibility ordering; sprint/customer/deadline priority is the human's call.
-
-## Step 6 — Offer to sync (report-only until approved)
+## Step 5 — Offer to sync (report-only until approved)
 
 List the doc edits the survey implies — don't apply them yet:
 
@@ -127,7 +115,7 @@ Apply only the syncs the user approves. **Tracker actions (closing/reopening an 
 - **Ground beats doc** — the doc is the claim; merged history + code + deployment is the measurement. On conflict, the ground wins.
 - **Three levels, never conflated** — exists in source ≠ merged ≠ deployed; report which you actually checked.
 - **Right repo** — in a submodule superproject, run git/grep inside the submodule a SHA belongs to, not the root.
-- **Recommend, don't decide** — Next-up is feasibility only; the value/priority call is the human's.
+- **Measure, don't direct** — the deliverable ends at what is true. No ranked next-up, no "start with X": naming a first move is deciding, however the ordering is justified.
 - **Report-then-apply** — read-only by default; edit files only on explicit approval; tracker actions asked separately.
 - **No teaching tags** — show the work; let the consistency teach. Don't append "principle:" / "this is good practice because" lines.
 - **Enumerate, don't condense** — every in-scope claim is a row; no "+N more."
@@ -141,9 +129,6 @@ Terrain: <host · repo shape · integration branch>
 ## Drift
 <table from Step 4>
 Drift: N · In sync: M · Couldn't verify: K
-
-## Next up (by feasibility — priority is yours)
-<ranked list from Step 5>
 
 ## Suggested syncs (applied only on your go-ahead)
 - [ ] <doc edit 1>
@@ -160,6 +145,7 @@ Drift: N · In sync: M · Couldn't verify: K
 - Mark something done because a doc, ticket, or agent summary says so — verify it.
 - Append teaching/principle annotations — show the work instead.
 - Auto-schedule or loop this skill; it's on-demand.
+- Close the report with a ranked next-up, a "start here", or a suggested first task — the drift table is the deliverable.
 
 ## Edge cases
 
