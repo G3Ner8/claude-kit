@@ -1,6 +1,6 @@
 {
   "name": "work-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Cross-role personal work-awareness skills, independent of stack or role — sitrep (situation report: recap + effort + open loops, assembled from local ground truth: Claude Code session logs, git history, MR/PR state). The role-neutral tier of claude-kit.",
   "author": {
     "name": "Chettawat Phosri"

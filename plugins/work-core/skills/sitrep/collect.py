@@ -95,6 +95,15 @@ def cell(s, n):
     return clip(s, n).replace("|", "¦")
 
 
+def active_days(s):
+    """Local dates a session touched. A session is an interval, not a point: one
+    running past midnight belongs to every day it worked, so day/week rollups
+    iterate this instead of bucketing on `start`. Falls back to the opening day
+    for a session too short to register a gap or a token."""
+    return sorted(set(s["per_day"]) | set(s["tok_day"])
+                  or {s["start"].astimezone().date()})
+
+
 def meaningful(text):
     """A gist-worthy user ask: not a command tag, not a bare file path."""
     t = (text or "").strip()
@@ -213,6 +222,7 @@ def main():
         out_tok = n_user = 0
         times = []
         started_before = False
+        tok_day = defaultdict(int)  # local date -> output tokens, for spanning sessions
         cwd_hits = defaultdict(int)  # this session's own cwds — the label source
         try:
             with open(f, errors="replace") as fh:
@@ -234,6 +244,7 @@ def main():
                         u = msg.get("usage") or {}
                         out_tok += u.get("output_tokens", 0)
                         if is_main:
+                            tok_day[ts.astimezone().date()] += u.get("output_tokens", 0)
                             model = msg.get("model") or model
                             txt = first_text(msg.get("content"))
                             if txt:
@@ -264,13 +275,21 @@ def main():
             continue  # no in-window activity
         times.sort()
         active = timedelta()
+        per_day = defaultdict(float)  # local date -> active minutes
         for a, b in zip(times, times[1:]):
             if b - a < timedelta(minutes=GAP_MIN):
                 active += b - a
+                # credit the gap to the day it STARTS. A session is not a point in
+                # time — one running 29th→31st must land on all three days, not
+                # collapse onto whichever day it happened to open on.
+                per_day[a.astimezone().date()] += (b - a).total_seconds() / 60
         sessions.append({
             "dir": proj,  # encoded project dir — lossy fallback only (see label pass)
             "cwd": max(cwd_hits, key=cwd_hits.get) if cwd_hits else "",
             "start": times[0],
+            "end": times[-1],
+            "per_day": dict(per_day),
+            "tok_day": dict(tok_day),
             "active_min": int(active.total_seconds() / 60),
             "out_tok": out_tok,
             "n_user": n_user,
@@ -330,10 +349,15 @@ def main():
     sessions.sort(key=lambda s: -s["out_tok"])
     shown, rest = sessions[:TOP_SESSIONS], sessions[TOP_SESSIONS:]
     for s in shown:
-        day = s["start"].astimezone().strftime("%d %b")
+        a, b = s["start"].astimezone(), s["end"].astimezone()
+        day = f"{a:%d %b}" if a.date() == b.date() else f"{a:%d %b}–{b:%d %b}"
         cont = " (cont.)" if s["cont"] else ""
         print(f"- **{s['proj']}** {day}{cont} | {s['active_min']}min | "
               f"{s['out_tok']:,} out-tok | {s['n_user']} prompts | {s['model']}")
+        if len(s["per_day"]) > 1:  # timesheet raw material — never a single-day claim
+            split = " · ".join(f"{d:%d %b} {m / 60:.1f}h"
+                               for d, m in sorted(s["per_day"].items()))
+            print(f"  - split: {split}")
         print(f"  - ask: {s['ask']}")
         print(f"  - end: {s['tail']}")
     if rest:
@@ -356,8 +380,9 @@ def main():
         by_proj[s["proj"]].append(s)
     for proj in sorted(by_proj, key=lambda p: -sum(s["out_tok"] for s in by_proj[p])):
         ss = by_proj[proj]
-        days = sorted(s["start"] for s in ss)
-        span = f"{days[0].astimezone().strftime('%d %b')} → {days[-1].astimezone().strftime('%d %b')}"
+        first = min(s["start"] for s in ss).astimezone()
+        last = max(s["end"] for s in ss).astimezone()  # end, not start — see per_day
+        span = f"{first:%d %b} → {last:%d %b}"
         print(f"- **{proj}**: {len(ss)} sessions, {sum(s['active_min'] for s in ss) / 60:.1f}h, "
               f"{sum(s['out_tok'] for s in ss):,} out-tok ({span})")
 
@@ -366,13 +391,14 @@ def main():
         print("\n## Daily log (day × project)\n")
         print("| day | project | sessions | active | top ask |")
         print("|---|---|---|---|---|")
-        daylog = defaultdict(lambda: [0, 0, None])  # (day, proj) -> [sessions, min, biggest]
+        daylog = defaultdict(lambda: [0, 0.0, None])  # (day, proj) -> [sessions, min, biggest]
         for s in sessions:
-            d = daylog[(s["start"].astimezone().strftime("%Y-%m-%d %a"), s["proj"])]
-            d[0] += 1
-            d[1] += s["active_min"]
-            if d[2] is None or s["out_tok"] > d[2]["out_tok"]:
-                d[2] = s
+            for date in active_days(s):
+                d = daylog[(date.strftime("%Y-%m-%d %a"), s["proj"])]
+                d[0] += 1
+                d[1] += s["per_day"].get(date, 0.0)
+                if d[2] is None or s["out_tok"] > d[2]["out_tok"]:
+                    d[2] = s
         for (day, proj), (n, mins, big) in sorted(daylog.items()):
             print(f"| {day} | {proj} | {n} | {mins / 60:.1f}h | {cell(big['ask'], 70)} |")
 
@@ -381,13 +407,15 @@ def main():
         print("\n## Weekly effort (week × project)\n")
         print("| week | project | sessions | active | out-tok |")
         print("|---|---|---|---|---|")
-        trend = defaultdict(lambda: [0, 0, 0])  # (week, proj) -> [sessions, min, tok]
+        trend = defaultdict(lambda: [0, 0.0, 0])  # (week, proj) -> [sessions, min, tok]
         for s in sessions:
-            wk = "W{:02d}".format(s["start"].astimezone().isocalendar()[1])
-            t = trend[(wk, s["proj"])]
-            t[0] += 1
-            t[1] += s["active_min"]
-            t[2] += s["out_tok"]
+            # same split as the daily log — a session crossing a week boundary
+            # belongs to both weeks, not just the one it started in
+            for date in active_days(s):
+                t = trend["W{:02d}".format(date.isocalendar()[1]), s["proj"]]
+                t[0] += 1
+                t[1] += s["per_day"].get(date, 0.0)
+                t[2] += s["tok_day"].get(date, 0)
         for (wk, proj), (n, mins, tok) in sorted(trend.items()):
             print(f"| {wk} | {proj} | {n} | {mins / 60:.1f}h | {tok:,} |")
 
