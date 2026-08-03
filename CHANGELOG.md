@@ -6,6 +6,26 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.2.1
+- `sitrep` 0.2.1: **a session is an interval, not a point in time.** The collector
+  reduced each session to `start` + a total `active_min`, so every day/week
+  rollup bucketed the whole session on the day it *opened*. A real session that
+  ran 29→31 Jul reported as `29 Jul | 11.0h` — the true split was 2.2h / 5.2h /
+  3.7h. The total was right; the attribution was off by two days, which is
+  exactly the number the timesheet appendix copies. Found by auditing a briefing
+  against its own logs after the day-by-day table failed to match memory.
+  - Sessions now carry `per_day` (active minutes) and `tok_day` (output tokens),
+    accumulated where the per-event timestamps still exist. Each inter-event gap
+    is credited to the day it starts.
+  - `active_days()` is the one place day/week rollups iterate. Daily log, the
+    monthly week × project trend, and the project span all read it — the weekly
+    trend was silently mis-bucketing sessions across week boundaries too.
+  - Multi-day sessions print a `split:` line (`29 Jul 2.2h · 30 Jul 5.2h · …`)
+    and a `29 Jul–31 Jul` span, so the model composing the timesheet can never
+    infer a single-day claim from a multi-day session.
+  - Token totals are conserved: weekly rows now sum to the digest's Totals line
+    exactly, rather than double-counting a spanning session's tokens in both weeks.
+
 ### `work-core` 0.2.0
 - `sitrep` 0.2.0: trust, safety and cost fixes, all found by auditing real
   briefings against the collector that produced them.

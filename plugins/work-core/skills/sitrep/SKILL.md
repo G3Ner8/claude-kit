@@ -4,7 +4,7 @@ description: Personal situation report — recap what you worked on, what it cos
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   type: action
   status: experimental
   stack: any (needs ~/.claude/projects session logs + git; gh/glab optional for PR/MR state)
@@ -79,6 +79,10 @@ briefing from memory of the conversation.
      data are unaffected.
    - **label ending `?`** — no session event carried a `cwd`, so the label came
      from the lossy directory name. Keep the `?`; do not guess the real name.
+   - **a `split:` line under a session** — that session ran across several days
+     (its header shows a `29 Jul–31 Jul` span). The split is the per-day truth;
+     the Daily log already reflects it. Never attribute a spanning session's
+     hours to one day, and never date its work by the day it opened.
    - **`[redacted]`** — the collector removed a credential-shaped string. Leave
      it redacted and never reconstruct it from conversation memory.
    - **Git header counts** — repos from session cwds vs from the cross-run cache
