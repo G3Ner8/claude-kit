@@ -4,7 +4,7 @@ description: Design an implementation plan from a spec or requirements before an
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   type: gate
   status: experimental
   stack: any
@@ -115,6 +115,19 @@ docs into the task whose deliverable needs them.
 for later ones — exact names, parameters, return types. A task's executor
 may see only their own task; this block keeps neighbors compatible.
 
+Exactness is half the job — **depth** is the other half. For each interface,
+say what complexity it *hides*. An interface whose caller has to know the
+storage format, the retry policy, or the order to call three functions in
+hasn't hidden anything; it just moved the problem to every call site. Prefer
+fewer units that each hide something real over many that each hide nothing —
+and when a design lands on many small units, that's a claim worth defending
+in `## Design`, not a default.
+
+This is not a style preference here: the executor sees only their own task,
+so every neighbor interface they must understand is context they have to
+carry. A shallow decomposition inflates that reading surface for every task
+at once, and the cost lands on whoever (or whatever) builds it.
+
 ## Step 5 — Write the plan (English only)
 
 Shape:
@@ -151,6 +164,8 @@ each carries "if this proves false, park and ask — don't guess">
 **Interfaces:**
 - Consumes: <exact signatures from earlier tasks>
 - Produces: <exact names/types later tasks rely on>
+- Hides: <the complexity callers never need to know — omit only if this task
+  genuinely exposes a bare value>
 **Deliverable:** <what exists when done + how to verify>
 - [ ] <the work, as checkable steps — code only where load-bearing>
 
@@ -184,7 +199,12 @@ Fresh-eyes pass before saving — fix inline, no re-review loop:
 3. **Signature consistency** — later tasks must use the names earlier tasks
    define. `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a
    defect.
-4. **Drafter triage dry-run** — named target in one line; at least one
+4. **Interface depth** — for each interface, can you name what it hides? One
+   that exposes storage format, call ordering, or retry behavior to its caller
+   is leaking; either deepen it or say in `## Design` why the leak is the
+   right trade here. A plan where every interface is a pass-through has
+   decomposed the work without simplifying it.
+5. **Drafter triage dry-run** — named target in one line; at least one
    checkable acceptance criterion; constraints carry their why; every
    deferred fork appears under Assumptions. Any miss → the plan isn't done.
 
@@ -230,10 +250,10 @@ Governance — what architect MUST / MUST NOT do regardless of input:
 3. Grill       — forks the repo can't answer: one at a time, dependency order,
                  lead with a recommendation; deferred → Assumptions
 4. Design      — file structure → task boundaries (reviewer-gate rule) →
-                 interfaces (exact signatures)
+                 interfaces (exact signatures + what each one hides)
 5. Write       — English; Target + Design/traps + Constraints(+why) +
                  Assumptions + Tasks(+Interfaces) + AC + Tests + Out of scope
-6. Self-review — coverage / placeholders / signatures / drafter triage
+6. Self-review — coverage / placeholders / signatures / interface depth / drafter triage
 7. Save + stop — write the plan file, offer handoff; never implement
 ```
 

@@ -4,9 +4,9 @@ description: Audit every usage of one or more UI components across a codebase â€
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.2"
+  version: "1.0.3"
   type: gate
-  status: stable
+  status: experimental
   stack: React 19 + Vite + Tailwind (procedure portable; examples assume React)
   scope: read-only â€” produces a variant comparison table; no edits
 ---

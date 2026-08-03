@@ -4,9 +4,9 @@ description: Read-only audit of frontend feature folders against canonical basel
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.2"
+  version: "1.0.3"
   type: gate
-  status: stable
+  status: experimental
   stack: React 19 + Vite (procedure portable; examples assume React)
   scope: read-only — produces findings + execution plan; no edits
 ---

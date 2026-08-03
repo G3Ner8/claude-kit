@@ -4,9 +4,9 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.3.2"
+  version: "1.3.3"
   type: action
-  status: stable
+  status: experimental
   stack: React 19 / Vite SPA (the target project it scans)
   scope: writes files — generated profile to the output folder; auto-install copies agents into .claude/agents/
 ---

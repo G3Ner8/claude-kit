@@ -4,9 +4,9 @@ description: Reusable test patterns for React 19 SPAs on Vitest + React Testing 
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.1.2"
+  version: "1.1.3"
   type: reference
-  status: stable
+  status: experimental
   stack: React 19 + Vitest 4 + @testing-library/react 16 + @testing-library/user-event 14 + MSW 2 + jsdom
   scope: read-only — reference, consulted during work
 ---

@@ -6,6 +6,80 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `react-agents` 0.5.3
+- `profile-generator` 1.3.3: demoted `stable` → `experimental`. Section 11 rule 4
+  requires a `stable` skill to be battle-tested and cited in agents; a usage
+  census over 30 days of local session logs found 0 invocations and **no
+  consuming project with a `.claude/agents/` directory at all** — the generator
+  has never produced a profile in use. Not deprecated: the trigger for that is 30
+  more days with nothing generated. See D14 in CLAUDE.md.
+
+### `react-core` 0.5.3
+- All 8 skills demoted `stable` → `experimental` (same census, same rule): 6 of
+  the 8 saw 0 invocations in 30 days, and with no generated profile anywhere,
+  nothing cites them. The skills themselves are unchanged — this is an honesty
+  fix to the lifecycle claim, not a content change. See D14 in CLAUDE.md.
+
+### `dev-core` 0.18.0
+- `drafter` 0.12.0: **the pre-merge intent gate is now named, twice.** The census
+  that prompted D14 found `inspector` at 0 invocations while `drafter` ran 20 and
+  `architect` 16 — work flowed plan → order → implement → nothing. Cause: drafter
+  had absorbed inspector's *lens* into its Step 6 self-check, which grades the
+  work order, not the work. The downstream run against the agent's actual MR was
+  never named anywhere, so it never happened.
+  - Step 5: the Acceptance Criteria list now closes with the intent gate as a
+    contract line — work beyond the order's scope, or AC left unmet, is a
+    bounce-back rather than a follow-up.
+  - Step 7: every handoff reply ends with the pending gate ("when the agent's MR
+    lands, run `/dev-core:inspector` against this order before merge"). Drafter is
+    the last moment the gate can be named while the user is still looking.
+  - New operating rule making both mandatory, and stating that Step 6 does not
+    discharge the downstream run.
+- `architect` 0.2.0: **interfaces now have to declare their depth, not just their
+  signature.** Step 4 asked for exact names, parameters, and return types — so a
+  plan could lock in a dozen shallow modules, every signature correct, and pass
+  Step 6 clean. Deep module / simple interface is the missing criterion.
+  - Step 4 asks what each interface *hides*; one that leaks storage format, call
+    ordering, or retry behavior to its caller hasn't hidden anything. Many small
+    units became a claim to defend in `## Design` rather than a default.
+  - The plan template's `**Interfaces:**` block gains a `Hides:` line — without
+    it the criterion never reaches the document the executor reads.
+  - Step 6 self-review gains an interface-depth check (now 5 items).
+  - Framed as a cost, not a taste: the executor sees only their own task, so
+    every neighbor interface they must understand is context they carry. Shallow
+    decomposition inflates that reading surface for every task at once.
+  - Deliberately **not** included: hexagonal / ports-and-adapters. Architect is
+    stack-agnostic; a criterion ("what does this hide?") travels to a React hook,
+    a Go package, or a SQL view, while an architecture template would have it
+    prescribing adapters for CLI tools that don't want them.
+- `surveyor` 0.3.0 (**breaking** — a step is gone): Step 5 "Next up" removed, and
+  with it the ranked feasibility ordering. Two reasons, one of each kind.
+  Overlap: ranked open work is `sitrep`'s job and `sitrep` does it better — it
+  has carry-over memory, loop ages, and live re-verification, where surveyor
+  re-derived an ordering from scratch each run. Risk: a survey that ends in a
+  ranked list is one step from choosing the work, and that call has to stay with
+  the human — pick wrong and the rework cascades downstream. What remains is the
+  one job nothing else in the kit does: the drift audit (declared status vs
+  merged history, real code, deployment) plus the sync offer.
+  - Step 6 renumbered to 5; the report format's Next-up block dropped;
+    description, When-to-use, and the dev-core README's row realigned to "is the
+    status right", not "what next"; triggers lost `"what's next"`.
+  - Operating rule `Recommend, don't decide` → `Measure, don't direct`, and a new
+    `You DON'T` line forbidding a closing "start here" however it's justified.
+
+### tooling
+- `scripts/hooks/validate-on-edit.sh` (new) + `.claude/settings.json`: a
+  `PostToolUse` hook runs `validate-frontmatter.sh` and `validate-contract.sh`
+  whenever a `SKILL.md`, `plugin.json`, or `marketplace.json` is written, and
+  blocks with the failure output attached. CLAUDE.md Section 10 previously asked
+  contributors to remember four validators; the two that guard the contract no
+  longer depend on that. Unrelated edits cost one `case` test.
+- `scripts/validate-frontmatter.sh`: fixed an abort on its own failure path —
+  under `set -u`, bash 3.2 (the macOS default) treats `"${warnings[@]}"` as
+  unbound, so any file with errors but no warnings crashed the run instead of
+  reporting. Latent since the failure path had never executed; found while
+  pipe-testing the hook against a deliberately broken frontmatter.
+
 ### `work-core` 0.2.1
 - `sitrep` 0.2.1: **a session is an interval, not a point in time.** The collector
   reduced each session to `start` + a total `active_min`, so every day/week

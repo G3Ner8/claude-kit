@@ -4,9 +4,9 @@ description: React 19 composition patterns for building flexible, maintainable c
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.0.1"
+  version: "1.0.2"
   type: reference
-  status: stable
+  status: experimental
   stack: React 19 + TypeScript
   scope: read-only — reference, consulted during work
 ---
