@@ -6,6 +6,26 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.18.2
+- `drafter` 0.12.2: **the `## Phases` example no longer looks like real agent
+  names.** `agent-type: harden-agent` reads as a name you can copy; the warning
+  that it is illustrative sat *below* the code fence, where it is read after the
+  block rather than before. Copy it into an issue for a repo whose agents are
+  called something else and the daemon hard-blocks the issue pre-claim — before a
+  line of code is written.
+  - Every `agent-type:` in the example is now `<prefix>-<role>`, matching the
+    angle-bracket placeholder style drafter already uses elsewhere and the
+    `<prefix>-*` convention in `agent-profiles`.
+  - The warning moved above the fence, states the consequence inline, and says
+    explicitly that the role suffix is the target repo's, which may well be
+    `-polish` and `-pre-commit` rather than `-harden` and `-verify`.
+  - This risk predates the rename — the old example said `polish-agent` /
+    `pre-commit-agent`, equally absent from any real repo. The rename only made a
+    careless substitution land further from the truth, which is what surfaced it.
+  - Structural, not advisory: Operating rule `:212` already required confirming
+    names with the user. That rule stays; this makes the example uncopyable so the
+    rule is not the only thing standing between a typo and a blocked issue.
+
 ### `dev-core` 0.18.1
 - `inspector` 0.2.3, `drafter` 0.12.1: follow the role rename below. `inspector`
   now points at `*-verify` instead of `*-pre-commit` (description + two body
