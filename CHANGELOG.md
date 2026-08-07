@@ -6,6 +6,23 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.18.3
+- `inspector` 0.2.4: **stops naming agents by a convention it does not own.** Five
+  references pointed at `*-verify`, `*-harden`, `*-implement` — a naming scheme
+  `agent-profiles` defines, one tier *below* dev-core. Section 1's rule is
+  explicit: "a plugin never depends on something downstream of it." The proof it
+  was wrong: renaming a suffix in `agent-profiles` forced edits in dev-core, a
+  plugin that has nothing to do with it. Coupling that generates work when an
+  unrelated thing changes is coupling that should not exist.
+  - The references now name the *function* instead: "the project's ship gate —
+    whatever runs its build, lint, and tests", "whichever agent implements". Just
+    as actionable, and true in a repo whose agents are called anything at all, or
+    that has no agents.
+  - `*-implement` predates this session's rename; the violation was not new, it
+    was just never load-bearing enough to notice until a rename made dev-core
+    move for no reason of its own.
+  - `work-core` was checked and has no such binding.
+
 ### `dev-core` 0.18.2
 - `drafter` 0.12.2: **the `## Phases` example no longer looks like real agent
   names.** `agent-type: harden-agent` reads as a name you can copy; the warning
