@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.12.0"
+  version: "0.12.2"
   type: gate
   status: experimental
   stack: any
@@ -78,7 +78,7 @@ After triage, **before writing the work order**, classify the plan's major secti
 - Build order / chunk sequences — the agent sequences its own work
 - **Human-gate coordination** — "human reviews", manual `git commit`, "wait for approval" arrows between steps. SDC is autonomous and one-shot; these gates cannot exist, so drop them.
 
-**Not choreography — named agent-phase chains are load-bearing workflow:** a plan that sequences distinct named sub-agents in order (e.g. `implement → polish → pre-commit`), especially when stages need different models, maps to a first-class `## Phases` section (Step 5). Drop only the human-confirm gates wrapped around the chain; keep the chain itself.
+**Not choreography — named agent-phase chains are load-bearing workflow:** a plan that sequences distinct named sub-agents in order (e.g. `implement → harden → verify`), especially when stages need different models, maps to a first-class `## Phases` section (Step 5). Drop only the human-confirm gates wrapped around the chain; keep the chain itself.
 
 Then present a compact table and ask for correction:
 
@@ -103,7 +103,7 @@ Two moves at once:
 **Scan for agent orchestration intent.** Before filing into sections, identify in the plan:
 - Specific skills the agent should invoke (e.g. "run react-audit", "use the inspector") → candidate for `skills:` in Agent Configuration
 - A specific sub-agent to delegate to (e.g. "hand to an implement agent", "run through the test agent") → candidate for `agent-type:` in Agent Configuration
-- A multi-phase agent sequence with distinct sub-agents (e.g. `implement → polish → pre-commit`) → a first-class **`## Phases`** section (Step 5). Confirm per-phase names with the user (see Operating rules).
+- A multi-phase agent sequence with distinct sub-agents (e.g. `implement → harden → verify`) → a first-class **`## Phases`** section (Step 5). Confirm per-phase names with the user (see Operating rules).
 
 **Transitive-reference scan (mandatory whenever a plan names an `agent-type:`/`skills:` target):** open the target repo's `.claude/agents/<name>.md` (or `.claude/skills/<name>/SKILL.md`) and check whether *it* internally references invoking a further named skill or sub-agent. If it does, that nested reference needs its own read-directly override written into the issue body too (see Operating rules) — the best-effort gap is transitive, so fixing only the name the plan explicitly asked for is not sufficient if that target itself chains further.
 
@@ -139,27 +139,34 @@ The work-order document is **English only** — its reader is a coding agent and
 - **Acceptance Criteria** — the **hard contract**: checkable, verifiable items. This is what the MR is measured against. Close the list with the **intent gate**: "before merge, the MR is checked against this work order with `dev-core:inspector` — anything built beyond the order's scope or missing from its AC is a bounce-back, not a follow-up." The agent can't run this on itself; naming it in the contract is what stops the check from being remembered-or-not.
 - **Test Cases** — Given / When / Then. At least one.
 - **Out of scope / Non-goals** — explicit. Pre-empts scope creep; names adjacent work that is deliberately *not* in this order.
-- **Phases** *(emit only when the plan carries a named multi-stage agent chain AND the target supports first-class phases, e.g. SDC)* — one `### Phase N: <title>` sub-block per stage, each carrying its own `agent-type:` / optional `model:` / `skills:` line (same format as Agent Configuration) plus that stage's instructions. Format:
+- **Phases** *(emit only when the plan carries a named multi-stage agent chain AND the target supports first-class phases, e.g. SDC)* — one `### Phase N: <title>` sub-block per stage, each carrying its own `agent-type:` / optional `model:` / `skills:` line (same format as Agent Configuration) plus that stage's instructions.
+
+  **Every `agent-type:` below is a placeholder.** `<prefix>` is whatever the
+  target repo prefixes its agents with, and the role suffix is whatever *that*
+  repo calls the stage — it may be `-polish` and `-pre-commit`, not `-harden` and
+  `-verify`. Open the repo's `.claude/agents/` and copy the real filenames. A name
+  that does not exist there hard-blocks the issue pre-claim, before a single line
+  of code is written. Phase titles are equally illustrative. Format:
   ```
   ## Phases
 
   ### Phase 1: Implement
-  agent-type: implement-agent
-  Read the target repo's `.claude/agents/implement-agent.md` and follow it directly — don't rely
-  on `agent-type:` alone. Build the feature against the plan. Do not commit (the runner commits
-  per phase).
+  agent-type: <prefix>-implement
+  Read the target repo's `.claude/agents/<prefix>-implement.md` and follow it directly — don't
+  rely on `agent-type:` alone. Build the feature against the plan. Do not commit (the runner
+  commits per phase).
 
-  ### Phase 2: Polish
-  agent-type: polish-agent
-  Read the target repo's `.claude/agents/polish-agent.md` and follow it directly. One pass over
-  the accumulated working-tree diff: DRY, consistency, cleanup.
+  ### Phase 2: Harden
+  agent-type: <prefix>-harden
+  Read the target repo's `.claude/agents/<prefix>-harden.md` and follow it directly. One pass
+  over the accumulated working-tree diff: DRY, consistency, cleanup.
 
-  ### Phase 3: Pre-commit gate
-  agent-type: pre-commit-agent
-  Read the target repo's `.claude/agents/pre-commit-agent.md` and follow it directly. Run the
+  ### Phase 3: Verify gate
+  agent-type: <prefix>-verify
+  Read the target repo's `.claude/agents/<prefix>-verify.md` and follow it directly. Run the
   project's gates (type-check, lint, tests, structure checks) over the full diff.
   ```
-  *Phase titles and `agent-type:` values above are illustrative — substitute the target repo's actual `.claude/agents/` names (confirm with the user; see Operating rules).* Each phase pairs its declaration with the body instruction that forces use (the read-the-persona line shown above for a repo-defined `agent-type:`; the equivalent read-directly line for a project `skills:` entry; an invoke-the-skill line for a plugin skill, `<plugin>:<skill>`, unverified; built-ins — `general-purpose`, `Explore`, `Plan` — have no persona file, so skip the line). Scan each named persona/skill for its own internal skill/agent references and add an override for each (the gap is transitive). **Full rule + evidence: Operating rules.** A runner with first-class phases (e.g. SDC's daemon) runs phases in order, one committed run each on the same branch, one MR after the last. Omit a phase's `model:` to cascade to the issue-level default (then `sonnet`). **Drop human-confirm gates** — deterministic per-phase execution replaces them. A bare `## Phases` heading with no `### Phase` sub-blocks is invalid — always emit ≥1 sub-block.
+  *Substitute every `<prefix>-<role>` above with a filename you have actually seen in the target repo's `.claude/agents/` (confirm with the user; see Operating rules).* Each phase pairs its declaration with the body instruction that forces use (the read-the-persona line shown above for a repo-defined `agent-type:`; the equivalent read-directly line for a project `skills:` entry; an invoke-the-skill line for a plugin skill, `<plugin>:<skill>`, unverified; built-ins — `general-purpose`, `Explore`, `Plan` — have no persona file, so skip the line). Scan each named persona/skill for its own internal skill/agent references and add an override for each (the gap is transitive). **Full rule + evidence: Operating rules.** A runner with first-class phases (e.g. SDC's daemon) runs phases in order, one committed run each on the same branch, one MR after the last. Omit a phase's `model:` to cascade to the issue-level default (then `sonnet`). **Drop human-confirm gates** — deterministic per-phase execution replaces them. A bare `## Phases` heading with no `### Phase` sub-blocks is invalid — always emit ≥1 sub-block.
 - **Agent Configuration** *(include when the plan specifies any of these; omit the section entirely otherwise)*:
   - `model:` — infer from task complexity: `opus` for heavy/architectural work, `haiku` for trivial/mechanical, `sonnet` otherwise. Acts as the cascade default for any `## Phases` sub-block that omits its own `model:`.
   - `skills:` — when the plan names skills to invoke. Bare name = project skill (`.claude/skills/<name>/SKILL.md` in the target repo); `<plugin>:<skill>` = plugin skill installed on the agent. Comma-separated, case-sensitive kebab-case. Daemon-validated pre-claim, and best-effort at runtime — pair with a body instruction that forces use (see Operating rules).

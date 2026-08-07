@@ -17,10 +17,10 @@ mkdir -p ~/Workspace/myapp-profile/{agents,skills,.claude-plugin}
 ## Step 2 — Copy templates
 
 ```bash
-cp ../react-agents/templates/agents/implement.template.md   ~/Workspace/myapp-profile/agents/myapp-implement.md
-cp ../react-agents/templates/agents/polish.template.md      ~/Workspace/myapp-profile/agents/myapp-polish.md
-cp ../react-agents/templates/agents/pre-commit.template.md  ~/Workspace/myapp-profile/agents/myapp-pre-commit.md
-cp ../react-agents/templates/agents/test.template.md        ~/Workspace/myapp-profile/agents/myapp-test.md
+cp ../agent-profiles/templates/agents/implement.template.md   ~/Workspace/myapp-profile/agents/myapp-implement.md
+cp ../agent-profiles/templates/agents/harden.template.md      ~/Workspace/myapp-profile/agents/myapp-harden.md
+cp ../agent-profiles/templates/agents/verify.template.md      ~/Workspace/myapp-profile/agents/myapp-verify.md
+cp ../agent-profiles/templates/agents/test.template.md        ~/Workspace/myapp-profile/agents/myapp-test.md
 ```
 
 ## Step 3 — Substitute placeholders
@@ -39,11 +39,11 @@ If your project doesn't have a piece of infrastructure, delete the corresponding
 
 | If your project has no... | Delete... |
 |---|---|
-| Backend Swagger | Step 0.0 BE-scope gate (in implement); Swagger drift gate (in pre-commit) |
-| Shared API service layer | Drop the `{{API_SERVICES_PATHS}}` bullet from the Swagger drift gate (in pre-commit) — the gate then triggers only on per-feature `api/*` |
-| Structure linter | Shared `lint:structure` run + Structure regression check (in pre-commit) |
-| Polish audit script | Polish-status check section (in pre-commit) |
-| Per-category docs folders | Drop the `{{ARCHITECTURE_DOCS_GLOB}}` / `{{COMPONENT_DOCS_GLOB}}` / `{{FEATURE_DOCS_GLOB}}` rows from the Docs update table (in pre-commit) |
+| Backend Swagger | Step 0.0 BE-scope gate (in implement); Swagger drift gate (in verify) |
+| Shared API service layer | Drop the `{{API_SERVICES_PATHS}}` bullet from the Swagger drift gate (in verify) — the gate then triggers only on per-feature `api/*` |
+| Structure linter | Shared `lint:structure` run + Structure regression check (in verify) |
+| Page-status audit script | Page-status check section (in verify) |
+| Per-category docs folders | Drop the `{{ARCHITECTURE_DOCS_GLOB}}` / `{{COMPONENT_DOCS_GLOB}}` / `{{FEATURE_DOCS_GLOB}}` rows from the Docs update table (in verify) |
 | Canonical test baseline | Leave `{{TEST_CANONICAL_BASELINE}}` + `{{TEST_CANONICAL_FILES}}` empty in `test.template.md` — the agent falls back to in-repo conventions |
 | UI inventory skill | Skill-invocation row that references it; replace inline mentions with the relevant default primitive guidance |
 
@@ -55,7 +55,7 @@ Aim for: every section that survives must reference real infrastructure your pro
 {
   "name": "myapp-profile",
   "version": "0.1.0",
-  "description": "MyApp profile: implement/polish/pre-commit/test subagents.",
+  "description": "MyApp profile: implement/harden/verify/test subagents.",
   "author": { "name": "Your Name" },
   "license": "MIT",
   "keywords": ["claude-code", "claude-agent", "myapp"]
@@ -69,7 +69,7 @@ Aim for: every section that survives must reference real infrastructure your pro
 ```bash
 cd "$(git rev-parse --show-toplevel)"
 mkdir -p .claude/agents
-for a in myapp-implement myapp-polish myapp-pre-commit myapp-test; do
+for a in myapp-implement myapp-harden myapp-verify myapp-test; do
   ln -s "$HOME/Workspace/myapp-profile/agents/$a.md" ".claude/agents/$a.md"
 done
 ```
@@ -97,15 +97,15 @@ After install, run:
 /agents
 ```
 
-You should see `myapp-implement`, `myapp-polish`, `myapp-pre-commit`, `myapp-test` in the list. Then test-drive:
+You should see `myapp-implement`, `myapp-harden`, `myapp-verify`, `myapp-test` in the list. Then test-drive:
 
 ```
 User: "review my changes"
 ```
 
-Should spawn `myapp-pre-commit` and report against your project's actual paths.
+Should spawn `myapp-verify` and report against your project's actual paths.
 
-If something feels wrong (agent says `pps-web` somewhere, or references a file path that doesn't exist), grep the agent files for the offending string and finish the substitution.
+If something feels wrong (agent still names the project you copied from, or references a file path that doesn't exist), grep the agent files for the offending string and finish the substitution.
 
 ## When to come back to the generator
 

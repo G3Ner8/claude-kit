@@ -8,10 +8,10 @@ Three ways to consume claude-kit, in order of recommendation.
 /plugin marketplace add G3Ner8/claude-kit
 /plugin install dev-core@claude-kit       # optional — stack-agnostic disciplines
 /plugin install react-core@claude-kit
-/plugin install react-agents@claude-kit
+/plugin install agent-profiles@claude-kit
 ```
 
-For your own project, after `react-agents` is installed, run `/profile-generator` and answer a short interview to scaffold a filled-in agent quartet (implement / polish / pre-commit / test).
+For your own project, after `agent-profiles` is installed, run `/profile-generator` and answer a short interview to scaffold a filled-in agent quartet (implement / harden / verify / test).
 
 Updates: `/plugin marketplace update` then re-install if a plugin's `version` field bumped.
 
@@ -35,7 +35,7 @@ for skill in react-perf react-composition react-audit react-revamp react-ux-revi
 done
 
 # Your own generated profile (run /profile-generator first), e.g.:
-# for agent in web-implement web-polish web-pre-commit web-test; do
+# for agent in web-implement web-harden web-verify web-test; do
 #   ln -s "$HOME/path/to/your-profile/agents/$agent.md" ".claude/agents/$agent.md"
 # done
 ```

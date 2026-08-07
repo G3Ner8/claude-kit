@@ -8,7 +8,7 @@ A tiered [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marke
 | --- | --- | --- |
 | [`dev-core`](./plugins/dev-core/) | `architect` (spec → implementation plan) · `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `surveyor` (project-status survey) | Any stack · experimental |
 | [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite · experimental |
-| [`react-agents`](./plugins/react-agents/) | `/profile-generator` + agent templates (build → polish → pre-commit → test) | React 19 / Vite · experimental |
+| [`agent-profiles`](./plugins/agent-profiles/) | `/profile-generator` + agent templates (build → harden → verify → test) | React 19 / Vite · experimental |
 | [`work-core`](./plugins/work-core/) | `sitrep` (personal situation report — daily/weekly/monthly recap + open loops from local ground truth) | Any role · experimental |
 
 The `dev-core` six are personas spanning the work lifecycle: **architect** designs the plan, **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **surveyor** surveys where it all stands.
@@ -19,7 +19,7 @@ The `dev-core` six are personas spanning the work lifecycle: **architect** desig
 /plugin marketplace add G3Ner8/claude-kit
 /plugin install dev-core@claude-kit       # any stack — the foundational tier
 /plugin install react-core@claude-kit     # React 19 / Vite projects only
-/plugin install react-agents@claude-kit   # React 19 / Vite projects only
+/plugin install agent-profiles@claude-kit   # React 19 / Vite projects only
 /plugin install work-core@claude-kit      # any role — personal work-awareness
 ```
 
@@ -29,13 +29,13 @@ Update later with `/plugin marketplace update`.
 
 Skills work immediately — invoke any with `/<skill>` (`/detective`, `/react-perf`, …) or let your agents call them.
 
-For the agent quartet (implement / polish / pre-commit / test), generate a project-specific profile:
+For the agent quartet (implement / harden / verify / test), generate a project-specific profile:
 
 ```
 /profile-generator
 ```
 
-A short interview scans your repo and writes a filled-in profile (4 agents + manifest) to a transient folder (default `/tmp/<project>-profile`); copy the `agents/*.md` into your project's `.claude/agents/` and discard the rest. See [`react-agents`](./plugins/react-agents/) for how the agents work and which skills each one calls, and [`PLACEHOLDER-REFERENCE.md`](./plugins/react-agents/docs/PLACEHOLDER-REFERENCE.md) for example values of every placeholder.
+A short interview scans your repo and writes a filled-in profile (4 agents + manifest) to a transient folder (default `/tmp/<project>-profile`); copy the `agents/*.md` into your project's `.claude/agents/` and discard the rest. See [`agent-profiles`](./plugins/agent-profiles/) for how the agents work and which skills each one calls, and [`PLACEHOLDER-REFERENCE.md`](./plugins/agent-profiles/docs/PLACEHOLDER-REFERENCE.md) for example values of every placeholder.
 
 ## Versioning & license
 

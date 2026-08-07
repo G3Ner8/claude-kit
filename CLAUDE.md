@@ -22,13 +22,13 @@ claude-kit is a **tiered** personal kit. Skills/agents are organised by how wide
 | **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: plan → agent work order (`drafter`), debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`), project-status survey (`surveyor`) | — | experimental |
 | **Cross-role** (any role, stack-agnostic) | **`work-core`** | Personal work-awareness skills — reports on *your own work* across projects, not on a codebase: `sitrep` (situation report: recap + effort + open loops from local ground truth — session logs, git, MR/PR state) | — | experimental |
 | **Domain** (React 19 / Vite) | **`react-core`** | Portable React knowledge — skills consumed by any React 19 / Vite project | — | experimental (D14) |
-| **Domain** (React 19 / Vite) | **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | experimental (D14) |
+| **Domain** (React 19 / Vite) | **`agent-profiles`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | experimental (D14) |
 
 **Tier rule:** a skill belongs to the highest tier whose scope it fully fits. If it works on any stack → `dev-core`. If it assumes React/Vite → `react-core`. Future tiers may break domains down further (per-task layers).
 
-Dependency direction is **one-way**: a profile depends on `react-agents` → `react-core`; domain tiers may reference `dev-core` but never the reverse. A plugin never depends on something downstream of it.
+Dependency direction is **one-way**: a profile depends on `agent-profiles` → `react-core`; domain tiers may reference `dev-core` but never the reverse. A plugin never depends on something downstream of it.
 
-A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). Example placeholder values are documented in `react-agents/docs/PLACEHOLDER-REFERENCE.md` (the old `_archive/pps-web-profile/` worked example was removed — see D10). A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
+A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). Example placeholder values are documented in `agent-profiles/docs/PLACEHOLDER-REFERENCE.md` (the old `_archive/pps-web-profile/` worked example was removed — see D10). A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
 
 ---
 
@@ -44,7 +44,7 @@ claude-kit/
 │   └── marketplace.json         # plugin catalog
 ├── scripts/                     # validators + helpers (see Section 10)
 └── plugins/
-    └── <plugin>/                # dev-core · react-core · react-agents
+    └── <plugin>/                # dev-core · react-core · agent-profiles
         ├── .claude-plugin/plugin.json
         ├── README.md
         ├── skills/
@@ -53,8 +53,8 @@ claude-kit/
         │   │   └── README.md    # optional — only when SKILL.md > 400 lines
         │   ├── _in-progress/    # drafts — underscore = excluded from default scan
         │   └── _deprecated/     # retired skills kept for archival
-        ├── docs/                # react-agents only (PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md)
-        └── templates/agents/    # react-agents only (<role>.template.md)
+        ├── docs/                # agent-profiles only (PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md)
+        └── templates/agents/    # agent-profiles only (<role>.template.md)
 ```
 
 The tree shows **shape, not inventory** — the authoritative skill list per
@@ -252,7 +252,7 @@ one-shot).
 - `react_audit` (underscore) — kebab-case only
 - `audit-react` (concern first) — start with scope
 - `do-the-thing` (verb-only) — must name the noun
-- `web-test-writer` (extra suffix) — match existing role suffix (`-implement`, `-polish`, `-pre-commit`, `-test`)
+- `web-test-writer` (extra suffix) — match existing role suffix (`-implement`, `-harden`, `-verify`, `-test`)
 
 ---
 
@@ -272,7 +272,7 @@ matched against user prompts. To support international users:
 - **Git-bound output is always English.** Triggers and reports may be
   localized, but anything that lands in version control or a remote — commit
   title + body, PR text, push/merge artifacts, in-repo docs the agent syncs —
-  is **English only**, regardless of trigger or report language. `pre-commit`
+  is **English only**, regardless of trigger or report language. `verify`
   (the only commit-drafting agent) has a fixed English output for this reason.
 
 **Example** (web-test description):
@@ -301,19 +301,19 @@ I want to add…
 │
 ├── Project-specific behavior (mutates code, orchestrates skills)
 │   └── → plugins/<profile>/agents/<scope>-<role>.md
-│       (regenerated from react-agents templates if possible)
+│       (regenerated from agent-profiles templates if possible)
 │
 ├── New project profile
 │   └── → plugins/<new>-profile/
-│       (generated by react-agents/skills/profile-generator)
+│       (generated by agent-profiles/skills/profile-generator)
 │
 └── Generic template (used by profile-generator)
-    └── → plugins/react-agents/templates/agents/<role>.template.md
+    └── → plugins/agent-profiles/templates/agents/<role>.template.md
         (uses {{PLACEHOLDERS}} from PLACEHOLDER-REFERENCE.md)
 ```
 
 **Decision rule when in doubt**: if it makes sense for any other React
-project to consume it, it belongs in `react-core` or `react-agents`. If it
+project to consume it, it belongs in `react-core` or `agent-profiles`. If it
 references a specific project's paths/conventions, it belongs in a profile.
 
 ---
@@ -401,10 +401,10 @@ Steps 2-4's bookkeeping is one command: `./scripts/bump-version.sh <plugin>
 inserts the CHANGELOG stub (fill in the TODO). Step 1 stays manual.
 
 **To create a new project profile**:
-1. Invoke `react-agents/skills/profile-generator` interactively
+1. Invoke `agent-profiles/skills/profile-generator` interactively
 2. Answer the interview (see PLACEHOLDER-REFERENCE.md)
 3. Generator writes `plugins/<new>-profile/` from templates
-4. Run profile's `web-pre-commit` against a real PR to verify
+4. Run profile's `web-verify` against a real PR to verify
 
 **To deprecate a skill**:
 1. Move folder to `plugins/<plugin>/skills/_deprecated/<name>/`
@@ -449,6 +449,8 @@ Foundational decisions resolved during the Phase 1 foundation pass.
 | D13 | Where does `sitrep` (personal situation report) live — `dev-core`, a personal skill outside the kit, or a new tier? | new **`work-core`** tier (cross-role): dev-core's identity is engineering-discipline personas consumed while working *on a codebase*; sitrep reports on the worker's *own* week and is meant to grow role-neutral (PM/BA variants via connectors instead of the local collector), so it gets its own tier rather than diluting dev-core. Naming register for work-core: the **deliverable noun** (`sitrep`), not a persona — D7's persona rule is dev-core's register; D8's legibility-first rule still governs (rejected `adjutant` as opaque, `recap` as generic-collision-prone). Ships `status: experimental` with a demand gate: graduates toward stable only when a second real user (not the kit owner) asks for it — lesson imported from the spec-distiller park decision (its PLAN.md Revision 7, 2026-07-16). | ✅ 2026-07-16 |
 
 | D14 | A usage census (Skill-tool + slash invocations across 30 days of local session logs, 2026-07-04 → 08-03) showed the guardrail layer idle and the react tier near-dead: `inspector` **0** invocations against `architect` 16 / `drafter` 20 / `detective` 24; 6 of react-core's 8 skills 0, `profile-generator` 0, and **no consuming project has a `.claude/agents/` directory at all** — so nothing cites react-core. Leave the layer alone, or act? | acted, three ways. (1) **The guardrail must not depend on memory.** `drafter` had absorbed inspector's *lens* into its Step 6 self-check, which is drafter grading its own paper — the downstream run on the agent's actual MR was never named anywhere, so it never happened. Drafter now names the pre-merge intent gate twice: as the closing AC inside the work order, and as the last line of its handoff reply. (2) **Deterministic checks belong in a hook, not a habit.** CLAUDE.md Section 10 asked contributors to remember four validators; a `PostToolUse` hook (`scripts/hooks/validate-on-edit.sh`, wired in `.claude/settings.json`) now runs the frontmatter + contract validators whenever a `SKILL.md` / `plugin.json` / `marketplace.json` changes and blocks with the failure. Writing it surfaced a latent bug: `validate-frontmatter.sh` aborted under `set -u` on its own failure path (empty `warnings[@]` in bash 3.2) — the failure path had never run before, since the repo always passed. (3) **`react-core` + `react-agents` demoted `stable` → `experimental`** (all 9 skills + the Section 1 table), applying Section 11 rule 4: `stable` claims "battle-tested + cited in agents" and neither holds. Not deprecated — the react skills are stack-specific references whose consumer (a generated profile) was never created, which is a missing-consumer problem, not a dead-skill one. Deprecation trigger: 30 more days with `profile-generator` still producing nothing. Two follow-ups shipped in the same pass, on the leverage argument that content changes pay off where a skill is actually used: `architect` 0.2.0 requires each interface to declare **what it hides**, not just its signature (Step 4 asked only for exact names/params/types, so a dozen shallow modules passed clean) — deep module / simple interface as a *criterion*, with hexagonal / ports-and-adapters deliberately excluded, since a criterion travels across stacks and an architecture template would prescribe adapters for CLI tools that don't want them. And `surveyor` 0.3.0 drops Step 5 "Next up" — `sitrep` ranks open work better (carry-over memory, loop ages, live re-verification, where surveyor re-derived an ordering each run) and a survey ending in a ranked list is one step from choosing the work; the drift audit remains, being the one job nothing else in the kit does. Rejected in the same pass: adding a `harden` gate skill for the post-exploratory refactor step (adding a second gate while the first sits at 0 repeats the mistake) and deprecating `surveyor` (1 invocation, but rare-by-nature like `archivist` at 1 — narrowing, not retirement). Extends D5's honesty commitment. | ✅ 2026-08-03 |
+
+| D15 | The kit's react tier is meant to grow beyond React (Angular and Java repos are in active use), and `react-agents` blocks that by name. Rename, fork a parallel plugin, or leave it? | **renamed `react-agents` → `agent-profiles`**, plus the role vocabulary inside it: `polish` → `harden`, `pre-commit` → `verify`. Forking a parallel plugin was rejected — it would duplicate a proven 712-line generator into two copies that drift, which D4 already ruled against. The rename is justified by measurement, not taste: three of the four templates carry 2-4% React coupling and the generator 5%, so the React-ness was in the *name*, not the asset. Role names follow the flow vocabulary — "polish" reads optional, which is precisely how the post-exploratory cleanup step gets skipped (the failure the Agentic Engineering framing calls central), and "pre-commit" names a git moment that does not exist in a headless phase chain where the runner commits per phase. `implement` and `test` unchanged. **Executing it surfaced four things worth more than the rename.** (1) Six of ten renamed placeholders were never about the agent at all — `POLISH_AUDIT_*`, `POLISH_STATUS_*`, `POLISHED_PAGE_EXAMPLES` describe the *target project's* page-status vocabulary and are now `PAGE_STATUS_*` / `REFERENCE_PAGE_EXAMPLES`; a blind rename would have conflated two vocabularies permanently. (2) **D10 was never finished** — nine places in the generator's prose still carried real values from a private repo; D10 removed the archived worked example for exactly this reason but swept only the folder. Now on the fictional `shop-web` / `myapp` convention. (3) **D14's premise was false**: a consuming project has run four generated agents daily since June. The census read 0 because agents cite skills as prose rather than through the Skill tool, and because the generator ran before the window opened. The demotion stands (the bar is 2+ real teams); the stated reason does not. (4) That project also vendors all eight react-core skills into its own `.claude/skills/`, **because SDC reads files out of the target repo** — so `react-core` as a marketplace plugin structurally cannot serve an SDC-based consumer. Every such consumer must fork, and every fork drifts (measured: 8-11 lines per skill, all still claiming `status: stable`). That reframes react-core from a demand problem into a **distribution problem** and is unresolved here. **Blocking follow-up, also unresolved:** the four templates hardcode 37 React skill names as invocation targets, violating Section 11 rule 2, which says templates must alias them. Until that is fixed, a generated profile for any non-React stack is broken on arrival regardless of manifest detection — so the alias work gates the multi-stack goal, not the rename. Full reasoning, measurements, and the remaining work list live in the (gitignored) `working-session/portable-layer-design.md` and `target-flow.md`. Extends D4, D10, D14. | ✅ 2026-08-07 |
 
 Future decisions append to this table; never edit a resolved row in place —
 add a new row referencing the prior decision instead.
