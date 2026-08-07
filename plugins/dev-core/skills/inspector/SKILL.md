@@ -4,7 +4,7 @@ description: Intent-validation review for a diff or PR — does the change do wh
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.2"
+  version: "0.2.3"
   type: gate
   status: experimental
   stack: any

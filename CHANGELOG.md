@@ -6,6 +6,55 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.18.1
+- `inspector` 0.2.3, `drafter` 0.12.1: follow the role rename below. `inspector`
+  now points at `*-verify` instead of `*-pre-commit` (description + two body
+  references) and names `*-harden` as the agent that extracts scope creep;
+  `drafter`'s `## Phases` example uses `harden-agent` / `verify-agent`. Reference
+  updates only — no procedure change in either skill.
+
+### `agent-profiles` 0.6.0
+- **Renamed from `react-agents`.** Reinstall as `agent-profiles@claude-kit`; the
+  old plugin name no longer resolves. The plugin is a generator plus four role
+  templates, not a React asset — measured coupling is 2-4% for three of the four
+  templates and 5% for the generator. The old name was blocking non-React use for
+  no reason.
+- **Role rename: `polish` → `harden`, `pre-commit` → `verify`** (template files,
+  `name:` frontmatter, and the `<prefix>-*` filenames the generator writes).
+  "polish" reads optional, which is how the post-exploratory cleanup step gets
+  skipped; "pre-commit" names a git moment that does not exist in a headless
+  phase chain, where the runner commits per phase. `implement` and `test` are
+  unchanged.
+- **Six placeholders reclassified, not just renamed.** `POLISH_AUDIT_*`,
+  `POLISH_STATUS_*` and `POLISHED_PAGE_EXAMPLES` were never about the agent —
+  they describe the *target project's* page-status vocabulary. They are now
+  `PAGE_STATUS_AUDIT_CMD` / `_SOURCE` / `_SCRIPT_REF`, `PAGE_STATUS_CHECK_SECTION`
+  / `_REPORT_BLOCK`, and `REFERENCE_PAGE_EXAMPLES` (which pairs with the existing
+  `REFERENCE_PAGE_TERM`). Four genuinely role-scoped ones became `HARDEN_*` /
+  `VERIFY_*`. A profile generated before this release keeps working; only
+  regeneration is affected.
+- `profile-generator` 1.4.0: placeholder + role vocabulary updated throughout, and
+  **project-internal values removed** — nine places carried real values from a
+  private repo (agent-prefix examples, a scratch output path, a feature-folder
+  name, two maintainer notes, a troubleshooting line). All now use the fictional
+  `shop-web` / `myapp` convention `PLACEHOLDER-REFERENCE.md` was already following.
+  D10 deleted the archived worked example for exactly this reason but never swept
+  the values embedded in the generator's prose.
+- `harden` template: persona rewritten. The file still introduced itself as a
+  "Cleanup & Consistency Specialist" — the same optional-sounding framing the
+  rename exists to remove.
+- Left deliberately untouched: the `scripts/*{polish,status}*audit*` glob, which
+  is a **discovery contract with the target repo** — the project owns that
+  filename, the generator only looks for it. Renaming it to match our vocabulary
+  breaks discovery; a comment now says so.
+- **Correction to the `react-agents` 0.5.3 entry below.** Its premise — "no
+  consuming project with a `.claude/agents/` directory at all" — is false. A
+  consuming project has had four generated agents in daily use since June, with
+  maintenance commits. The census read 0 because agents cite skills as prose
+  rather than through the Skill tool, and because the generator ran before the
+  census window opened. The `stable` → `experimental` demotion still stands (the
+  bar is 2+ real teams); only the stated reason was wrong.
+
 ### `react-agents` 0.5.3
 - `profile-generator` 1.3.3: demoted `stable` → `experimental`. Section 11 rule 4
   requires a `stable` skill to be battle-tested and cited in agents; a usage

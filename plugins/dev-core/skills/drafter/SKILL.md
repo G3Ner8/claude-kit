@@ -4,7 +4,7 @@ description: Turn a crystallized analysis plan into a scope-tight, checkable wor
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.12.0"
+  version: "0.12.1"
   type: gate
   status: experimental
   stack: any

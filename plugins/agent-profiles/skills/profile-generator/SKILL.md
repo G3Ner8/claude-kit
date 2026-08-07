@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.3.3"
+  version: "1.4.0"
   type: action
   status: experimental
   stack: React 19 / Vite SPA (the target project it scans)
