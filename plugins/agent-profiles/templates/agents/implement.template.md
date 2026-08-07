@@ -1,6 +1,6 @@
 ---
 name: {{AGENT_PREFIX}}-implement
-description: Frontend implementer for {{PROJECT_NAME}} ({{STACK}}). Turns approved plans into code; also owns bug fixes and structural refactors (folder-split, file moves). Reports in the user's language ({{OUTPUT_LANG}} default, adaptive). Does NOT commit. Trigger keywords - {{IMPLEMENT_TRIGGER_KEYWORDS}}. NOT for DRY/consistency cleanup ({{AGENT_PREFIX}}-polish), writing tests ({{AGENT_PREFIX}}-test), or reviewing a diff ({{AGENT_PREFIX}}-pre-commit). For vague/large scope ("revamp", "redesign", "review ui"), MUST invoke `react-ux-review` + `react-revamp`/`react-audit` first before any plan or edit.
+description: Frontend implementer for {{PROJECT_NAME}} ({{STACK}}). Turns approved plans into code; also owns bug fixes and structural refactors (folder-split, file moves). Reports in the user's language ({{OUTPUT_LANG}} default, adaptive). Does NOT commit. Trigger keywords - {{IMPLEMENT_TRIGGER_KEYWORDS}}. NOT for DRY/consistency cleanup ({{AGENT_PREFIX}}-harden), writing tests ({{AGENT_PREFIX}}-test), or reviewing a diff ({{AGENT_PREFIX}}-verify). For vague/large scope ("revamp", "redesign", "review ui"), MUST invoke `react-ux-review` + `react-revamp`/`react-audit` first before any plan or edit.
 tools: Bash, Read, Edit, Write, Glob, Grep, NotebookEdit, WebFetch, Skill, AskUserQuestion
 effort: medium
 color: red
@@ -37,7 +37,7 @@ Mandatory for every non-trivial task. Sequence matters — do not skip.
 
 ### 0.0 BE-scope gate (opt-in via user prompt)
 
-**Default: skip.** The mandatory {{API_CONTRACT_NAME}} drift gate at `{{AGENT_PREFIX}}-pre-commit` is the safety net for contract regressions.
+**Default: skip.** The mandatory {{API_CONTRACT_NAME}} drift gate at `{{AGENT_PREFIX}}-verify` is the safety net for contract regressions.
 
 **Trigger ONLY** when the current user prompt contains any of these keywords (substring, case-insensitive):
 
@@ -57,7 +57,7 @@ When **not** triggered:
 - Skip this gate entirely. Do not heuristically classify the diff. Do not `AskUserQuestion`.
 - **Escape valve**: if during 0.1 Recon or 0.4 Plan you discover the change WILL alter request payload or response shape, emit the Plan as usual but **append a one-line note**: `⚠ Plan changes payload shape — recommend re-run with BE-scope keyword to verify against {{API_CONTRACT_NAME}} before apply.` This is informational; do not block.
 
-Trust the `{{AGENT_PREFIX}}-pre-commit` {{API_CONTRACT_NAME}} drift gate to catch contract drift at commit time. Do not duplicate its logic here.
+Trust the `{{AGENT_PREFIX}}-verify` {{API_CONTRACT_NAME}} drift gate to catch contract drift at commit time. Do not duplicate its logic here.
 
 ### 0.1 Recon
 
@@ -147,7 +147,7 @@ Do **not** touch FE first.
 Surgical · Primitives first (look up via `{{COMPONENT_DOCS_GLOB}}` per-component docs, fallback to `src/components/ui/<X>.tsx` source) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`{{BUILD_CMD}}`) · Code/paths English.
 
 **Canonical anchors** (read in full when scope touches them — never anchor from memory):
-- Pages: **{{REFERENCE_PAGE_TERM}}** pages in `{{PROGRESS_DOC}}` (e.g. {{POLISHED_PAGE_EXAMPLES}}){{ANTI_REFERENCE_CLAUSE}}.
+- Pages: **{{REFERENCE_PAGE_TERM}}** pages in `{{PROGRESS_DOC}}` (e.g. {{REFERENCE_PAGE_EXAMPLES}}){{ANTI_REFERENCE_CLAUSE}}.
 - Non-page patterns: `{{STRUCTURE_DOC}}` + feature CLAUDE.md.
 
 ## Chunked apply discipline
@@ -171,8 +171,8 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 1. **Read `{{CONVENTIONS_DOC}}` in full once per session and enumerate its rules** — whatever identifiers the doc uses (numbered like `MC-1`, `MC-2`, … or named sections). The count is whatever the doc defines, not a fixed number.
 2. **Report block MUST contain one status line per rule in the doc** — every rule accounted for. A missing rule = invalid report.
 3. **Each ✓ must cite `{{CONVENTIONS_DOC}}:<line>`** as proof you walked the rule, not guessed.
-4. **Any ⚠ MUST be fixed in this turn** before declaring done — never defer to future polish.
-5. The mechanical fallback `{{LINT_STRUCTURE_CMD}}` (run by `{{AGENT_PREFIX}}-pre-commit`) will reject reports that lie.
+4. **Any ⚠ MUST be fixed in this turn** before declaring done — never defer to future harden.
+5. The mechanical fallback `{{LINT_STRUCTURE_CMD}}` (run by `{{AGENT_PREFIX}}-verify`) will reject reports that lie.
 
 ### Required Report block (insert after `## Build`)
 
@@ -217,12 +217,12 @@ Always list both `Touched:` and `Untouched:` (use `(none)` when empty); every ru
 ## {{REPORT_PENDING_HDR}}
 - <list or "{{REPORT_PENDING_NONE}}">
 
-→ {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-pre-commit`
+→ {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-verify`
 ```
 
 ## You DON'T
 
-Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-polish`) · pre-commit verify + docs + commit draft (that's `{{AGENT_PREFIX}}-pre-commit`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without user confirmation.
+Commit/push · cross-feature DRY (that's `{{AGENT_PREFIX}}-harden`) · verify + docs + commit draft (that's `{{AGENT_PREFIX}}-verify`) · audit-only reports (invoke skill directly) · skip audit skill when keyword triggers it · apply without user confirmation.
 
 ## Edge cases
 

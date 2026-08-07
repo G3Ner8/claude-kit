@@ -1,6 +1,6 @@
 ---
 name: inspector
-description: Intent-validation review for a diff or PR — does the change do what the original task asked, no more, no less? Surfaces scope creep, missed requirements, and silent assumptions; checks alignment to intent, not code quality. Use after pre-commit passes, before merge. Triggers - "inspect this diff", "does this PR match the task", "second opinion on this PR", "intent check", "scope creep check".
+description: Intent-validation review for a diff or PR — does the change do what the original task asked, no more, no less? Surfaces scope creep, missed requirements, and silent assumptions; checks alignment to intent, not code quality. Use after verify passes, before merge. Triggers - "inspect this diff", "does this PR match the task", "second opinion on this PR", "intent check", "scope creep check".
 license: MIT
 user-invocable: true
 metadata:
@@ -22,11 +22,11 @@ Code-quality reviews (lint, `react-audit`, `react-perf`) catch *bad* code. They 
 - A diff that *claims* to solve the problem but leaves the core requirement unaddressed.
 - A diff that silently makes assumptions the requester wouldn't approve.
 
-This is the intent gate. Run it after `*-pre-commit` passes and before the diff merges.
+This is the intent gate. Run it after `*-verify` passes and before the diff merges.
 
 ## When to use
 
-- After `*-pre-commit` greenlights a diff and before you click "merge."
+- After `*-verify` greenlights a diff and before you click "merge."
 - When a PR feels "off" but you can't articulate why — inspecting forces the comparison.
 - When the agent that produced the diff felt eager — every chunk applied, every check green, but the diff is twice the size you expected.
 - When you're reviewing a teammate's PR and want a structured way to ask "did this stay in scope?"
@@ -111,7 +111,7 @@ The verdict is the deliverable. Don't soften it — the point of an inspector is
 
 ## Step 6 — Stop conditions
 
-This skill ends with the report. **Do not edit code, do not commit, do not "address the findings."** Apply happens elsewhere — the user reads the report, decides, and dispatches the appropriate agent (`*-implement` to fix missed requirements, `*-polish` to extract scope creep into its own PR, etc.).
+This skill ends with the report. **Do not edit code, do not commit, do not "address the findings."** Apply happens elsewhere — the user reads the report, decides, and dispatches the appropriate agent (`*-implement` to fix missed requirements, `*-harden` to extract scope creep into its own PR, etc.).
 
 ## Operating rules
 
@@ -153,7 +153,7 @@ This skill ends with the report. **Do not edit code, do not commit, do not "addr
 ## You DON'T
 
 - Edit any file — read-only.
-- Run linters / build / tests — those are `*-pre-commit`'s scope.
+- Run linters / build / tests — those are `*-verify`'s scope.
 - Re-do the code review — `react-audit` already did that, and it's a different concern.
 - Infer requirements from the diff — that's the trap this gate exists to avoid.
 - Soften the verdict to be polite — bluntness is the value.

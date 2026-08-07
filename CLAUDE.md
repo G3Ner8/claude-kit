@@ -22,13 +22,13 @@ claude-kit is a **tiered** personal kit. Skills/agents are organised by how wide
 | **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: plan → agent work order (`drafter`), debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`), project-status survey (`surveyor`) | — | experimental |
 | **Cross-role** (any role, stack-agnostic) | **`work-core`** | Personal work-awareness skills — reports on *your own work* across projects, not on a codebase: `sitrep` (situation report: recap + effort + open loops from local ground truth — session logs, git, MR/PR state) | — | experimental |
 | **Domain** (React 19 / Vite) | **`react-core`** | Portable React knowledge — skills consumed by any React 19 / Vite project | — | experimental (D14) |
-| **Domain** (React 19 / Vite) | **`react-agents`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | experimental (D14) |
+| **Domain** (React 19 / Vite) | **`agent-profiles`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | experimental (D14) |
 
 **Tier rule:** a skill belongs to the highest tier whose scope it fully fits. If it works on any stack → `dev-core`. If it assumes React/Vite → `react-core`. Future tiers may break domains down further (per-task layers).
 
-Dependency direction is **one-way**: a profile depends on `react-agents` → `react-core`; domain tiers may reference `dev-core` but never the reverse. A plugin never depends on something downstream of it.
+Dependency direction is **one-way**: a profile depends on `agent-profiles` → `react-core`; domain tiers may reference `dev-core` but never the reverse. A plugin never depends on something downstream of it.
 
-A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). Example placeholder values are documented in `react-agents/docs/PLACEHOLDER-REFERENCE.md` (the old `_archive/pps-web-profile/` worked example was removed — see D10). A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
+A filled-in profile is **project-specific**, so it is not published to the marketplace — it lives in the consuming project's own repo (generate it with `/profile-generator`). Example placeholder values are documented in `agent-profiles/docs/PLACEHOLDER-REFERENCE.md` (the old `_archive/pps-web-profile/` worked example was removed — see D10). A second project's profile (e.g. `internal-dashboard-profile`) would be generated the same way and live in that project's repo.
 
 ---
 
@@ -44,7 +44,7 @@ claude-kit/
 │   └── marketplace.json         # plugin catalog
 ├── scripts/                     # validators + helpers (see Section 10)
 └── plugins/
-    └── <plugin>/                # dev-core · react-core · react-agents
+    └── <plugin>/                # dev-core · react-core · agent-profiles
         ├── .claude-plugin/plugin.json
         ├── README.md
         ├── skills/
@@ -53,8 +53,8 @@ claude-kit/
         │   │   └── README.md    # optional — only when SKILL.md > 400 lines
         │   ├── _in-progress/    # drafts — underscore = excluded from default scan
         │   └── _deprecated/     # retired skills kept for archival
-        ├── docs/                # react-agents only (PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md)
-        └── templates/agents/    # react-agents only (<role>.template.md)
+        ├── docs/                # agent-profiles only (PLACEHOLDER-REFERENCE.md, FORK-GUIDE.md)
+        └── templates/agents/    # agent-profiles only (<role>.template.md)
 ```
 
 The tree shows **shape, not inventory** — the authoritative skill list per
@@ -252,7 +252,7 @@ one-shot).
 - `react_audit` (underscore) — kebab-case only
 - `audit-react` (concern first) — start with scope
 - `do-the-thing` (verb-only) — must name the noun
-- `web-test-writer` (extra suffix) — match existing role suffix (`-implement`, `-polish`, `-pre-commit`, `-test`)
+- `web-test-writer` (extra suffix) — match existing role suffix (`-implement`, `-harden`, `-verify`, `-test`)
 
 ---
 
@@ -272,7 +272,7 @@ matched against user prompts. To support international users:
 - **Git-bound output is always English.** Triggers and reports may be
   localized, but anything that lands in version control or a remote — commit
   title + body, PR text, push/merge artifacts, in-repo docs the agent syncs —
-  is **English only**, regardless of trigger or report language. `pre-commit`
+  is **English only**, regardless of trigger or report language. `verify`
   (the only commit-drafting agent) has a fixed English output for this reason.
 
 **Example** (web-test description):
@@ -301,19 +301,19 @@ I want to add…
 │
 ├── Project-specific behavior (mutates code, orchestrates skills)
 │   └── → plugins/<profile>/agents/<scope>-<role>.md
-│       (regenerated from react-agents templates if possible)
+│       (regenerated from agent-profiles templates if possible)
 │
 ├── New project profile
 │   └── → plugins/<new>-profile/
-│       (generated by react-agents/skills/profile-generator)
+│       (generated by agent-profiles/skills/profile-generator)
 │
 └── Generic template (used by profile-generator)
-    └── → plugins/react-agents/templates/agents/<role>.template.md
+    └── → plugins/agent-profiles/templates/agents/<role>.template.md
         (uses {{PLACEHOLDERS}} from PLACEHOLDER-REFERENCE.md)
 ```
 
 **Decision rule when in doubt**: if it makes sense for any other React
-project to consume it, it belongs in `react-core` or `react-agents`. If it
+project to consume it, it belongs in `react-core` or `agent-profiles`. If it
 references a specific project's paths/conventions, it belongs in a profile.
 
 ---
@@ -401,10 +401,10 @@ Steps 2-4's bookkeeping is one command: `./scripts/bump-version.sh <plugin>
 inserts the CHANGELOG stub (fill in the TODO). Step 1 stays manual.
 
 **To create a new project profile**:
-1. Invoke `react-agents/skills/profile-generator` interactively
+1. Invoke `agent-profiles/skills/profile-generator` interactively
 2. Answer the interview (see PLACEHOLDER-REFERENCE.md)
 3. Generator writes `plugins/<new>-profile/` from templates
-4. Run profile's `web-pre-commit` against a real PR to verify
+4. Run profile's `web-verify` against a real PR to verify
 
 **To deprecate a skill**:
 1. Move folder to `plugins/<plugin>/skills/_deprecated/<name>/`

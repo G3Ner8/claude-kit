@@ -1,11 +1,11 @@
-# react-agents
+# agent-profiles
 
-Templates + interactive generator for the implement / polish / pre-commit / test agent quartet used by [claude-kit](../../README.md). Pairs with [`react-core`](../react-core/) (the skills the agents invoke).
+Templates + interactive generator for the implement / harden / verify / test agent quartet used by [claude-kit](../../README.md). Pairs with [`react-core`](../react-core/) (the skills the agents invoke).
 
 ## Install
 
 ```
-/plugin install react-agents@claude-kit
+/plugin install agent-profiles@claude-kit
 ```
 
 ## What's in it
@@ -13,7 +13,7 @@ Templates + interactive generator for the implement / polish / pre-commit / test
 | Piece | Path | Purpose |
 | --- | --- | --- |
 | `profile-generator` skill | [`skills/profile-generator/`](./skills/profile-generator/) | Interactive scaffolder. Invoke via `/profile-generator`. |
-| Agent templates | [`templates/agents/`](./templates/agents/) | `{{PLACEHOLDER}}` versions of the `implement` / `polish` / `pre-commit` / `test` agents. |
+| Agent templates | [`templates/agents/`](./templates/agents/) | `{{PLACEHOLDER}}` versions of the `implement` / `harden` / `verify` / `test` agents. |
 | Placeholder reference | [`docs/PLACEHOLDER-REFERENCE.md`](./docs/PLACEHOLDER-REFERENCE.md) | Every placeholder defined with example values. |
 | Fork guide | [`docs/FORK-GUIDE.md`](./docs/FORK-GUIDE.md) | Manual fork instructions (if you don't want the generator). |
 
@@ -39,8 +39,8 @@ If you'd rather edit the templates yourself: copy `templates/agents/*.template.m
 ├── README.md
 └── agents/
     ├── <prefix>-implement.md     # builder + API debugger
-    ├── <prefix>-polish.md        # cleanup + consistency
-    ├── <prefix>-pre-commit.md    # pre-commit gate (English-only commit draft)
+    ├── <prefix>-harden.md        # cleanup + consistency
+    ├── <prefix>-verify.md        # verify gate (English-only commit draft)
     └── <prefix>-test.md          # test writer
 ```
 
@@ -53,8 +53,8 @@ A user phrase triggers an agent; the agent **invokes** a skill as a gate (`==>`,
 ```mermaid
 flowchart LR
   T1["implement X · build Y · revamp X"] --> IMP["implement"]
-  T2["clean up · DRY X · align X,Y"] --> POL["polish"]
-  T3["ship it · review my changes"] --> PRE["pre-commit"]
+  T2["clean up · DRY X · align X,Y"] --> POL["harden"]
+  T3["ship it · review my changes"] --> PRE["verify"]
   T4["write tests for X"] --> TST["test"]
 
   IMP ==> UXR["react-ux-review"]
@@ -84,10 +84,10 @@ Each agent **stops after proposing** — it acts only when you reply with your a
 > "implement a leave-balance widget on the profile page" → recon + plan → **STOP** → "<apply>" → chunked apply → build → report.
 > For "revamp X": runs an audit + before/after mockup first (and a backend-contract check if you opt in).
 
-**`polish`** — clean up / align existing code
+**`harden`** — clean up / align existing code
 > "align orders, invoices, shipments" → invokes `react-audit` → divergence matrix → **STOP** → you pick rows + "<apply>" → applies → build.
 
-**`pre-commit`** — ship a diff
+**`verify`** — ship a diff
 > "ship it" → bug scan · build · convention walk · **English** commit draft → **STOP** → you run `git commit`.
 
 **`test`** — write or expand tests

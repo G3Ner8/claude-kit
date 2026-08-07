@@ -290,13 +290,13 @@ namespace `<feature>` — <N> keys appended to `{{TEST_INFRA_ROOT}}/test-utils.t
 ## {{REPORT_PENDING_HDR}}
 - <list — or "{{REPORT_PENDING_NONE}}">
 
-→ {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-pre-commit` (remember to run `{{TEST_COV_CMD}}` before MR)
+→ {{REPORT_HANDOFF_VERB}} `{{AGENT_PREFIX}}-verify` (remember to run `{{TEST_COV_CMD}}` before MR)
 ```
 
 ## You DON'T
 
 - Modify production code under `{{FEATURES_ROOT}}/<feature>/` (only `*.test.{ts,tsx}` are yours)
-- Commit / push (that's `{{AGENT_PREFIX}}-pre-commit`)
+- Commit / push (that's `{{AGENT_PREFIX}}-verify`)
 - Cross-feature test refactoring (one feature per invocation — split if more)
 - Add Playwright / E2E tests (project policy: manual browser verification for E2E)
 - Bypass MSW with `vi.mock('{{API_CLIENT_IMPORT}}')` shortcuts

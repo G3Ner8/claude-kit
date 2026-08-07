@@ -1,6 +1,6 @@
 ---
 name: profile-generator
-description: Interactively scaffold a project-specific Claude Code profile (implement/polish/pre-commit/test agent quartet) for any React 19 / Vite SPA. Auto-scans the project to pre-fill most placeholders, asks only what can't be inferred, and writes a self-contained profile ready to copy into `.claude/agents/`. Triggers - `/profile-generator`, "generate a profile", "scaffold project agents".
+description: Interactively scaffold a project-specific Claude Code profile (implement/harden/verify/test agent quartet) for any React 19 / Vite SPA. Auto-scans the project to pre-fill most placeholders, asks only what can't be inferred, and writes a self-contained profile ready to copy into `.claude/agents/`. Triggers - `/profile-generator`, "generate a profile", "scaffold project agents".
 license: MIT
 user-invocable: true
 metadata:
@@ -13,16 +13,16 @@ metadata:
 
 # profile-generator
 
-Generate a project-specific Claude Code profile (filled-in agent quartet + plugin manifest) from the `react-agents` templates.
+Generate a project-specific Claude Code profile (filled-in agent quartet + plugin manifest) from the `agent-profiles` templates.
 
 ## Pre-conditions (refuse if any missing)
 
 This skill mutates the filesystem by writing a new plugin folder. Refuse to proceed unless ALL of the following are confirmed:
 
-1. **`react-agents` plugin is installed** — templates must exist at `plugins/react-agents/templates/agents/*.template.md`. Verify with `Glob` before any prompt.
+1. **`agent-profiles` plugin is installed** — templates must exist at `plugins/agent-profiles/templates/agents/*.template.md`. Verify with `Glob` before any prompt.
 2. **Output path is empty or absent** — never overwrite an existing `plugins/<name>-profile/` folder. If it exists, ask user to confirm a different name or explicit overwrite intent.
 3. **All required inputs resolved** — via auto-scan (Phase 1) or user answer (Phase 2). Never write a profile with placeholder defaults silently substituted; surface defaults during the scan/confirm round.
-4. **PLACEHOLDER-REFERENCE.md exists** — `plugins/react-agents/docs/PLACEHOLDER-REFERENCE.md` is the source of truth for placeholder names. If absent, refuse and surface the broken install.
+4. **PLACEHOLDER-REFERENCE.md exists** — `plugins/agent-profiles/docs/PLACEHOLDER-REFERENCE.md` is the source of truth for placeholder names. If absent, refuse and surface the broken install.
 
 If any pre-condition fails, list the gap and stop without writing files.
 
@@ -34,7 +34,7 @@ A **missing conventions doc is NOT a refuse condition** — it triggers the case
 
 ## When to invoke
 
-User runs `/profile-generator` after installing the `react-agents` plugin, or types a phrase like:
+User runs `/profile-generator` after installing the `agent-profiles` plugin, or types a phrase like:
 
 - "scaffold a profile for <my project>"
 - "set up the agents for this repo"
@@ -60,7 +60,7 @@ Before any `AskUserQuestion`, scan the project to pre-fill ~25 placeholders. Eac
 
 3. **Multi-candidate disambiguation.** If any glob in Scan B returns >1 match (e.g. `CLAUDE.md` exists at both cwd and `<subdir>/CLAUDE.md`), surface as AskUserQuestion. Default to the one closer to PROJECT_ROOT.
 
-4. **Curated lists, not auto-trim.** Scans that produce ranked candidates (POLISHED_PAGE_EXAMPLES, TEST_CANONICAL_FILES) must surface as preset-template AskUserQuestion in Phase 2 — do not silently pick first-N. See "Curated-list questions" below for the 3-preset mechanism.
+4. **Curated lists, not auto-trim.** Scans that produce ranked candidates (REFERENCE_PAGE_EXAMPLES, TEST_CANONICAL_FILES) must surface as preset-template AskUserQuestion in Phase 2 — do not silently pick first-N. See "Curated-list questions" below for the 3-preset mechanism.
 
 ### AskUserQuestion mechanics (important constraint)
 
@@ -72,7 +72,7 @@ The `AskUserQuestion` tool has hard limits:
 Workarounds:
 - For long candidate lists (>4): present **3 preset templates** as options, with "Customize" as the 3rd allowing free-form text input from the user.
 - For dense Round 5 richness menu (12+ items): batch into 3 separate questions (4 items each) within a single `AskUserQuestion` call.
-- Never include a "Crib sheet" preset in real-flow questions — that pattern is test-only (used by maintainer for Layer B validation against pps-web reference). End users have no crib sheet.
+- Never include a "Crib sheet" preset in real-flow questions — that pattern is test-only (used by maintainer for Layer B validation against a reference project). End users have no crib sheet.
 
 ### Scan A — `package.json` (read from PROJECT_ROOT)
 
@@ -85,7 +85,7 @@ Workarounds:
 | `{{DEV_CMD}}` | `CMD_PREFIX` + `npm run dev` (or `start`) |
 | `{{TEST_CMD}}` | `CMD_PREFIX` + `npm run test:unit` or `npm run test` (whichever exists) |
 | `{{TEST_COV_CMD}}` | `CMD_PREFIX` + `npm run test:cov` or `npm run coverage` |
-| `{{FULL_CHECK_CMD}}` | `CMD_PREFIX` + `npm run check` (or whatever script chains type-check + lint + build). Fall back to `{{BUILD_CMD}}` if no such script — pre-commit's full gate then equals the build. **Never** pick a script that mutates the working tree (`format`, `lint:fix`, husky-style `precommit`) |
+| `{{FULL_CHECK_CMD}}` | `CMD_PREFIX` + `npm run check` (or whatever script chains type-check + lint + build). Fall back to `{{BUILD_CMD}}` if no such script — verify's full gate then equals the build. **Never** pick a script that mutates the working tree (`format`, `lint:fix`, husky-style `precommit`) |
 | `{{LINT_STRUCTURE_CMD}}` | `CMD_PREFIX` + `npm run lint:structure` (empty if script absent) |
 | `{{LINT_STRUCTURE_CMD_STRICT}}` | `CMD_PREFIX` + `npm run lint:structure:strict` (empty if absent) |
 | `{{STACK}}` | parse `dependencies` + `devDependencies`. Match by pattern: React major from `react`; bundler from `vite`/`webpack`/`turbopack`; css-lib from `tailwindcss`/`styled-components`/`emotion`; UI-lib by **prefix match** against `@radix-ui/*`, `@chakra-ui/*`, `@mantine/*`, `@nextui-org/*`, `@mui/*` (label as Radix UI / Chakra / Mantine / NextUI / MUI respectively). Render: `React <X> / TypeScript / <bundler> / <css-lib> / <ui-lib>` |
@@ -93,7 +93,7 @@ Workarounds:
 
 ### Scan B — Filesystem (Glob + `ls`, from PROJECT_ROOT and cwd)
 
-> Always **search** at `<PROJECT_ROOT>/...` (e.g. read `<PROJECT_ROOT>/CLAUDE.md`). The **rendered placeholder value** then prepends `PATH_PREFIX` (empty for bare style, `<PROJECT_RELPATH>/` for prefixed style). So for pps-web in a monorepo with prefixed style, `{{CONVENTIONS_DOC}}` becomes `pps-web/CLAUDE.md`. For bare style, it becomes `CLAUDE.md`.
+> Always **search** at `<PROJECT_ROOT>/...` (e.g. read `<PROJECT_ROOT>/CLAUDE.md`). The **rendered placeholder value** then prepends `PATH_PREFIX` (empty for bare style, `<PROJECT_RELPATH>/` for prefixed style). So for `shop-web` in a monorepo with prefixed style, `{{CONVENTIONS_DOC}}` becomes `shop-web/CLAUDE.md`. For bare style, it becomes `CLAUDE.md`.
 
 | Placeholder | Search location | Rendered value | Multi-match handling |
 |---|---|---|---|
@@ -102,7 +102,7 @@ Workarounds:
 | `{{PROGRESS_DOC}}` | `<PROJECT_ROOT>/docs/progress.md` ∪ `progress.md` ∪ `STATUS.md` | `PATH_PREFIX` + matched filename | First match wins |
 | `{{FEATURES_ROOT}}` | `<PROJECT_ROOT>/src/features/` ∪ `<PROJECT_ROOT>/src/modules/` | `PATH_PREFIX` + `src/features` (default) | First match |
 | `{{TEST_INFRA_ROOT}}` | `<PROJECT_ROOT>/src/test/` ∪ `<PROJECT_ROOT>/test/` | `PATH_PREFIX` + `src/test` (default) | First match |
-| `{{POLISH_AUDIT_SOURCE}}` | glob `<PROJECT_ROOT>/scripts/*polish*audit*.{mjs,js}` | `PATH_PREFIX` + matched path | First match |
+| `{{PAGE_STATUS_AUDIT_SOURCE}}` | glob `<PROJECT_ROOT>/scripts/*{polish,status}*audit*.{mjs,js}` (a **discovery contract with the target repo** — the project owns this filename, we only look for it, and real projects commonly prefix it, e.g. `page-polish-audit.mjs`. Widen the alternation for a new naming style; never rewrite it to match our own vocabulary) | `PATH_PREFIX` + matched path | First match |
 | `{{ARCHITECTURE_DOCS_GLOB}}` | `<PROJECT_ROOT>/docs/architecture/*` if exists | `PATH_PREFIX` + `docs/architecture/*` | — |
 | `{{COMPONENT_DOCS_GLOB}}` | `<PROJECT_ROOT>/docs/components/*` if exists | `PATH_PREFIX` + `docs/components/*` | — |
 | `{{FEATURE_DOCS_GLOB}}` | `<PROJECT_ROOT>/docs/features/*` if exists | `PATH_PREFIX` + `docs/features/*` | — |
@@ -119,16 +119,16 @@ Workarounds:
 | Placeholder | Method |
 |---|---|
 | `{{CONV_SECTION_REF}}` | Read `{{CONVENTIONS_DOC}}` → detect how rules are identified (numbered like `MC-N`, or named sections). If the rules sit under a dedicated heading in a larger doc, render ` (its \`<heading>\` section)`; if the doc is a dedicated conventions file, leave empty (agents walk the whole file). Surface the detected rule identifiers in the Phase 1 summary (D-10). **No rule count is baked** — agents enumerate at runtime. |
-| `{{POLISHED_PAGE_EXAMPLES}}` | **Primary**: Read `<POLISH_AUDIT_SOURCE>` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `<PROGRESS_DOC>` → extract pages with `Polished` status. **Surface as preset-template** in Phase 2 — see "Curated-list questions" below. Never silently pick first-N. |
+| `{{REFERENCE_PAGE_EXAMPLES}}` | **Primary**: Read `<PAGE_STATUS_AUDIT_SOURCE>` → parse `PAGE_STATUS` map → grep `<PageName>:\s*['"]Polished['"]`. **Fallback** (if no audit script): Read `<PROGRESS_DOC>` → extract pages with `Polished` status. **Surface as preset-template** in Phase 2 — see "Curated-list questions" below. Never silently pick first-N. |
 
 ### Scan D — Derive
 
 | Placeholder | From |
 |---|---|
-| `{{AGENT_PREFIX}}` | first hyphenated segment of `{{PROJECT_NAME}}` (e.g. `pps-web` → `web`); use whole name if ≤ 4 chars |
+| `{{AGENT_PREFIX}}` | first hyphenated segment of `{{PROJECT_NAME}}` (e.g. `shop-web` → `shop`); use whole name if ≤ 4 chars |
 | `{{API_CLIENT_IMPORT}}` | `@/services/api` if API services paths found |
-| `{{POLISH_AUDIT_CMD}}` | `node <POLISH_AUDIT_SOURCE>` |
-| `{{POLISH_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + ` `` + POLISH_AUDIT_SOURCE + `` ` `` + ` (` + `` ` `` + `PAGE_STATUS` + `` ` `` + ` map)` (empty if no audit script) |
+| `{{PAGE_STATUS_AUDIT_CMD}}` | `node <PAGE_STATUS_AUDIT_SOURCE>` |
+| `{{PAGE_STATUS_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + ` `` + PAGE_STATUS_AUDIT_SOURCE + `` ` `` + ` (` + `` ` `` + `PAGE_STATUS` + `` ` `` + ` map)` (empty if no audit script) |
 | `{{REPORT_*_HDR}}` placeholders | derived from `{{OUTPUT_LANG}}` after Phase 2 Round 1 (see "Report-header derivation") |
 
 ### Conventions-doc resolution (run after Scan C)
@@ -156,9 +156,9 @@ Agents anchor on a known-good **reference page**. Whether the project tracks *pa
 **Has a maturity model** — a progress/status doc with maturity labels detected (or user says so):
 - `{{REFERENCE_PAGE_TERM}}` = the project's "good" label (e.g. `Polished`).
 - `{{ANTI_REFERENCE_CLAUSE}}` = ` — never anchor on <bad-labels> pages` (e.g. ` — never anchor on Rough/Partial pages`).
-- `{{POLISH_STATUS_REPORT_BLOCK}}` = the flip/regression report block — kept only if a page-status audit script exists (same gate as `{{POLISH_STATUS_CHECK_SECTION}}`).
+- `{{PAGE_STATUS_REPORT_BLOCK}}` = the flip/regression report block — kept only if a page-status audit script exists (same gate as `{{PAGE_STATUS_CHECK_SECTION}}`).
 
-**No maturity model** — `{{REFERENCE_PAGE_TERM}}` = `reference`; `{{ANTI_REFERENCE_CLAUSE}}` = empty; `{{POLISH_STATUS_REPORT_BLOCK}}` = empty (stripped). The user still names reference pages → `{{POLISHED_PAGE_EXAMPLES}}` (curated-list question worded "reference pages"). The anchor-on-a-good-reference discipline stays; only the maturity overlay drops.
+**No maturity model** — `{{REFERENCE_PAGE_TERM}}` = `reference`; `{{ANTI_REFERENCE_CLAUSE}}` = empty; `{{PAGE_STATUS_REPORT_BLOCK}}` = empty (stripped). The user still names reference pages → `{{REFERENCE_PAGE_EXAMPLES}}` (curated-list question worded "reference pages"). The anchor-on-a-good-reference discipline stays; only the maturity overlay drops.
 
 Show the resolved `{{REFERENCE_PAGE_TERM}}` in the scan summary (D-10 style).
 
@@ -186,7 +186,7 @@ Paths:
 - Progress doc: <progress-doc>
 - Features root: <features-root>
 - Test infra: <test-infra>
-- Polish audit script: <polish-audit-source>
+- Page-status audit script: <page-status-audit-source>
 
 Test setup:
 - Canonical baseline folder: <baseline-folder>  (<N> test files found — exact files picked in Phase 2)
@@ -223,7 +223,7 @@ Question wording: plain, with concrete examples. Show auto-detected/default valu
 
 For two placeholders the scan produces a ranked candidate list, not a final value. AskUserQuestion's 4-option limit (see "AskUserQuestion mechanics") means we cannot list 12+ candidates directly — use **3 preset-template options** instead. The scanner runs heuristics to pre-compute each preset's content, then the user picks which preset to use (or Customize for free-form override).
 
-1. **`{{POLISHED_PAGE_EXAMPLES}}`** (the reference pages agents anchor on) — present detected reference pages (your `{{REFERENCE_PAGE_TERM}}` pages, up to 16) as `markdown context block` (visible above the question), then ask via `AskUserQuestion` with 3 options:
+1. **`{{REFERENCE_PAGE_EXAMPLES}}`** (the reference pages agents anchor on) — present detected reference pages (your `{{REFERENCE_PAGE_TERM}}` pages, up to 16) as `markdown context block` (visible above the question), then ask via `AskUserQuestion` with 3 options:
    - **(a) Balanced by role (Recommended)** — pre-compute 4-6 pages balanced across roles. Use page-name heuristics:
      - ends with `ListPage` → list
      - ends with `DetailPage` → detail
@@ -242,10 +242,10 @@ For two placeholders the scan produces a ranked candidate list, not a final valu
      - `*/components/*.test.*` → component
      - `*/integration/*.test.*` or top-level `*.test.tsx` → integration
      Pick first file per layer found (alphabetical).
-   - **(b) All N files** — render every detected test file. Best for canonical baselines with rich layer coverage (e.g. holiday/ in pps-web has 10 tests across 4 layers).
+   - **(b) All N files** — render every detected test file. Best for canonical baselines with rich layer coverage (e.g. a feature folder with 10 tests across 4 layers).
    - **(c) Customize** — user types comma-separated list of relative paths.
 
-3. **Crib sheet preset (test-only, do NOT offer to end users)** — when running Layer B validation against a known reference project (e.g. pps-web), maintainer can override the preset by editing the substitution dict directly. This is NOT a 4th option in the AskUserQuestion. End users never see it.
+3. **Crib sheet preset (test-only, do NOT offer to end users)** — when running Layer B validation against a known reference project, the maintainer can override the preset by editing the substitution dict directly. This is NOT a 4th option in the AskUserQuestion. End users never see it.
 
 Present these AFTER Phase 1 confirm + Round 1 (identity/language), so the user is in question-answering mode. They do NOT belong in the Phase 1 auto-scan summary.
 
@@ -258,14 +258,14 @@ If scan succeeded, just confirm. Otherwise ask.
    - Override only if you want a display name different from package name.
 
 2. **Agent prefix** — short tag prepended to agent names (e.g. `<prefix>-implement`).
-   - Auto-derived: first hyphenated segment of project name (`pps-web` → `web`, `my-app` → `my-app`)
+   - Auto-derived: first hyphenated segment of project name (`shop-web` → `shop`, `my-app` → `my-app`)
    - Override if you want a custom prefix.
 
 3. **Output language** — the **default** report language. Generated agents resolve the actual report language per session (explicit user request > dominant session language > this default) via their `## Report language` section; this answer only sets the fallback.
    - `AskUserQuestion` with **2 options**: `English` (default) · `Thai`. The tool's built-in "Other" slot takes a free-text language name.
    - If the user picks "Other" (any language that is not English or Thai), enter the non-en/th flow: during the summary step prompt once for each of the 9 Report-header values (see "Report-header derivation"). Never silently fall back to English — that would mix languages in the rendered Report block.
-   - Affects: `<prefix>-implement`, `<prefix>-polish`, `<prefix>-test` reports
-   - Note: `<prefix>-pre-commit` is always English
+   - Affects: `<prefix>-implement`, `<prefix>-harden`, `<prefix>-test` reports
+   - Note: `<prefix>-verify` is always English
 
 ### Round 2 — Apply trigger (1 ask)
 
@@ -301,15 +301,15 @@ If Phase 1 found no sibling backend repo AND user has no API-docs URL → skip.
 
 These define what user phrases should invoke each agent. Defaults work for English-only projects; all four accept multi-language variants.
 
-8. **Implement triggers** — phrases that invoke `<prefix>-implement`. Implement owns bug fixes and structural refactors, so "fix X" belongs here, not in polish.
+8. **Implement triggers** — phrases that invoke `<prefix>-implement`. Implement owns bug fixes and structural refactors, so "fix X" belongs here, not in harden.
    - Default: `"implement X", "build feature X", "fix X", "apply this plan", "revamp X"`
 
-9. **Polish triggers** — phrases that invoke `<prefix>-polish`. Polish owns DRY/consistency-flavored "refactor X"; structural refactors stay with implement.
-   - Default: `"clean up", "DRY up X", "refactor X" (DRY/consistency-flavored), "align features X, Y, Z", "polish diff"`
+9. **Harden triggers** — phrases that invoke `<prefix>-harden`. Harden owns DRY/consistency-flavored "refactor X"; structural refactors stay with implement.
+   - Default: `"clean up", "DRY up X", "refactor X" (DRY/consistency-flavored), "align features X, Y, Z", "clean up the diff"`
 
-10. **Pre-commit triggers** — phrases that invoke `<prefix>-pre-commit`.
-   - Default: `"review my changes", "ship it", "pre-commit check", "draft commit"`
-   - Triggers may be localized, **but `<prefix>-pre-commit` output (commit title + body, PR / push text) stays English** regardless — its report language is fixed, unlike the other three.
+10. **Verify triggers** — phrases that invoke `<prefix>-verify`.
+   - Default: `"review my changes", "ship it", "run the checks", "draft commit"`
+   - Triggers may be localized, **but `<prefix>-verify` output (commit title + body, PR / push text) stays English** regardless — its report language is fixed, unlike the other three.
 
 11. **Test triggers** — phrases that invoke `<prefix>-test`.
    - Default: `"write tests for X", "test for X", "expand coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"`
@@ -329,7 +329,7 @@ Add project-specific richness? Pick what applies (skip all = generic):
 
 [ ] **Doc sections to check when extracting code**
     Example: extract schema → Section 4.1 + 4.4; component split → Section 4.2 + 6.
-    Used by polish when picked rows create new files.
+    Used by harden when picked rows create new files.
 
 [ ] **Remind the agent of a past bug**
     Example: "the org-config revamp missed i18n keys because the agent skipped MC-5."
@@ -347,15 +347,15 @@ Add project-specific richness? Pick what applies (skip all = generic):
 
 [ ] **Conventional Commit scopes used in your repo**
     Example: `(web)`, `(api)`, `(payroll)`, `(ui)` — derived from your `git log` if you skip.
-    Pre-commit uses these when drafting the commit message.
+    Verify uses these when drafting the commit message.
 
 [ ] **Where you track migration backlog**
     Example: `feature-structure.md` Section 17 "Known violations".
-    Pre-commit ignores pre-existing violations listed here ("not this PR's problem"). Skip if no backlog yet.
+    Verify ignores pre-existing violations listed here ("not this PR's problem"). Skip if no backlog yet.
 
 [ ] **Patterns every "done" page must keep**
     Example: `<PageLayout>` wraps every list page; skeleton mirrors real structure; URL holds deep-link state.
-    Pre-commit flags a Polished page that loses one. Skip if no "done" / Polished concept yet.
+    Verify flags a Polished page that loses one. Skip if no "done" / Polished concept yet.
 
 [ ] **UX / architecture patterns to cite in revamp reports**
     Example: UX: "Skeleton during loading + auto-focus first field"; Arch: "extract shared schema to `schemas/`".
@@ -365,8 +365,8 @@ Add project-specific richness? Pick what applies (skip all = generic):
     Example: `scripts/page-polish-audit.mjs` exports a `PAGE_STATUS` map with `Polished` / `Rough` / `Partial`.
     Skip if you don't have a page-status audit script.
 
-[ ] **Custom trigger phrases for polish / test modes**
-    Example: add Thai trigger `"ทำให้ X สวยขึ้น"` for polish visual-consistency mode.
+[ ] **Custom trigger phrases for harden / test modes**
+    Example: add Thai trigger `"ทำให้ X สวยขึ้น"` for harden visual-consistency mode.
     Skip = use defaults (already cover multi-language basics).
 
 [ ] **Your project's API URL pattern (for test mocks)**
@@ -379,7 +379,7 @@ Add project-specific richness? Pick what applies (skip all = generic):
 
 [ ] **What an "API-touching change" looks like in your diff**
     Example: "diff touches `services/api.ts` or any feature `api/` folder".
-    Pre-commit fires the Swagger drift gate on these paths. Skip = derive from project structure.
+    Verify fires the Swagger drift gate on these paths. Skip = derive from project structure.
 ```
 
 **Substitution map** (generator uses internally to substitute the right placeholder — do NOT surface in the menu rendered to the user):
@@ -395,8 +395,8 @@ Add project-specific richness? Pick what applies (skip all = generic):
 | Where you track migration backlog | `{{STRUCTURE_LEGACY_REF}}` + `{{STRUCT_PENDING_RULES}}` |
 | Patterns every "done" page must keep | `{{WORKFLOW_PATTERNS_TABLE}}` |
 | UX / architecture patterns to cite in revamp reports | `{{BP_APPLIED_UX}}` + `{{BP_APPLIED_ARCH}}` |
-| What counts as a "done" page (needs an audit script) | `{{POLISH_STATUS_CHECK_SECTION}}` |
-| Custom trigger phrases for polish / test modes | `{{POLISH_MODE_ROWS}}` + `{{TEST_MODE_ROWS}}` |
+| What counts as a "done" page (needs an audit script) | `{{PAGE_STATUS_CHECK_SECTION}}` |
+| Custom trigger phrases for harden / test modes | `{{HARDEN_MODE_ROWS}}` + `{{TEST_MODE_ROWS}}` |
 | Your project's API URL pattern (for test mocks) | `{{MSW_URL_PATTERN}}` |
 | Test rules for mutation cache + multi-tenant | `{{MUTATION_SCENARIOS}}` |
 | What an "API-touching change" looks like in your diff | `{{API_TRIGGER_HINT}}` |
@@ -404,11 +404,11 @@ Add project-specific richness? Pick what applies (skip all = generic):
 ### Round 6 — Output (1 ask, 2 questions)
 
 10. **Output folder** — absolute path to write the profile.
-    - Default: `/tmp/<PROJECT_NAME>-profile` (e.g. `/tmp/pps-web-profile`) — a **transient** location that is never inside a repo, so there's no commit risk. The common flow is: gen → copy `agents/*.md` into your project's `.claude/agents/` (flat — Claude only reads top-level) → discard the folder.
+    - Default: `/tmp/<PROJECT_NAME>-profile` (e.g. `/tmp/shop-web-profile`) — a **transient** location that is never inside a repo, so there's no commit risk. The common flow is: gen → copy `agents/*.md` into your project's `.claude/agents/` (flat — Claude only reads top-level) → discard the folder.
     - **To keep the profile** (e.g. `git init` + publish it as its own marketplace plugin), type a **persistent** path instead — `/tmp` is cleared by the OS, so don't leave anything you want to keep there.
 
 11. **Profile description** — one sentence for plugin.json marketplace listing.
-    - Default: `<Project> profile: implement/polish/pre-commit/test subagents`
+    - Default: `<Project> profile: implement/harden/verify/test subagents`
 
 After Round 6: summarize all resolved values in a single markdown block and ask **one** final confirmation before writing.
 
@@ -418,13 +418,13 @@ After Round 6: summarize all resolved values in a single markdown block and ask 
 
 Apply these placeholder mappings to each template file. Use Read + Edit (replace_all=true) per placeholder. Whitespace must match exactly.
 
-**Blank-line hygiene (multi-line optional blocks).** When a placeholder that spans multiple lines is substituted (e.g. `{{STRUCT_PENDING_RULES}}`, `{{POLISH_STATUS_CHECK_SECTION}}`, `{{POLISH_STATUS_REPORT_BLOCK}}`, `{{STRUCTURE_PREWRITE_TABLE}}`, `{{WORKFLOW_PATTERNS_TABLE}}`), collapse any resulting run of blank lines to a single blank — both when the block is **filled** (its content may carry a trailing blank) and when it is **empty** (the surrounding blanks would otherwise double up). After writing each agent file, scan for `\n\n\n` and squeeze to `\n\n`.
+**Blank-line hygiene (multi-line optional blocks).** When a placeholder that spans multiple lines is substituted (e.g. `{{STRUCT_PENDING_RULES}}`, `{{PAGE_STATUS_CHECK_SECTION}}`, `{{PAGE_STATUS_REPORT_BLOCK}}`, `{{STRUCTURE_PREWRITE_TABLE}}`, `{{WORKFLOW_PATTERNS_TABLE}}`), collapse any resulting run of blank lines to a single blank — both when the block is **filled** (its content may carry a trailing blank) and when it is **empty** (the surrounding blanks would otherwise double up). After writing each agent file, scan for `\n\n\n` and squeeze to `\n\n`.
 
 | Placeholder | Replacement | Notes |
 |---|---|---|
 | `{{PROJECT_NAME}}` | answer 1 | |
 | `{{AGENT_PREFIX}}` | answer 2 | |
-| `{{STACK}}` | answer 3 | implement + polish description only |
+| `{{STACK}}` | answer 3 | implement + harden description only |
 | `{{TEST_STACK}}` | answer 3b (test-stack one-liner, e.g. `Vitest 4 + React Testing Library 16 + @testing-library/user-event 14 + MSW 2`) | default: `Vitest + React Testing Library + MSW` |
 | `{{OUTPUT_LANG}}` | answer 4 | |
 | `{{BACKEND_NAME}}` | answer 4b (backend project/repo name; default `backend`) | rendered backticked inline; if user types `none` keep template wording `backend` |
@@ -433,23 +433,23 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{STRUCTURE_DOC}}` | answer 7 (or `<conventions-doc>` if empty — keep references coherent) | |
 | `{{PROGRESS_DOC}}` | answer 8 (or `<conventions-doc>` if empty) | |
 | `{{FEATURES_ROOT}}` | answer 9 | |
-| `{{POLISHED_PAGE_EXAMPLES}}` | answer 10 (or `{{REFERENCE_PAGE_TERM}} pages in <progress-doc>` if empty) | |
+| `{{REFERENCE_PAGE_EXAMPLES}}` | answer 10 (or `{{REFERENCE_PAGE_TERM}} pages in <progress-doc>` if empty) | |
 | `{{ARCHITECTURE_DOCS_GLOB}}` | `<answer 11>/architecture/*` (empty if answer 11 empty — drop row from docs-update table) | |
 | `{{COMPONENT_DOCS_GLOB}}` | `<answer 11>/components/*` (empty if answer 11 empty) | |
 | `{{FEATURE_DOCS_GLOB}}` | `<answer 11>/features/*` (empty if answer 11 empty) | |
 | `{{BUILD_CMD}}` | answer 12 | |
 | `{{DEV_CMD}}` | answer 13 | (currently unused in templates — reserved) |
 | `{{TEST_CMD}}` | answer 14 | |
-| `{{FULL_CHECK_CMD}}` | Scan A (`npm run check`-style script; falls back to `{{BUILD_CMD}}`) | pre-commit mode full gate; must not mutate the working tree |
+| `{{FULL_CHECK_CMD}}` | Scan A (`npm run check`-style script; falls back to `{{BUILD_CMD}}`) | verify mode full gate; must not mutate the working tree |
 | `{{LINT_STRUCTURE_CMD}}` | answer 15 | |
 | `{{LINT_STRUCTURE_CMD_STRICT}}` | answer 16 | |
-| `{{POLISH_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + `` ` ``+ answer 17 +` ` `` ` + ` (` + `` ` ``+`PAGE_STATUS`+`` ` ``+` map)` (empty string if answer 17 empty) | backtick-wrap both the script path AND `PAGE_STATUS` |
-| `{{POLISH_STATUS_CHECK_SECTION}}` | render full Polish-status block (see below) if answer 17 non-empty; else empty string | |
-| `{{POLISH_AUDIT_CMD}}` | `cd <project> && node <relative-path-from-project-root>` derived from answer 17 (empty if answer 17 empty) | only referenced inside `{{POLISH_STATUS_CHECK_SECTION}}` |
-| `{{POLISH_AUDIT_SOURCE}}` | answer 17 verbatim (empty if answer 17 empty) | |
+| `{{PAGE_STATUS_AUDIT_SCRIPT_REF}}` | `` ` + skim ` + `` ` ``+ answer 17 +` ` `` ` + ` (` + `` ` ``+`PAGE_STATUS`+`` ` ``+` map)` (empty string if answer 17 empty) | backtick-wrap both the script path AND `PAGE_STATUS` |
+| `{{PAGE_STATUS_CHECK_SECTION}}` | render full Page-status block (see below) if answer 17 non-empty; else empty string | |
+| `{{PAGE_STATUS_AUDIT_CMD}}` | `cd <project> && node <relative-path-from-project-root>` derived from answer 17 (empty if answer 17 empty) | only referenced inside `{{PAGE_STATUS_CHECK_SECTION}}` |
+| `{{PAGE_STATUS_AUDIT_SOURCE}}` | answer 17 verbatim (empty if answer 17 empty) | |
 | `{{REFERENCE_PAGE_TERM}}` | page-maturity resolution: project's "good" page label (default `Polished`); `reference` if no maturity model | |
 | `{{ANTI_REFERENCE_CLAUSE}}` | page-maturity resolution: ` — never anchor on <bad-labels> pages` (default ` — never anchor on Rough/Partial pages`); empty if no maturity model | leading ` — ` separator preserved |
-| `{{POLISH_STATUS_REPORT_BLOCK}}` | the flip/regression report block (see "POLISH_STATUS_REPORT_BLOCK template") if a page-status audit script exists; else empty string | gated identically to `{{POLISH_STATUS_CHECK_SECTION}}` |
+| `{{PAGE_STATUS_REPORT_BLOCK}}` | the flip/regression report block (see "PAGE_STATUS_REPORT_BLOCK template") if a page-status audit script exists; else empty string | gated identically to `{{PAGE_STATUS_CHECK_SECTION}}` |
 | `{{API_DOCS_URL}}` | answer 18 — machine-readable contract JSON endpoint (e.g. `/v3/api-docs`); never a swagger-ui HTML page | |
 | `{{BACKEND_LOCAL_PATH}}` | answer 18c (auto-detected sibling, typically `../<backend-name>`; relative path only) | contract-verification fallback when API docs unreachable |
 | `{{API_CONTRACT_NAME}}` | answer 18b (default `Swagger`; e.g. `OpenAPI` / `GraphQL schema`) | report-wording term for the contract source |
@@ -462,11 +462,11 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | `{{TEST_CANONICAL_FILES}}` | answer 24 (multi-line markdown bullet list, indentation = 0 spaces, one `- \`path\`` per line) | |
 | `{{APPLY_KEYWORD}}` | answer 25 | |
 | `{{APPLY_KEYWORD_ALIASES}}` | answer 25b — trailing alias suffix beginning with ` / `, default ` / `` `apply` `` ` / `` `go ahead` ``  | comma-separated alias list user types → render each backticked, joined by ` / `, prefixed with ` / ` |
-| `{{POLISH_TRIGGER_KEYWORDS}}` | answer 25c — comma-separated quoted triggers for polish description (multi-language allowed) | default: `"clean up", "DRY up X", "refactor X" (DRY/consistency-flavored), "align features X, Y, Z", "polish diff"` |
-| `{{POLISH_SCOPE_NOTE}}` | answer 25d — optional parenthetical clarifier in polish description (or empty) | default empty |
+| `{{HARDEN_TRIGGER_KEYWORDS}}` | answer 25c — comma-separated quoted triggers for harden description (multi-language allowed) | default: `"clean up", "DRY up X", "refactor X" (DRY/consistency-flavored), "align features X, Y, Z", "clean up the diff"` |
+| `{{HARDEN_SCOPE_NOTE}}` | answer 25d — optional parenthetical clarifier in harden description (or empty) | default empty |
 | `{{TEST_TRIGGER_KEYWORDS}}` | answer 25e — comma-separated quoted triggers for test description (multi-language allowed) | default: `"write tests for X", "test for X", "expand coverage X", "expand tests X", "fill test gaps X", "integration test X", "test flow X"` |
 | `{{IMPLEMENT_TRIGGER_KEYWORDS}}` | answer 8 (Round 4) — comma-separated quoted triggers for implement description (multi-language allowed) | default: `"implement X", "build feature X", "fix X", "apply this plan", "revamp X"` |
-| `{{PRECOMMIT_TRIGGER_KEYWORDS}}` | answer 10 (Round 4) — comma-separated quoted triggers for pre-commit description (multi-language allowed) | default: `"review my changes", "ship it", "pre-commit check", "draft commit"`; **localizing the trigger does NOT localize pre-commit output — commit/PR text stays English** |
+| `{{VERIFY_TRIGGER_KEYWORDS}}` | answer 10 (Round 4) — comma-separated quoted triggers for verify description (multi-language allowed) | default: `"review my changes", "ship it", "run the checks", "draft commit"`; **localizing the trigger does NOT localize verify output — commit/PR text stays English** |
 | Report-block headers (`{{REPORT_NOTES_HDR}}`, `{{REPORT_PENDING_HDR}}`, `{{REPORT_HANDOFF_VERB}}`, `{{REPORT_BUILD_VERB}}`, `{{REPORT_OR_REASON}}`, `{{REPORT_FILES_HDR}}`, `{{REPORT_SKIP_HDR}}`, `{{REPORT_IFANY_SUFFIX}}`, `{{REPORT_PENDING_NONE}}`) | derived from `{{OUTPUT_LANG}}` — see "Report-header derivation" below | |
 
 ### Report-header derivation (OUTPUT_LANG-driven)
@@ -501,18 +501,18 @@ When no conventions doc exists, write `<PROJECT_ROOT>/CONVENTIONS.md` from the 7
 
 The seeded file's header states: *starter draft — agents walk these before every report; edit to match your team.* If the deps/config scan yields nothing usable, fall back to copying `CONVENTIONS.template.md` verbatim (option A). Either way a doc exists post-gen, so the runtime MC-walk has something to read.
 
-### POLISH_STATUS_CHECK_SECTION template
+### PAGE_STATUS_CHECK_SECTION template
 
-If answer 17 is non-empty, expand `{{POLISH_STATUS_CHECK_SECTION}}` to:
+If answer 17 is non-empty, expand `{{PAGE_STATUS_CHECK_SECTION}}` to:
 
 ```markdown
-## Polish-status check (pre-commit mode only — when diff touches pages)
+## Page-status check (verify mode only — when diff touches pages)
 
-**Mode gate**: this check runs in **pre-commit mode only**. In diff-review mode, skip the audit script entirely.
+**Mode gate**: this check runs in **verify mode only**. In diff-review mode, skip the audit script entirely.
 
-If pre-commit mode AND any `{{FEATURES_ROOT}}/*/pages/*Page/` is in diff:
+If verify mode AND any `{{FEATURES_ROOT}}/*/pages/*Page/` is in diff:
 
-1. Run `{{POLISH_AUDIT_CMD}}` (source: `{{POLISH_AUDIT_SOURCE}}`)
+1. Run `{{PAGE_STATUS_AUDIT_CMD}}` (source: `{{PAGE_STATUS_AUDIT_SOURCE}}`)
 2. For each touched page, compare verdict against signal score:
    - **Flip candidate** — page is `Rough`/`Partial` AND signals hit Polished bar. Surface as flip suggestion.
    - **Regression** — page is `Polished` AND a signal dropped. **Blocking.**
@@ -521,27 +521,27 @@ If pre-commit mode AND any `{{FEATURES_ROOT}}/*/pages/*Page/` is in diff:
 
 Substitute the inner placeholders too, then drop in.
 
-### POLISH_STATUS_REPORT_BLOCK template
+### PAGE_STATUS_REPORT_BLOCK template
 
-If a page-status audit script exists (answer 17 non-empty), expand `{{POLISH_STATUS_REPORT_BLOCK}}` to the report subsection below; otherwise render an empty string (drop it from the `## Report` block):
+If a page-status audit script exists (answer 17 non-empty), expand `{{PAGE_STATUS_REPORT_BLOCK}}` to the report subsection below; otherwise render an empty string (drop it from the `## Report` block):
 
 ```markdown
-## Polish status (if pages touched)
-- Flip candidates: <Page> Rough → {{REFERENCE_PAGE_TERM}}? (3/5 → 5/5)   (in pre-commit mode: reply `yes flip` to update)
+## Page status (if pages touched)
+- Flip candidates: <Page> Rough → {{REFERENCE_PAGE_TERM}}? (3/5 → 5/5)   (in verify mode: reply `yes flip` to update)
 - Regressions: <Page> {{REFERENCE_PAGE_TERM}} → ⚠️ (signal X dropped)
 - (or "no page changes")
 ```
 
 ### Edge cases in substitution
 
-- **Empty API-docs URL AND empty backend local path** (answers 18 + 18c): strip the entire `### 0.0 BE-scope gate` section from `implement.template.md` and the `## {{API_CONTRACT_NAME}} drift gate` section from `pre-commit.template.md`. Replace with a 1-line note: `BE-scope / API-contract drift gates: not configured (no contract source).`
+- **Empty API-docs URL AND empty backend local path** (answers 18 + 18c): strip the entire `### 0.0 BE-scope gate` section from `implement.template.md` and the `## {{API_CONTRACT_NAME}} drift gate` section from `verify.template.md`. Replace with a 1-line note: `BE-scope / API-contract drift gates: not configured (no contract source).`
 - **Empty API-docs URL but backend local path present**: keep both gates; drop the `WebFetch` step — the local checkout becomes the primary contract source.
 - **Empty backend local path but API-docs URL present**: keep both gates; drop the local-checkout fallback step — an unreachable API-docs URL goes straight to "not verified" severity.
-- **Empty lint:structure** (answer 15): strip `## Shared lint:structure run` and `## Structure regression check` sections from `pre-commit.template.md`. Inline a 1-line note in their place.
-- **Empty docs root** (answer 11): the three `{{*_DOCS_GLOB}}` placeholders render empty; the generator should drop the corresponding rows from the `## Docs update` table in `pre-commit.template.md` (otherwise the table has empty cells).
+- **Empty lint:structure** (answer 15): strip `## Shared lint:structure run` and `## Structure regression check` sections from `verify.template.md`. Inline a 1-line note in their place.
+- **Empty docs root** (answer 11): the three `{{*_DOCS_GLOB}}` placeholders render empty; the generator should drop the corresponding rows from the `## Docs update` table in `verify.template.md` (otherwise the table has empty cells).
 - **Empty `{{API_SERVICES_PATHS}}`** (answer 20): the `{{API_CONTRACT_NAME}}` drift gate bullet "Project's shared HTTP client / API service / case-transform" disappears — gate triggers only on per-feature `api/*` and network-wrapping hooks.
 - **Empty test baseline** (answers 23 + 24): `test.template.md` renders with an empty Canonical baseline section. The agent still works (falls back to in-repo conventions), but the user should fill in baseline files once their first feature has good tests.
-- **No page-maturity model** (page-maturity resolution): `{{REFERENCE_PAGE_TERM}}` = `reference`, `{{ANTI_REFERENCE_CLAUSE}}` = empty, `{{POLISH_STATUS_REPORT_BLOCK}}` = empty (drop the `## Polish status` subsection from the `## Report` block in `pre-commit.template.md`). Agents still anchor on user-named reference pages — only the Polished/Rough/Partial overlay drops.
+- **No page-maturity model** (page-maturity resolution): `{{REFERENCE_PAGE_TERM}}` = `reference`, `{{ANTI_REFERENCE_CLAUSE}}` = empty, `{{PAGE_STATUS_REPORT_BLOCK}}` = empty (drop the `## Page status` subsection from the `## Report` block in `verify.template.md`). Agents still anchor on user-named reference pages — only the Polished/Rough/Partial overlay drops.
 
 ## Output structure
 
@@ -554,8 +554,8 @@ Write the following tree under the user's chosen output folder:
 ├── README.md                # boilerplate explaining what was generated + how to install
 └── agents/
     ├── <prefix>-implement.md   # filled template
-    ├── <prefix>-polish.md
-    ├── <prefix>-pre-commit.md
+    ├── <prefix>-harden.md
+    ├── <prefix>-verify.md
     └── <prefix>-test.md
 ```
 
@@ -586,8 +586,8 @@ Generated by [claude-kit](https://github.com/G3Ner8/claude-kit) `profile-generat
 Project-specific agent quartet for `<project>`:
 
 - `<prefix>-implement` — code builder + API debugger
-- `<prefix>-polish` — cleanup + consistency
-- `<prefix>-pre-commit` — pre-commit gate (build verify, docs sync, commit draft)
+- `<prefix>-harden` — cleanup + consistency
+- `<prefix>-verify` — verify gate (build verify, docs sync, commit draft)
 - `<prefix>-test` — test writer (Vitest + RTL + MSW) for retrofit / expand / integration modes
 
 ## Install
@@ -598,7 +598,7 @@ Run these from the directory you launch Claude Code in — the **monorepo root**
 
 \`\`\`bash
 mkdir -p .claude/agents
-for a in <prefix>-implement <prefix>-polish <prefix>-pre-commit <prefix>-test; do
+for a in <prefix>-implement <prefix>-harden <prefix>-verify <prefix>-test; do
   cp "<output-path>/agents/$a.md" ".claude/agents/$a.md"
 done
 \`\`\`
@@ -611,7 +611,7 @@ Use a **persistent** `<output-path>` (not `/tmp`), then `ln -s` instead of `cp`.
 
 \`\`\`bash
 mkdir -p .claude/agents
-for a in <prefix>-implement <prefix>-polish <prefix>-pre-commit <prefix>-test; do
+for a in <prefix>-implement <prefix>-harden <prefix>-verify <prefix>-test; do
   ln -s "<output-path>/agents/$a.md" ".claude/agents/$a.md"
 done
 \`\`\`
@@ -640,7 +640,7 @@ MIT
 
 When invoked:
 
-1. **Verify** access to `react-agents` plugin templates. Read from the plugin install location.
+1. **Verify** access to `agent-profiles` plugin templates. Read from the plugin install location.
 
 2. **Phase 1 — Auto-scan**:
    - Run Scan A (`package.json`), Scan B (filesystem), Scan C (MD content), Scan D (derive).
@@ -652,7 +652,7 @@ When invoked:
    - Round 1: identity confirm + output language (skip confirms if Phase 1 succeeded; ask only language)
    - Round 2: apply trigger (keyword + aliases)
    - Round 3: backend (skip whole round if Phase 1 found no backend AND user has no Swagger URL)
-   - Round 4: trigger keywords for implement / polish / pre-commit / test (offer defaults; user can extend; all multi-language)
+   - Round 4: trigger keywords for implement / harden / verify / test (offer defaults; user can extend; all multi-language)
    - Round 5: optional richness menu (`multiSelect` checklist; each picked item → 1 follow-up question)
    - Round 6: output folder + profile description
    - Validate answers as collected.
@@ -662,7 +662,7 @@ When invoked:
    - Show absolute output path.
    - `AskUserQuestion`: "Write the profile?" → Yes / Adjust.
 
-5. **Write**: if Conventions-doc resolution landed on **case 2**, first write the seeded `<PROJECT_ROOT>/CONVENTIONS.md` (see "Stack-aware conventions seed"). Then read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Polish-status, lint:structure) before writing — strip whole sections when their gate is empty.
+5. **Write**: if Conventions-doc resolution landed on **case 2**, first write the seeded `<PROJECT_ROOT>/CONVENTIONS.md` (see "Stack-aware conventions seed"). Then read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Page-status, lint:structure) before writing — strip whole sections when their gate is empty.
 
 6. **Report**: print absolute paths of all created files. If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
 
@@ -671,7 +671,7 @@ When invoked:
    ```markdown
    ### Agent workflow (guideline, not automation)
 
-   Typical flow: `<prefix>-implement` (or hand-edit) → `<prefix>-polish` diff-polish → `<prefix>-pre-commit` → human runs `git commit` / `git push`.
+   Typical flow: `<prefix>-implement` (or hand-edit) → `<prefix>-harden` diff-harden → `<prefix>-verify` → human runs `git commit` / `git push`.
    Each agent's report names the next step — the human (or the main conversation, with the user's go-ahead) invokes it.
    Agents never invoke each other; every confirm gate stays manual.
    ```
@@ -698,7 +698,7 @@ Previous spec asked all 28-50 questions sequentially. New spec scans first → a
 ## Do NOT
 
 - Write outside the user-specified output folder.
-- Modify the `react-agents` template files themselves.
+- Modify the `agent-profiles` template files themselves.
 - Skip the final confirmation step.
 - Auto-`git init` or auto-push the generated folder — leave that to the user.
 - Generate files in a folder that already exists with content, unless user confirms overwrite.
@@ -709,4 +709,4 @@ Previous spec asked all 28-50 questions sequentially. New spec scans first → a
 - **User wants to regenerate** — back up `agents/` to `agents.bak.<timestamp>/` before overwriting.
 - **Some questions left blank** — fall back to defaults; do not error.
 - **User declines at final confirmation** — print the answers verbatim so they can copy-paste back, and exit without writing.
-- **Templates missing from install** — print path that was searched and tell user to reinstall `react-agents` plugin.
+- **Templates missing from install** — print path that was searched and tell user to reinstall `agent-profiles` plugin.
