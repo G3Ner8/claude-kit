@@ -148,7 +148,7 @@ The two kinds behave differently, and the difference is the skill's own
 | Placeholder | Filled | Unfilled |
 |---|---|---|
 | `{{HARDEN_REFERENCE_SKILL_TABLE}}` | 2-row table (perf, composition) | *(empty — heading keeps its remaining prose)* |
-| `{{VERIFY_REFERENCE_SKILL_ROWS}}` | 3 rows (perf, composition, ux-review) | *(empty)* |
+| `{{VERIFY_REFERENCE_SKILL_TABLE}}` | header + 3 rows (perf, composition, ux-review) | *(empty — the `## Reference material` heading keeps its remaining prose)* |
 | `{{IMPLEMENT_REFERENCE_SKILL_ROW}}` | 1 row (perf, composition) | *(empty)* |
 | `{{PERF_SKILL_PAREN}}` / `{{COMPOSITION_SKILL_PAREN}}` | `` (`react-perf`) `` | *(empty — the bullet keeps its own text)* |
 | `{{DEBUG_SKILL_SENTENCE}}` | `` — for the full walkthrough invoke the `react-debug` skill. `` | ` — follow the steps below.` |

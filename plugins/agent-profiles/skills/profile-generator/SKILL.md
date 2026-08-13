@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.5.0"
+  version: "1.5.1"
   type: action
   status: experimental
   stack: React 19 / Vite SPA (the target project it scans)
@@ -467,11 +467,11 @@ After Round 6: summarize all resolved values in a single markdown block and ask 
 
 Apply these placeholder mappings to each template file. Use Read + Edit (replace_all=true) per placeholder. Whitespace must match exactly.
 
-**Blank-line hygiene (multi-line optional blocks).** When a placeholder that spans multiple lines is substituted (e.g. `{{STRUCT_PENDING_RULES}}`, `{{PAGE_STATUS_CHECK_SECTION}}`, `{{PAGE_STATUS_REPORT_BLOCK}}`, `{{STRUCTURE_PREWRITE_TABLE}}`, `{{WORKFLOW_PATTERNS_TABLE}}`, `{{HARDEN_REFERENCE_SKILL_TABLE}}`, `{{VERIFY_REFERENCE_SKILL_ROWS}}`, `{{IMPLEMENT_REFERENCE_SKILL_ROW}}`), collapse any resulting run of blank lines to a single blank — both when the block is **filled** (its content may carry a trailing blank) and when it is **empty** (the surrounding blanks would otherwise double up). After writing each agent file, scan for `\n\n\n` and squeeze to `\n\n`.
+**Blank-line hygiene (multi-line optional blocks).** When a placeholder that spans multiple lines is substituted (e.g. `{{STRUCT_PENDING_RULES}}`, `{{PAGE_STATUS_CHECK_SECTION}}`, `{{PAGE_STATUS_REPORT_BLOCK}}`, `{{STRUCTURE_PREWRITE_TABLE}}`, `{{WORKFLOW_PATTERNS_TABLE}}`, `{{HARDEN_REFERENCE_SKILL_TABLE}}`, `{{VERIFY_REFERENCE_SKILL_TABLE}}`, `{{IMPLEMENT_REFERENCE_SKILL_ROW}}`), collapse any resulting run of blank lines to a single blank — both when the block is **filled** (its content may carry a trailing blank) and when it is **empty** (the surrounding blanks would otherwise double up). After writing each agent file, scan for `\n\n\n` and squeeze to `\n\n`.
 
 | Placeholder | Replacement | Notes |
 |---|---|---|
-| `{{AUDIT_GATE}}` · `{{AUDIT_GATE_CELL}}` · `{{REVAMP_GATE}}` · `{{REVAMP_GATE_CELL}}` · `{{UX_REVIEW_GATE_CELL}}` · `{{TEST_PATTERNS_GATE}}` · `{{HARDEN_GATE_NOTE}}` (**gate — never empty**) · `{{HARDEN_REFERENCE_SKILL_TABLE}}` · `{{VERIFY_REFERENCE_SKILL_ROWS}}` · `{{IMPLEMENT_REFERENCE_SKILL_ROW}}` · `{{PERF_SKILL_PAREN}}` · `{{COMPOSITION_SKILL_PAREN}}` · `{{DEBUG_SKILL_SENTENCE}}` · `{{TEST_PATTERNS_REF_LINE}}` · `{{TEST_PATTERNS_DESC_NOTE}}` · `{{TEST_PATTERNS_INTEGRATION_REF}}` (**reference — collapse to empty**) | from Skill-wiring resolution | Exact filled/unfilled strings: PLACEHOLDER-REFERENCE.md § Skill wiring. **Gate slots are never empty** — unfilled renders the "run it yourself" wording. **Reference slots collapse to empty**, taking their row or sentence with them; apply blank-line hygiene. A slot left unfilled must leave the skill's name nowhere in the rendered agent, `description:` included. |
+| `{{AUDIT_GATE}}` · `{{AUDIT_GATE_CELL}}` · `{{REVAMP_GATE}}` · `{{REVAMP_GATE_CELL}}` · `{{UX_REVIEW_GATE_CELL}}` · `{{TEST_PATTERNS_GATE}}` · `{{HARDEN_GATE_NOTE}}` (**gate — never empty**) · `{{HARDEN_REFERENCE_SKILL_TABLE}}` · `{{VERIFY_REFERENCE_SKILL_TABLE}}` · `{{IMPLEMENT_REFERENCE_SKILL_ROW}}` · `{{PERF_SKILL_PAREN}}` · `{{COMPOSITION_SKILL_PAREN}}` · `{{DEBUG_SKILL_SENTENCE}}` · `{{TEST_PATTERNS_REF_LINE}}` · `{{TEST_PATTERNS_DESC_NOTE}}` · `{{TEST_PATTERNS_INTEGRATION_REF}}` (**reference — collapse to empty**) | from Skill-wiring resolution | Exact filled/unfilled strings: PLACEHOLDER-REFERENCE.md § Skill wiring. **Gate slots are never empty** — unfilled renders the "run it yourself" wording. **Reference slots collapse to empty**, taking their row or sentence with them; apply blank-line hygiene. A slot left unfilled must leave the skill's name nowhere in the rendered agent, `description:` included. |
 | `{{PROJECT_NAME}}` | answer 1 | |
 | `{{AGENT_PREFIX}}` | answer 2 | |
 | `{{STACK}}` | answer 3 | implement + harden description only |

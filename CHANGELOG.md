@@ -6,6 +6,23 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `agent-profiles` 0.7.1
+- **Two sections lied when their skill slot was unfilled.** Found by rendering the
+  templates in both states — filled and unfilled — and reading the output, which
+  is the only way to see it: the kit's validators read plugin sources, never a
+  rendered agent, and the `{{` check added in 0.7.0 catches leftovers, not a
+  heading left standing over nothing.
+  - `harden`'s `## Reference skills` kept its heading while the table collapsed,
+    announcing skills to an agent that had none.
+  - `verify`'s `## Skill invocation` kept both the heading *and* the table header
+    row, leaving a column header with no rows beneath it, and its closing line
+    still referred to "the skill's report format".
+  - Both are now `## Reference material`, true whether or not anything filled
+    them; `verify`'s table header moved inside the placeholder so it collapses
+    with its rows; the closing line reads "not an audit report".
+- `{{VERIFY_REFERENCE_SKILL_ROWS}}` → `{{VERIFY_REFERENCE_SKILL_TABLE}}`, since it
+  now spans the header as well. `profile-generator` 1.5.1 follows the rename.
+
 ### `agent-profiles` 0.7.0
 - **Templates no longer name any skill directly.** All 37 hardcoded `react-*`
   references across the four templates became slots resolved from what the

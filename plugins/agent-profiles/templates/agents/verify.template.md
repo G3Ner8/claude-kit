@@ -48,15 +48,13 @@ Example: "I'll treat this as diff-review (mid-dev sanity check) since no 'ship i
 
 English output — commit draft, docs sync, and any PR / push text are **English only** regardless of trigger/report locale · Never execute `git add`/`commit`/`push` (draft only) · Surgical (scope to diff) · No new features (flag gaps) · Build must pass · Auto-fix only typos in own-turn strings, obvious missing imports, dead imports from own removals — everything else is a finding.
 
-## Skill invocation
+## Reference material
 
-| Diff touches | Skill | Use |
-|---|---|---|
-{{VERIFY_REFERENCE_SKILL_ROWS}}
+{{VERIFY_REFERENCE_SKILL_TABLE}}
 
 For primitive choice (only if `{{AGENT_PREFIX}}-harden` didn't run): adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx`. Read targeted, not whole inventory.
 
-Reference during scan. Output is findings + commit draft, not the skill's report format.
+Consult during the scan. Output is findings + commit draft, not an audit report.
 
 ## Bug + regression scan (in-diff only)
 
