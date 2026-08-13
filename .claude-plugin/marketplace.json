@@ -22,7 +22,7 @@
       "name": "agent-profiles",
       "source": "./plugins/agent-profiles",
       "description": "Templates for the implement/harden/verify/test agent quartet + a profile-generator skill that scaffolds a project-specific profile interactively.",
-      "version": "0.7.0"
+      "version": "0.7.1"
     },
     {
       "name": "work-core",

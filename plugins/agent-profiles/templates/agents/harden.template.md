@@ -55,7 +55,7 @@ Mandatory.
 
 Ambiguous → ask once in the report language.
 
-## Reference skills (consult during refactor — not gate)
+## Reference material (consult during refactor — not gate)
 
 {{HARDEN_REFERENCE_SKILL_TABLE}}
 For primitive choice / variants: adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx` source. Read targeted; never load whole inventory.
