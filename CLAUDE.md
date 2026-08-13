@@ -1,15 +1,16 @@
 # claude-kit — Meta Guide
 
-> A marketplace of Claude Code plugins for React 19 / Vite SPA work. This file
-> is the **north star** — every other file in the repo follows the rules
-> defined here.
+> A tiered marketplace of Claude Code plugins: stack-agnostic engineering
+> disciplines and personal work-awareness on top, React 19 / Vite tooling below.
+> This file is the **north star** — every other file in the repo follows the
+> rules defined here.
 >
 > Treat this as a contract: contributors read this once, then write skills
 > and agents that conform. If something here is unclear, the rule wins — open
 > an issue to clarify rather than diverging.
 
-**Status**: Phase 1 foundation locked 2026-05-26. D1-D5 resolved at
-defaults (see Section 14). Phase 2 (decoupling) next.
+Current state is the decision table in Section 14, not a phase label — read the
+last row.
 
 ---
 

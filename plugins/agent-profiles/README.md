@@ -2,6 +2,8 @@
 
 Templates + interactive generator for the implement / harden / verify / test agent quartet used by [claude-kit](../../README.md). Pairs with [`react-core`](../react-core/) (the skills the agents invoke).
 
+**Scope today — React 19 / Vite, for two fixable reasons rather than by design.** The generator locates a project by its `package.json`, so it needs a JS/TS repo; and the templates name `react-core` skills directly instead of through aliases, so a profile generated for any other stack would order its agents to invoke skills that repo does not have. Neither limit is intrinsic to the four roles, which are stack-neutral. Making the skill references pluggable is the work that opens this up — see D15 in the root [`CLAUDE.md`](../../CLAUDE.md).
+
 ## Install
 
 ```
@@ -53,28 +55,28 @@ A user phrase triggers an agent; the agent **invokes** a skill as a gate (`==>`,
 ```mermaid
 flowchart LR
   T1["implement X · build Y · revamp X"] --> IMP["implement"]
-  T2["clean up · DRY X · align X,Y"] --> POL["harden"]
-  T3["ship it · review my changes"] --> PRE["verify"]
+  T2["clean up · DRY X · align X,Y"] --> HRD["harden"]
+  T3["ship it · review my changes"] --> VRF["verify"]
   T4["write tests for X"] --> TST["test"]
 
   IMP ==> UXR["react-ux-review"]
   IMP ==> REV["react-revamp"]
   IMP ==> AUD["react-audit"]
-  POL ==> AUD
-  POL ==> DRY["react-dry"]
+  HRD ==> AUD
+  HRD ==> DRY["react-dry"]
   TST ==> TP["react-test-patterns"]
 
   IMP -.-> PERF["react-perf"]
   IMP -.-> COMP["react-composition"]
   IMP -.-> DBG["react-debug"]
-  POL -.-> PERF
-  POL -.-> COMP
-  PRE -.-> UXR
-  PRE -.-> PERF
-  PRE -.-> COMP
+  HRD -.-> PERF
+  HRD -.-> COMP
+  VRF -.-> UXR
+  VRF -.-> PERF
+  VRF -.-> COMP
 ```
 
-`==>` invoke (gate — agent picks **one** of implement's audit skills by trigger) · `-.->` reference. `dev-core` skills (`detective`, `inspector`, `archivist`) are user-invoked at debug / review / incident time — no agent calls them.
+`==>` invoke (gate — agent picks **one** of implement's audit skills by trigger) · `-.->` reference. `dev-core` skills (`architect`, `drafter`, `detective`, `inspector`, `archivist`, `surveyor`) are user-invoked at plan / debug / review / incident time — no agent calls them.
 
 ## Examples (one per agent)
 
