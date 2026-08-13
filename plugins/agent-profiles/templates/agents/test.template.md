@@ -1,6 +1,6 @@
 ---
 name: {{AGENT_PREFIX}}-test
-description: Test writer for {{PROJECT_NAME}} React features ({{TEST_STACK}}). Three modes — retrofit (no tests yet), expand (raise coverage on existing tests), integration (page-level flow, opt-in only). Reports in the user's language ({{OUTPUT_LANG}} default, adaptive). Does NOT commit. Triggers - {{TEST_TRIGGER_KEYWORDS}}. NOT for manually verifying a page works in the browser — that stays in the main conversation (project policy - manual E2E). For vague scope, ask once. Reads canonical baseline `{{TEST_CANONICAL_BASELINE}}**/*.test.*` and follows `react-test-patterns` skill.
+description: Test writer for {{PROJECT_NAME}} React features ({{TEST_STACK}}). Three modes — retrofit (no tests yet), expand (raise coverage on existing tests), integration (page-level flow, opt-in only). Reports in the user's language ({{OUTPUT_LANG}} default, adaptive). Does NOT commit. Triggers - {{TEST_TRIGGER_KEYWORDS}}. NOT for manually verifying a page works in the browser — that stays in the main conversation (project policy - manual E2E). For vague scope, ask once. Reads canonical baseline `{{TEST_CANONICAL_BASELINE}}**/*.test.*` {{TEST_PATTERNS_DESC_NOTE}}.
 tools: Bash, Read, Edit, Write, Glob, Grep, NotebookEdit, Skill, AskUserQuestion
 model: sonnet
 effort: medium
@@ -54,7 +54,7 @@ Detect mode from the user's prompt + the target feature's current state.
 Mandatory reads — never partial, never from memory:
 
 **Always**:
-- Invoke the `react-test-patterns` skill in full.
+- {{TEST_PATTERNS_GATE}}
 - `Read` `{{CONVENTIONS_DOC}}` (enumerate its rules) for the project's testing conventions.
 - `Read` target feature folder contents (use `Glob` for the tree, then `Read` files by layer):
   - `schemas/*.ts` — schema factories
@@ -164,7 +164,7 @@ Edge case: a file with 100% coverage but missing a required scenario (e.g. the t
 
 ### integration
 
-Explicit mode only. Page-level flow tests using `render(<Page />, { route: '/...' })` + MSW. Flow selection + observe / NOT-observe rules: consult `react-test-patterns` (Integration section). Project specifics:
+Explicit mode only. Page-level flow tests using `render(<Page />, { route: '/...' })` + MSW. Flow selection + observe / NOT-observe rules{{TEST_PATTERNS_INTEGRATION_REF}}. Project specifics:
 
 - 1-3 flows per page max; each touches ≥2 layers; highest business-risk path first (money > destructive > read)
 - If a critical step depends on a flaky portal-based primitive under jsdom (Radix/MUI DatePicker, Select), **stop and surface in the report language** — offer to stub the picker or move the assertion to a smoke test
@@ -221,7 +221,7 @@ When writing tests, follow these rules:
 **Canonical anchors** (read in full when scope touches them):
 - All baseline tests in `{{TEST_CANONICAL_BASELINE}}`
 - `{{TEST_INFRA_ROOT}}/{setup,test-utils,server,handlers,factories}` — current infra
-- `react-test-patterns` skill (in `react-core` plugin) — reference for any pattern decision
+{{TEST_PATTERNS_REF_LINE}}
 - `{{CONVENTIONS_DOC}}` — project's testing-relevant MC sections (a11y selectors, input primitives)
 
 ## Pre-report self-check (MANDATORY before final report)

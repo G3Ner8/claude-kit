@@ -6,6 +6,35 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `agent-profiles` 0.7.0
+- **Templates no longer name any skill directly.** All 37 hardcoded `react-*`
+  references across the four templates became slots resolved from what the
+  *target repo* actually ships. This is what kept Angular and Vue out; a repo
+  that ships none of these skills now gets a working profile instead of agents
+  ordered to invoke things that do not exist.
+- **Two kinds of slot, and the difference is the skill's own `metadata.type`,
+  not a judgement call.** `gate` skills (audit, revamp, ux-review, dry,
+  test-patterns) render in one of two forms and are **never empty** — unfilled
+  means *run it yourself*, so the step survives and only the delegation is lost.
+  `reference` skills (perf, composition, debug) collapse to empty, taking their
+  table row or sentence with them, because the model already knows the stack's
+  performance and composition idioms.
+  - `implement` carries an explicit instruction that an unfilled gate cell is
+    not permission to skip: produce the same findings table, cite `file:line`,
+    and stop for approval exactly as if a skill had reported.
+- `profile-generator` 1.5.0: new **Skill-wiring resolution** step scans the
+  target repo's `.claude/skills/`, matches candidates to slots by name, and
+  **proposes the mapping for the user to correct** rather than auto-wiring.
+  Repos routinely keep skills there that have nothing to do with these four
+  roles — issue filing, test-case generation — and wiring everything found would
+  order an agent to file an issue mid-refactor. No repo `.claude/skills/` is a
+  normal outcome, not an error.
+- `profile-generator`: **verifies its own output for the first time.** Step 5 now
+  greps the written agents for `{{` and refuses to report success while any
+  unsubstituted placeholder remains. Nothing downstream catches that — the kit's
+  validators read plugin sources, never generated profiles — and the slot count
+  just grew by sixteen.
+
 ### `agent-profiles` 0.6.3
 - **Scope decided: frontend, JS/TS** (D16). The `package.json` requirement was
   described one release ago as one of two fixable defects; it is now the declared
