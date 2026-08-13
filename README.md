@@ -19,7 +19,7 @@ The `dev-core` six are personas spanning the work lifecycle: **architect** desig
 /plugin marketplace add G3Ner8/claude-kit
 /plugin install dev-core@claude-kit        # any stack — the foundational tier
 /plugin install react-core@claude-kit      # React 19 / Vite projects only
-/plugin install agent-profiles@claude-kit  # React 19 / Vite for now — see its README
+/plugin install agent-profiles@claude-kit  # frontend (JS/TS) — React-only today
 /plugin install work-core@claude-kit       # any role — personal work-awareness
 ```
 

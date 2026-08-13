@@ -2,7 +2,9 @@
 
 Templates + interactive generator for the implement / harden / verify / test agent quartet used by [claude-kit](../../README.md). Pairs with [`react-core`](../react-core/) (the skills the agents invoke).
 
-**Scope today — React 19 / Vite, for two fixable reasons rather than by design.** The generator locates a project by its `package.json`, so it needs a JS/TS repo; and the templates name `react-core` skills directly instead of through aliases, so a profile generated for any other stack would order its agents to invoke skills that repo does not have. Neither limit is intrinsic to the four roles, which are stack-neutral. Making the skill references pluggable is the work that opens this up — see D15 in the root [`CLAUDE.md`](../../CLAUDE.md).
+**Scope: frontend, JS/TS.** Deliberate — the generator locates a project by its `package.json`, and the four roles are shaped around frontend work. Backend repos use [`dev-core`](../dev-core/), which is genuinely stack-agnostic and needs no profile. See D16 in the root [`CLAUDE.md`](../../CLAUDE.md).
+
+**Within that scope, React 19 / Vite is all that works today**, and that part *is* a defect rather than a boundary: the templates name `react-core` skills directly instead of through aliases, so a profile generated for an Angular or Vue repo would order its agents to invoke skills that repo does not have. Making those references resolve against whatever the target repo actually ships — and collapse to nothing when it ships none — is the work that opens the rest of the frontend up. See D15.
 
 ## Install
 
