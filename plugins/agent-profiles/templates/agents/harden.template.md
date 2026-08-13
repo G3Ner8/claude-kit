@@ -58,7 +58,7 @@ Ambiguous → ask once in the report language.
 ## Reference material (consult during refactor — not gate)
 
 {{HARDEN_REFERENCE_SKILL_TABLE}}
-For primitive choice / variants: adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx` source. Read targeted; never load whole inventory.
+For primitive choice / variants: {{PRIMITIVE_LOOKUP_CHAIN}} Read targeted; never load whole inventory.
 
 ## Conventions
 
@@ -73,7 +73,7 @@ Surgical · **Apply exactly the picked rows — no more, no less**: no adjacent 
 1. **Read `{{CONVENTIONS_DOC}}` in full once per session and enumerate its rules** — whatever identifiers the doc uses (numbered or named); the count is whatever the doc defines. Cite line numbers when claiming a rule is clean.
 2. **Report MUST contain one status line per rule in the doc** — every rule accounted for. A missing rule = invalid report.
 3. **Findings table groups by section** so the user sees what was walked, not just what was found.
-4. **Run `{{LINT_STRUCTURE_CMD}}`** before declaring done — mechanical catch-all for many MC violations.
+{{LINT_STRUCTURE_STEP_HARDEN}}
 
 ### Findings table format
 
@@ -111,10 +111,9 @@ Cite the section number in the execution plan for any new-file row. Same logic a
 
 Diff-harden has no audit skill — agent scans diff directly. Step 0's Recon = `git status` (no `-uall`) + `git diff` + read changed files in full. Findings = the scan below.
 
-1. Identify (in-diff only): dead code/imports · hand-rolled patterns where primitive exists (cross-check via `{{COMPONENT_DOCS_GLOB}}` or `src/components/ui/`) · DRY violations · re-render/effect anti-patterns · magic numbers where tokens exist · semantic-HTML gaps
+1. Identify (in-diff only): dead code/imports · hand-rolled patterns where primitive exists (cross-check via {{PRIMITIVE_LOOKUP_SHORT}}) · DRY violations · re-render/effect anti-patterns · magic numbers where tokens exist · semantic-HTML gaps
 2. Walk every rule in the doc (see "Micro-conventions walk" above) — mandatory, not optional.
-3. Run `{{LINT_STRUCTURE_CMD}}` — mechanical catch-all.
-4. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
+{{LINT_STRUCTURE_STEP_DIFF}}4. Skeleton sync — verify shape match for every component with `*Skeleton.tsx`
 5. i18n — grep changed files for raw string literals in JSX
 6. Present grouped by MC-N (1-3 lines/item with `file:line` + reasoning) → apply → build → report (must include MC walk block)
 

@@ -163,6 +163,34 @@ losing the read-only proposal step that the whole flow is built on. The template
 therefore carries an explicit instruction that an unfilled gate cell means *run it
 yourself*, not *skip it*.
 
+## Degrading fragments
+
+Placeholders whose *surrounding sentence* breaks when the value is empty. An empty
+value here does not leave a blank — it leaves a malformed path, an empty pair of
+backticks, or a numbered step with no command in it. Each renders in one of two
+forms instead.
+
+| Placeholder | Filled | Unfilled |
+|---|---|---|
+| `{{PRIMITIVE_LOOKUP_CHAIN}}` | ``adaptive read — `docs/components/*/<X>.md` → `docs/architecture/*/design-system.md` → `src/components/ui/<X>.tsx` source.`` | ``read `src/components/ui/<X>.tsx` source directly.`` |
+| `{{PRIMITIVE_LOOKUP_CELL}}` | same chain, table-cell phrasing | ``Read `src/components/ui/<X>.tsx`.`` |
+| `{{PRIMITIVE_LOOKUP_SHORT}}` | ``look up via `docs/components/*` per-component docs, fallback to `src/components/ui/<X>.tsx` source`` | ``read `src/components/ui/<X>.tsx` source`` |
+| `{{LINT_STRUCTURE_STEP_HARDEN}}` | ``4. **Run `<cmd>`** before declaring done — mechanical catch-all for many MC violations.`` | *(empty — the step disappears; markdown renumbers the list)* |
+| `{{LINT_STRUCTURE_STEP_DIFF}}` | ``3. Run `<cmd>` — mechanical catch-all.`` | *(empty)* |
+| `{{LINT_STRUCTURE_PREWRITE}}` | the pre-write baseline-snapshot paragraph | *(empty)* |
+| `{{LINT_STRUCTURE_FALLBACK_NOTE}}` | ``5. The mechanical fallback `<cmd>` (run by `<prefix>-verify`) will reject reports that lie.`` | *(empty)* |
+
+**Why these are not ordinary empty-string placeholders.** `{{COMPONENT_DOCS_GLOB}}`
+and `{{ARCHITECTURE_DOCS_GLOB}}` sit mid-path — dropping them yields `` `/<X>.md` ``,
+a path rooted at the filesystem. `{{LINT_STRUCTURE_CMD}}` sits inside backticks
+inside a numbered step — dropping it yields ``Run `` `` before declaring done``,
+which reads as an instruction to run nothing. The old edge-case rules covered the
+*sections* these appear in for `verify` only; the same placeholders also appear in
+`harden` and `implement` as inline prose, where there is no section to strip.
+
+Found by generating against a repo with no `docs/` tree and no `lint:structure`
+script — the shape every greenfield or legacy target has.
+
 ## Empty / conditional sections
 
 The generator strips entire sections when key placeholders are empty:
