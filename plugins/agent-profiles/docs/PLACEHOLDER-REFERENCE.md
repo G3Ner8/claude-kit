@@ -119,6 +119,50 @@ The Report block in `implement` / `harden` / `test` agents uses small placeholde
 
 The generator must ship a built-in derivation map for `English` and `Thai`. For other languages, prompt the user to supply each value during Round 5; do not silently fall back to English.
 
+## Skill wiring
+
+Resolved from a scan of the **target repo's** `.claude/skills/`, confirmed by the
+user (Phase 2). A repo that ships none of these still gets a working profile.
+
+The two kinds behave differently, and the difference is the skill's own
+`metadata.type` — not a judgement call:
+
+| Kind | Skills | If the repo does not ship it |
+|---|---|---|
+| **gate** — invoked, agent waits for a deliverable | audit · revamp · ux-review · dry | **Never empty.** The step stays; the agent performs it inline and produces the same deliverable. Collapsing it would delete the step. |
+| **reference** — consulted while working | perf · composition · debug · test-patterns | **Collapses to empty.** The model already knows the stack's performance and composition idioms; a missing manual costs nothing. |
+
+### Gate slots (always render — one of two forms)
+
+| Placeholder | Filled | Unfilled |
+|---|---|---|
+| `{{AUDIT_GATE}}` | ``invoke the `react-audit` skill`` | `run the audit yourself` |
+| `{{AUDIT_GATE_CELL}}` | `` `react-audit` `` | `(no skill — run it yourself)` |
+| `{{REVAMP_GATE}}` / `{{REVAMP_GATE_CELL}}` | same shape for the revamp gate | same |
+| `{{UX_REVIEW_GATE_CELL}}` | same shape for the critique gate | same |
+| `{{TEST_PATTERNS_GATE}}` | ``Invoke the `react-test-patterns` skill in full.`` | `Derive the layer conventions from the canonical baseline files listed above.` |
+| `{{HARDEN_GATE_NOTE}}` | ``Invokes `react-audit`/`react-dry`.`` | *(empty — nothing to advertise)* |
+
+### Reference slots (collapse to empty)
+
+| Placeholder | Filled | Unfilled |
+|---|---|---|
+| `{{HARDEN_REFERENCE_SKILL_TABLE}}` | 2-row table (perf, composition) | *(empty — heading keeps its remaining prose)* |
+| `{{VERIFY_REFERENCE_SKILL_ROWS}}` | 3 rows (perf, composition, ux-review) | *(empty)* |
+| `{{IMPLEMENT_REFERENCE_SKILL_ROW}}` | 1 row (perf, composition) | *(empty)* |
+| `{{PERF_SKILL_PAREN}}` / `{{COMPOSITION_SKILL_PAREN}}` | `` (`react-perf`) `` | *(empty — the bullet keeps its own text)* |
+| `{{DEBUG_SKILL_SENTENCE}}` | `` — for the full walkthrough invoke the `react-debug` skill. `` | ` — follow the steps below.` |
+| `{{TEST_PATTERNS_REF_LINE}}` | `` - `react-test-patterns` — reference for any pattern decision `` | *(empty)* |
+| `{{TEST_PATTERNS_DESC_NOTE}}` | `` and follows `react-test-patterns` `` | *(empty)* |
+| `{{TEST_PATTERNS_INTEGRATION_REF}}` | ``: consult `react-test-patterns` (Integration section)`` | *(empty)* |
+
+**Why gates cannot collapse.** `implement`'s Step 0.2 routes a trigger to a gate
+and then stops for approval. If an unfilled gate rendered as nothing, the row
+would read as "no audit needed" and the agent would go straight to implementing —
+losing the read-only proposal step that the whole flow is built on. The template
+therefore carries an explicit instruction that an unfilled gate cell means *run it
+yourself*, not *skip it*.
+
 ## Empty / conditional sections
 
 The generator strips entire sections when key placeholders are empty:

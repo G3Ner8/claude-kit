@@ -1,6 +1,6 @@
 ---
 name: {{AGENT_PREFIX}}-verify
-description: Verify gate for {{PROJECT_NAME}}. Reviews the DIFF, not pages. 2 modes - diff-review (mid-dev sanity check) and verify (final pass + build verify + docs sync + commit draft). Reports English. Commit title + body and any PR / push text are **English only**, regardless of trigger or report language. Does NOT execute commit/push - drafts only. Trigger - {{VERIFY_TRIGGER_KEYWORDS}}. NOT for UX/page review ("review ux on page X" → react-ux-review) and does not fix findings beyond its narrow auto-fix scope.
+description: Verify gate for {{PROJECT_NAME}}. Reviews the DIFF, not pages. 2 modes - diff-review (mid-dev sanity check) and verify (final pass + build verify + docs sync + commit draft). Reports English. Commit title + body and any PR / push text are **English only**, regardless of trigger or report language. Does NOT execute commit/push - drafts only. Trigger - {{VERIFY_TRIGGER_KEYWORDS}}. NOT for UX/page review ("review ux on page X" → {{AGENT_PREFIX}}-implement) and does not fix findings beyond its narrow auto-fix scope.
 tools: Bash, Read, Edit, Write, Glob, Grep, Skill, AskUserQuestion, WebFetch
 effort: medium
 color: green
@@ -52,9 +52,7 @@ English output — commit draft, docs sync, and any PR / push text are **English
 
 | Diff touches | Skill | Use |
 |---|---|---|
-| Components/hooks/fetching/bundle | `react-perf` | Re-render, sequential awaits, barrel imports, memo |
-| Component API design | `react-composition` | Boolean-prop bloat, inline components, forwardRef in R19 |
-| Form/UX flow on a {{REFERENCE_PAGE_TERM}} page | `react-ux-review` | Workflow regression check vs {{REFERENCE_PAGE_TERM}} baseline |
+{{VERIFY_REFERENCE_SKILL_ROWS}}
 
 For primitive choice (only if `{{AGENT_PREFIX}}-harden` didn't run): adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx`. Read targeted, not whole inventory.
 
@@ -66,8 +64,8 @@ For every changed file:
 
 - **Correctness** — missing `key` · stale closures in `useEffect`/`useMemo`/`useCallback` deps · `any` leak · broken type narrowing · unhandled Promise · `{count && <X>}` rendering "0"
 - **A11y** — icon-only `<Button>` without `aria-label` · inputs without labels · focus management on dialog open/close · keyboard nav
-- **Perf** (`react-perf`) — components defined inside components · `useEffect`+`setState` that could derive during render · sequential `await` where parallel works · barrel imports
-- **Architecture** (`react-composition`) — boolean props piling on · `forwardRef` (R19: `ref` as prop) · `useContext` (use `use(Context)`)
+- **Perf**{{PERF_SKILL_PAREN}} — components defined inside components · `useEffect`+`setState` that could derive during render · sequential `await` where parallel works · barrel imports
+- **Architecture**{{COMPOSITION_SKILL_PAREN}} — boolean props piling on · `forwardRef` (R19: `ref` as prop) · `useContext` (use `use(Context)`)
 - **API** (if diff touches {{API_TRIGGER_HINT}}) — see "{{API_CONTRACT_NAME}} drift gate" below
 - **Workflow regression** (if diff touches a `{{REFERENCE_PAGE_TERM}}` page) — see "Workflow regression check" below
 - **Structure regression** (if diff adds/renames files in `{{FEATURES_ROOT}}/*`) — see "Structure regression check" below

@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   type: action
   status: experimental
   stack: React 19 / Vite SPA (the target project it scans)
@@ -161,6 +161,55 @@ Agents anchor on a known-good **reference page**. Whether the project tracks *pa
 **No maturity model** — `{{REFERENCE_PAGE_TERM}}` = `reference`; `{{ANTI_REFERENCE_CLAUSE}}` = empty; `{{PAGE_STATUS_REPORT_BLOCK}}` = empty (stripped). The user still names reference pages → `{{REFERENCE_PAGE_EXAMPLES}}` (curated-list question worded "reference pages"). The anchor-on-a-good-reference discipline stays; only the maturity overlay drops.
 
 Show the resolved `{{REFERENCE_PAGE_TERM}}` in the scan summary (D-10 style).
+
+### Skill-wiring resolution (run after Scan B)
+
+The templates no longer name any skill directly. Every reference is a slot, and
+the slots are filled from what the **target repo actually ships** — never
+assumed, never defaulted to `react-*`.
+
+**Scan.** `ls <PROJECT_ROOT>/.claude/skills/` (and `<PROJECT_ROOT>/.claude/skills/*/SKILL.md`
+for each one's `metadata.type`). A repo with no such directory is normal, not an
+error — every slot goes unfilled and the profile still works.
+
+**Propose, never auto-wire.** This is a curated list under Phase 1 ground rule 4.
+Match candidates to slots by name (`*audit*` → audit, `*revamp*` → revamp,
+`*ux*`/`*review*` → critique, `*perf*` → perf, `*composition*` → composition,
+`*debug*` → debug, `*test*pattern*` → test-patterns, `*dry*` → dry), then surface
+the whole mapping as one `AskUserQuestion` for correction. **A repo's
+`.claude/skills/` routinely holds skills that have nothing to do with these four
+roles** — issue filing, test-case generation, house style guides. Wiring
+everything found would order an agent to invoke an issue-filing skill mid-refactor.
+
+Present it as a table the user edits, not a yes/no:
+
+```
+Found 12 skills in .claude/skills/. Proposed wiring:
+
+  audit gate        → <name>            revamp gate    → <name>
+  critique gate     → <name>            dry gate       → (none)
+  perf reference    → <name>            composition    → <name>
+  debug reference   → <name>            test-patterns  → <name>
+
+  Not wired (4): <name>, <name>, <name>, <name>
+```
+
+**Resolve each slot by kind — the kind is the skill's own `metadata.type`, not a
+judgement call.** See PLACEHOLDER-REFERENCE.md § Skill wiring for the exact
+filled/unfilled strings.
+
+- **gate** (audit · revamp · ux-review · dry · test-patterns): renders in one of
+  **two** forms and is never empty. Unfilled → the "run it yourself" wording. The
+  step survives; only the delegation is gone.
+- **reference** (perf · composition · debug): collapses to empty when unfilled,
+  taking its whole table row or sentence with it. Apply the blank-line hygiene
+  rule below.
+
+**Never emit a dangling reference.** If a slot is unfilled, no rendered agent may
+mention the skill's name anywhere — including in its `description:` frontmatter,
+where a name the harness cannot resolve is worse than silence.
+
+Show the resolved wiring in the scan summary.
 
 ### Scan summary presentation
 
@@ -418,10 +467,11 @@ After Round 6: summarize all resolved values in a single markdown block and ask 
 
 Apply these placeholder mappings to each template file. Use Read + Edit (replace_all=true) per placeholder. Whitespace must match exactly.
 
-**Blank-line hygiene (multi-line optional blocks).** When a placeholder that spans multiple lines is substituted (e.g. `{{STRUCT_PENDING_RULES}}`, `{{PAGE_STATUS_CHECK_SECTION}}`, `{{PAGE_STATUS_REPORT_BLOCK}}`, `{{STRUCTURE_PREWRITE_TABLE}}`, `{{WORKFLOW_PATTERNS_TABLE}}`), collapse any resulting run of blank lines to a single blank — both when the block is **filled** (its content may carry a trailing blank) and when it is **empty** (the surrounding blanks would otherwise double up). After writing each agent file, scan for `\n\n\n` and squeeze to `\n\n`.
+**Blank-line hygiene (multi-line optional blocks).** When a placeholder that spans multiple lines is substituted (e.g. `{{STRUCT_PENDING_RULES}}`, `{{PAGE_STATUS_CHECK_SECTION}}`, `{{PAGE_STATUS_REPORT_BLOCK}}`, `{{STRUCTURE_PREWRITE_TABLE}}`, `{{WORKFLOW_PATTERNS_TABLE}}`, `{{HARDEN_REFERENCE_SKILL_TABLE}}`, `{{VERIFY_REFERENCE_SKILL_ROWS}}`, `{{IMPLEMENT_REFERENCE_SKILL_ROW}}`), collapse any resulting run of blank lines to a single blank — both when the block is **filled** (its content may carry a trailing blank) and when it is **empty** (the surrounding blanks would otherwise double up). After writing each agent file, scan for `\n\n\n` and squeeze to `\n\n`.
 
 | Placeholder | Replacement | Notes |
 |---|---|---|
+| `{{AUDIT_GATE}}` · `{{AUDIT_GATE_CELL}}` · `{{REVAMP_GATE}}` · `{{REVAMP_GATE_CELL}}` · `{{UX_REVIEW_GATE_CELL}}` · `{{TEST_PATTERNS_GATE}}` · `{{HARDEN_GATE_NOTE}}` (**gate — never empty**) · `{{HARDEN_REFERENCE_SKILL_TABLE}}` · `{{VERIFY_REFERENCE_SKILL_ROWS}}` · `{{IMPLEMENT_REFERENCE_SKILL_ROW}}` · `{{PERF_SKILL_PAREN}}` · `{{COMPOSITION_SKILL_PAREN}}` · `{{DEBUG_SKILL_SENTENCE}}` · `{{TEST_PATTERNS_REF_LINE}}` · `{{TEST_PATTERNS_DESC_NOTE}}` · `{{TEST_PATTERNS_INTEGRATION_REF}}` (**reference — collapse to empty**) | from Skill-wiring resolution | Exact filled/unfilled strings: PLACEHOLDER-REFERENCE.md § Skill wiring. **Gate slots are never empty** — unfilled renders the "run it yourself" wording. **Reference slots collapse to empty**, taking their row or sentence with them; apply blank-line hygiene. A slot left unfilled must leave the skill's name nowhere in the rendered agent, `description:` included. |
 | `{{PROJECT_NAME}}` | answer 1 | |
 | `{{AGENT_PREFIX}}` | answer 2 | |
 | `{{STACK}}` | answer 3 | implement + harden description only |
@@ -663,6 +713,8 @@ When invoked:
    - `AskUserQuestion`: "Write the profile?" → Yes / Adjust.
 
 5. **Write**: if Conventions-doc resolution landed on **case 2**, first write the seeded `<PROJECT_ROOT>/CONVENTIONS.md` (see "Stack-aware conventions seed"). Then read each template via `Read`, perform substitutions (repeated `Edit` with `replace_all=true`), write result via `Write` to target. Handle conditional sections (BE-scope, Page-status, lint:structure) before writing — strip whole sections when their gate is empty.
+
+   **Then verify, before reporting success:** `grep -n '{{' <output>/agents/*.md`. Any hit is an unsubstituted placeholder — a literal `{{NAME}}` shipped into an agent file, which no validator downstream will catch. Fix it and re-check; never report a profile written while a hit remains. Same grep for `<prefix>-` and `<placeholder-style>` angle tokens outside fenced examples.
 
 6. **Report**: print absolute paths of all created files. If a conventions doc was seeded (case 2), say so explicitly: "No conventions doc found — seeded `<PROJECT_ROOT>/CONVENTIONS.md` as a draft; the agents walk it before every report, so edit it to match your team." Remind user to `git init` + push if they want to publish as marketplace plugin.
 
