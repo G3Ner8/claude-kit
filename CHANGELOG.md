@@ -6,6 +6,19 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `agent-profiles` 0.6.3
+- **Scope decided: frontend, JS/TS** (D16). The `package.json` requirement was
+  described one release ago as one of two fixable defects; it is now the declared
+  boundary. Backend repos use `dev-core`, which is stack-agnostic and needs no
+  profile — and the four roles do not transfer there anyway: on a service,
+  `harden` and `verify` mean infrastructure-dependent integration tests and a
+  contract/blast-radius check with no frontend analogue.
+- That leaves **one** real defect rather than two: the 37 hardcoded `react-*`
+  skill references, which are what still keep Angular and Vue out. README says so
+  explicitly, separating the deliberate boundary from the thing still to fix.
+- Removed from the roadmap: multi-manifest support (`pom.xml`, `go.mod`,
+  `pyproject.toml`, `Cargo.toml`, `build.gradle`).
+
 ### `agent-profiles` 0.6.2
 - README states the real scope limit. "React 19 / Vite projects only" gave the
   right advice for the wrong reason — it reads as a design boundary. Measured:
