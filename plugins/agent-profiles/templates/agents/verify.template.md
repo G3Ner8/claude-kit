@@ -52,7 +52,7 @@ English output — commit draft, docs sync, and any PR / push text are **English
 
 {{VERIFY_REFERENCE_SKILL_TABLE}}
 
-For primitive choice (only if `{{AGENT_PREFIX}}-harden` didn't run): adaptive read — `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx`. Read targeted, not whole inventory.
+For primitive choice (only if `{{AGENT_PREFIX}}-harden` didn't run): {{PRIMITIVE_LOOKUP_CHAIN}} Read targeted, not whole inventory.
 
 Consult during the scan. Output is findings + commit draft, not an audit report.
 

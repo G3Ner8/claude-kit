@@ -4,7 +4,7 @@ description: Interactively scaffold a project-specific Claude Code profile (impl
 license: MIT
 user-invocable: true
 metadata:
-  version: "1.5.1"
+  version: "1.5.2"
   type: action
   status: experimental
   stack: React 19 / Vite SPA (the target project it scans)
@@ -472,6 +472,8 @@ Apply these placeholder mappings to each template file. Use Read + Edit (replace
 | Placeholder | Replacement | Notes |
 |---|---|---|
 | `{{AUDIT_GATE}}` · `{{AUDIT_GATE_CELL}}` · `{{REVAMP_GATE}}` · `{{REVAMP_GATE_CELL}}` · `{{UX_REVIEW_GATE_CELL}}` · `{{TEST_PATTERNS_GATE}}` · `{{HARDEN_GATE_NOTE}}` (**gate — never empty**) · `{{HARDEN_REFERENCE_SKILL_TABLE}}` · `{{VERIFY_REFERENCE_SKILL_TABLE}}` · `{{IMPLEMENT_REFERENCE_SKILL_ROW}}` · `{{PERF_SKILL_PAREN}}` · `{{COMPOSITION_SKILL_PAREN}}` · `{{DEBUG_SKILL_SENTENCE}}` · `{{TEST_PATTERNS_REF_LINE}}` · `{{TEST_PATTERNS_DESC_NOTE}}` · `{{TEST_PATTERNS_INTEGRATION_REF}}` (**reference — collapse to empty**) | from Skill-wiring resolution | Exact filled/unfilled strings: PLACEHOLDER-REFERENCE.md § Skill wiring. **Gate slots are never empty** — unfilled renders the "run it yourself" wording. **Reference slots collapse to empty**, taking their row or sentence with them; apply blank-line hygiene. A slot left unfilled must leave the skill's name nowhere in the rendered agent, `description:` included. |
+| `{{PRIMITIVE_LOOKUP_CHAIN}}` · `{{PRIMITIVE_LOOKUP_CELL}}` · `{{PRIMITIVE_LOOKUP_SHORT}}` | two forms — see PLACEHOLDER-REFERENCE.md § Degrading fragments | **Never leave the raw `{{*_DOCS_GLOB}}` in a path.** Empty docs root renders the source-only form; substituting an empty glob mid-path yields `` `/<X>.md` ``, rooted at the filesystem. |
+| `{{LINT_STRUCTURE_STEP_HARDEN}}` · `{{LINT_STRUCTURE_STEP_DIFF}}` · `{{LINT_STRUCTURE_PREWRITE}}` · `{{LINT_STRUCTURE_FALLBACK_NOTE}}` | full line, or empty when no `lint:structure` script exists | The existing edge-case rule strips `verify`'s two lint sections. These four are the same condition appearing as **inline prose in `harden` and `implement`**, where there is no section to strip — without them the render says ``Run `` `` before declaring done``. |
 | `{{PROJECT_NAME}}` | answer 1 | |
 | `{{AGENT_PREFIX}}` | answer 2 | |
 | `{{STACK}}` | answer 3 | implement + harden description only |

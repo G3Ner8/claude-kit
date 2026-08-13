@@ -6,6 +6,26 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `agent-profiles` 0.7.2
+- **Seven placeholders left malformed text behind when empty**, found by running
+  the generator against a repo that has no `docs/` tree and no `lint:structure`
+  script — the shape every greenfield or legacy target has.
+  - `{{COMPONENT_DOCS_GLOB}}` and `{{ARCHITECTURE_DOCS_GLOB}}` sit mid-path, so an
+    empty value rendered `` `/<X>.md` `` — a path rooted at the filesystem.
+  - `{{LINT_STRUCTURE_CMD}}` sits inside backticks inside a numbered step, so an
+    empty value rendered ``Run `` `` before declaring done`` — an instruction to
+    run nothing.
+- Both now go through **degrading fragments**: placeholders that render in one of
+  two forms rather than collapsing, because the sentence around them breaks
+  otherwise. `{{PRIMITIVE_LOOKUP_CHAIN}}` / `_CELL` / `_SHORT` fall back to reading
+  the component source directly; the four `{{LINT_STRUCTURE_*}}` fragments drop
+  their whole line.
+- Why the existing rules missed it: the edge-case rules strip *sections*, and name
+  only `verify`. The same placeholders appear in `harden` and `implement` as inline
+  prose, where there is no section to strip. Documented as its own category in
+  PLACEHOLDER-REFERENCE.md so the distinction survives.
+- `profile-generator` 1.5.2 carries both substitution rows.
+
 ### `agent-profiles` 0.7.1
 - **Two sections lied when their skill slot was unfilled.** Found by rendering the
   templates in both states — filled and unfilled — and reading the output, which

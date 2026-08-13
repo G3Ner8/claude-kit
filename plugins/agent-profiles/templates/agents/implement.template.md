@@ -83,7 +83,7 @@ Choose exactly one gate based on the dominant trigger. Do not chain the critique
 | `revamp X` / `redesign X` (page) | {{REVAMP_GATE_CELL}} | **MUST** — single-page UX flow proposal |
 | `align X, Y, Z` / `audit X` (feature folders) | {{AUDIT_GATE_CELL}} | **MUST** — feature divergence (single or multi) |
 | `review ui` / "best practice check" / "ux flow" (critique-only, no implementation requested) | {{UX_REVIEW_GATE_CELL}} | **MUST** — workflow critique vs {{REFERENCE_PAGE_TERM}} baselines |
-{{IMPLEMENT_REFERENCE_SKILL_ROW}}| Primitive choice / variant lookup | (no skill — adaptive read) | Read `{{COMPONENT_DOCS_GLOB}}/<X>.md` → `{{ARCHITECTURE_DOCS_GLOB}}/design-system.md` → `src/components/ui/<X>.tsx` source. Read targeted, not whole inventory. |
+{{IMPLEMENT_REFERENCE_SKILL_ROW}}| Primitive choice / variant lookup | (no skill — adaptive read) | {{PRIMITIVE_LOOKUP_CELL}} Read targeted, not whole inventory. |
 
 **A gate cell reading *(no skill — run it yourself)* is not permission to skip the step.** The gate still
 runs; only the delegation is gone. Produce the same deliverable the skill would have: read the target and
@@ -115,7 +115,7 @@ N. <verb + target>
 
 Add `Why:` only when counterintuitive (e.g. Drawer vs Dialog when fields >5, or skipping a common pattern).
 
-After drafting the Plan, run `{{LINT_STRUCTURE_CMD}} -- <feature>` against the affected feature(s) so the user sees the **current** baseline of warnings before edits. This is a snapshot, not a verdict — Phase 1's gate runs after apply.
+{{LINT_STRUCTURE_PREWRITE}}
 
 Then present in the report language: BE-scope decision + audit summary + Mockup + Plan. **Stop, wait** for `{{APPLY_KEYWORD}}`{{APPLY_KEYWORD_ALIASES}}. Do not execute Step 1 until the user explicitly approves.
 
@@ -149,7 +149,7 @@ Do **not** touch FE first.
 
 ## Conventions
 
-Surgical · Primitives first (look up via `{{COMPONENT_DOCS_GLOB}}` per-component docs, fallback to `src/components/ui/<X>.tsx` source) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`{{BUILD_CMD}}`) · Code/paths English.
+Surgical · Primitives first ({{PRIMITIVE_LOOKUP_SHORT}}) · Tokens > magic numbers · i18n always · No new comments (WHY-only, 1-2 lines, English) · Build must pass (`{{BUILD_CMD}}`) · Code/paths English.
 
 **Canonical anchors** (read in full when scope touches them — never anchor from memory):
 - Pages: **{{REFERENCE_PAGE_TERM}}** pages in `{{PROGRESS_DOC}}` (e.g. {{REFERENCE_PAGE_EXAMPLES}}){{ANTI_REFERENCE_CLAUSE}}.
@@ -177,7 +177,7 @@ This is not a full re-confirm — just a checkpoint. User can interrupt between 
 2. **Report block MUST contain one status line per rule in the doc** — every rule accounted for. A missing rule = invalid report.
 3. **Each ✓ must cite `{{CONVENTIONS_DOC}}:<line>`** as proof you walked the rule, not guessed.
 4. **Any ⚠ MUST be fixed in this turn** before declaring done — never defer to future harden.
-5. The mechanical fallback `{{LINT_STRUCTURE_CMD}}` (run by `{{AGENT_PREFIX}}-verify`) will reject reports that lie.
+{{LINT_STRUCTURE_FALLBACK_NOTE}}
 
 ### Required Report block (insert after `## Build`)
 
