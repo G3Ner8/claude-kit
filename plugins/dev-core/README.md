@@ -1,6 +1,6 @@
 # dev-core
 
-Cross-cutting engineering-discipline skills for Claude Code — **stack-agnostic**, independent of framework or language. The foundational tier of claude-kit (the `react-*` plugins sit at the domain layer below).
+Cross-cutting engineering-discipline skills for Claude Code — **stack-agnostic**, independent of framework or language. The foundational tier of claude-kit (`react-core` and `agent-profiles` sit at the domain layer below).
 
 ## Install
 

@@ -6,6 +6,35 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `agent-profiles` 0.6.2
+- README states the real scope limit. "React 19 / Vite projects only" gave the
+  right advice for the wrong reason — it reads as a design boundary. Measured:
+  the generator locates a project by `package.json` alone (no `pom.xml`,
+  `go.mod`, `pyproject.toml`, `Cargo.toml`, `build.gradle` anywhere in it), so
+  the *mechanism* is JS/TS-bound, not React-bound; what makes the *output*
+  React-bound is the 37 hardcoded `react-*` skill names in the templates plus
+  the test template's Vitest/RTL assumptions. Both are fixable defects, and the
+  four roles themselves are stack-neutral. Saying so keeps a defect from
+  hardening into a documented feature.
+
+### `agent-profiles` 0.6.1
+- README accuracy pass. The mermaid agent→skill chart still used `POL` / `PRE`
+  as node ids after the role rename — labels read `harden` / `verify` while the
+  ids and their seven edge references did not, so renaming only the declarations
+  would have produced orphan nodes. All ids and edges are now `HRD` / `VRF`. The
+  `dev-core` note listed three skills; that plugin has had six since `architect`,
+  `drafter`, and `surveyor` shipped.
+
+### `react-core` 0.5.4
+- README: the "stack-agnostic disciplines live in dev-core" note listed three
+  skills. dev-core has six — `architect`, `drafter`, and `surveyor` were missing.
+  Docs-only; no skill content changed.
+
+### `dev-core` 0.18.4
+- README: "the `react-*` plugins sit at the domain layer below" stopped being
+  true when `react-agents` became `agent-profiles`. Now names both domain plugins
+  explicitly. Docs-only; no skill content changed.
+
 ### `dev-core` 0.18.3
 - `inspector` 0.2.4: **stops naming agents by a convention it does not own.** Five
   references pointed at `*-verify`, `*-harden`, `*-implement` — a naming scheme

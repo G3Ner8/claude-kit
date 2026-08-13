@@ -8,7 +8,7 @@ A tiered [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marke
 | --- | --- | --- |
 | [`dev-core`](./plugins/dev-core/) | `architect` (spec → implementation plan) · `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `surveyor` (project-status survey) | Any stack · experimental |
 | [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite · experimental |
-| [`agent-profiles`](./plugins/agent-profiles/) | `/profile-generator` + agent templates (build → harden → verify → test) | React 19 / Vite · experimental |
+| [`agent-profiles`](./plugins/agent-profiles/) | `/profile-generator` + agent templates (implement → harden → verify → test) | React 19 / Vite · experimental |
 | [`work-core`](./plugins/work-core/) | `sitrep` (personal situation report — daily/weekly/monthly recap + open loops from local ground truth) | Any role · experimental |
 
 The `dev-core` six are personas spanning the work lifecycle: **architect** designs the plan, **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **surveyor** surveys where it all stands.
@@ -17,10 +17,10 @@ The `dev-core` six are personas spanning the work lifecycle: **architect** desig
 
 ```
 /plugin marketplace add G3Ner8/claude-kit
-/plugin install dev-core@claude-kit       # any stack — the foundational tier
-/plugin install react-core@claude-kit     # React 19 / Vite projects only
-/plugin install agent-profiles@claude-kit   # React 19 / Vite projects only
-/plugin install work-core@claude-kit      # any role — personal work-awareness
+/plugin install dev-core@claude-kit        # any stack — the foundational tier
+/plugin install react-core@claude-kit      # React 19 / Vite projects only
+/plugin install agent-profiles@claude-kit  # React 19 / Vite for now — see its README
+/plugin install work-core@claude-kit       # any role — personal work-awareness
 ```
 
 Update later with `/plugin marketplace update`.
