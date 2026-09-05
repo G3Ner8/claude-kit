@@ -9,8 +9,8 @@
     {
       "name": "dev-core",
       "source": "./plugins/dev-core",
-      "description": "Cross-cutting, stack-agnostic engineering disciplines as personas: drafter (plan → scope-tight work order for a headless agent), detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem), surveyor (survey real project status: declared vs ground truth). claude-kit's foundational tier.",
-      "version": "0.18.4"
+      "description": "Cross-cutting, stack-agnostic engineering disciplines as personas: drafter (plan → scope-tight work order for a headless agent), detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem), scout (reconnaissance on fresh code: connections, both sides of a seam, sightings). claude-kit's foundational tier.",
+      "version": "0.19.0"
     },
     {
       "name": "react-core",
@@ -28,7 +28,7 @@
       "name": "work-core",
       "source": "./plugins/work-core",
       "description": "Cross-role personal work-awareness skills: sitrep (situation report — recap + effort + open loops from local ground truth: Claude Code session logs, git, MR/PR state). The role-neutral tier of claude-kit.",
-      "version": "0.2.1"
+      "version": "0.2.2"
     }
   ]
 }

@@ -78,7 +78,7 @@ flowchart LR
   VRF -.-> COMP
 ```
 
-`==>` invoke (gate — agent picks **one** of implement's audit skills by trigger) · `-.->` reference. `dev-core` skills (`architect`, `drafter`, `detective`, `inspector`, `archivist`, `surveyor`) are user-invoked at plan / debug / review / incident time — no agent calls them.
+`==>` invoke (gate — agent picks **one** of implement's audit skills by trigger) · `-.->` reference. `dev-core` skills (`architect`, `drafter`, `detective`, `inspector`, `archivist`, `scout`) are user-invoked at plan / debug / review / incident / recon time — no agent calls them.
 
 ## Examples (one per agent)
 
