@@ -4,7 +4,7 @@ description: Personal situation report — recap what you worked on, what it cos
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.1"
+  version: "0.2.2"
   type: action
   status: experimental
   stack: any (needs ~/.claude/projects session logs + git; gh/glab optional for PR/MR state)
@@ -34,8 +34,8 @@ in the digest, it does not go in the briefing.
 
 Skip this skill for:
 - Project status ("is feature X done?", "what's left in the backlog") — that is
-  `surveyor`'s job (declared vs ground truth of a *project*). Sitrep reports on
-  *your* work across projects.
+  `dev-core:scout`'s list shape (a work list checked against fetched code, both
+  sides of the seam). Sitrep reports on *your* work across projects.
 - Anything requiring team members' activity — sitrep reads only this machine.
 
 ## Periods

@@ -6,12 +6,12 @@ A tiered [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marke
 
 | Plugin | What | Scope |
 | --- | --- | --- |
-| [`dev-core`](./plugins/dev-core/) | `architect` (spec → implementation plan) · `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `surveyor` (project-status survey) | Any stack · experimental |
+| [`dev-core`](./plugins/dev-core/) | `architect` (spec → implementation plan) · `drafter` (plan → agent work order) · `detective` (debug discipline) · `inspector` (intent-validation diff review) · `archivist` (incident post-mortem) · `scout` (recon on fresh code — connections, both sides of a seam, sightings) | Any stack · experimental |
 | [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite · experimental |
 | [`agent-profiles`](./plugins/agent-profiles/) | `/profile-generator` + agent templates (implement → harden → verify → test) | React 19 / Vite · experimental |
 | [`work-core`](./plugins/work-core/) | `sitrep` (personal situation report — daily/weekly/monthly recap + open loops from local ground truth) | Any role · experimental |
 
-The `dev-core` six are personas spanning the work lifecycle: **architect** designs the plan, **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **surveyor** surveys where it all stands.
+The `dev-core` six are personas spanning the work lifecycle: **architect** designs the plan, **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **scout** goes and looks before anyone commits.
 
 ## Install
 

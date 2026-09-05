@@ -6,6 +6,25 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.2.2
+- `sitrep` 0.2.2: the "skip this skill for project status" pointer now names
+  `dev-core:scout` (list shape) instead of the deprecated `surveyor`.
+
+### `dev-core` 0.19.0
+- **New `scout` 0.1.0** (gate, experimental) — reconnaissance on fresh code. Fetches
+  first (fast-forwards only a clean integration checkout, otherwise reads through
+  `origin/<branch>`, never moves the user's tree), then follows a point's
+  connections out to the boundary and reports one shape for five asks: a work
+  list, the branch you are on, a point, a checkable question, before-work. Checks
+  both sides of a seam (frontend call against backend route). Sightings are
+  where / what contradicts what / hand to whom, nothing more; anything that looks
+  like a bug hands to `detective`. Writes back only on an explicit ask to sync a
+  list, status markers only. Decision D17.
+- **`surveyor` deprecated** (1.0.0, moved to `_deprecated/`). Its declared-vs-ground
+  reconciliation survives as scout's list shape, now on fetched code and across
+  the seam. Reason and rejected alternatives in D17. Breaking for anyone invoking
+  `/dev-core:surveyor`; in 0.x this ships as a minor bump per Section 12.
+
 ### `agent-profiles` 0.7.2
 - **Seven placeholders left malformed text behind when empty**, found by running
   the generator against a repo that has no `docs/` tree and no `lint:structure`

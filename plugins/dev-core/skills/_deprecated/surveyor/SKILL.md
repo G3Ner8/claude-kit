@@ -1,12 +1,12 @@
 ---
 name: surveyor
-description: Survey the real state of a project — reconcile DECLARED status (backlog, status docs, memory files, tracker issues) against GROUND TRUTH (merged git history, MR/issue state, the actual code), report the drift, and offer to sync stale docs. Answers "is the status right", not "what should I do next". Read-only by default. Triggers - "project status", "where are we", "what's left", "what's actually done", "is X actually done", "reconcile the backlog", "is the backlog still right".
+description: DEPRECATED — replaced by `scout` (dev-core), which does this reconciliation on fetched code, across the seam to the backend, as one of its five shapes. Kept for archival. Was - Survey the real state of a project — reconcile DECLARED status (backlog, status docs, memory files, tracker issues) against GROUND TRUTH (merged git history, MR/issue state, the actual code), report the drift, and offer to sync stale docs. Answers "is the status right", not "what should I do next". Read-only by default. Triggers - "project status", "where are we", "what's left", "what's actually done", "is X actually done", "reconcile the backlog", "is the backlog still right".
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.3.0"
+  version: "1.0.0"
   type: gate
-  status: experimental
+  status: deprecated
   stack: any (needs git; glab/gh optional)
   scope: read-only by default — produces a status report + drift table; doc syncs only on explicit approval
 ---
