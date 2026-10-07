@@ -4,7 +4,7 @@ description: Tell the people who test or use a frontend what changed on screen, 
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
   type: gate
   status: experimental
   stack: any frontend (needs git; glab/gh optional, used to read issues and MRs and to post the result)
@@ -44,6 +44,8 @@ Skip this skill for:
 
 Do not run `git log`, `Grep` or `Read` until these are settled. Take what the conversation gives; ask (`AskUserQuestion`) only for what is missing.
 
+**Remembered defaults.** The labels and assignee a handoff issue should carry, and the integration branch, may already be in what you remember about this project from earlier sessions (the user's memory), e.g. `herald → labels Service::web, Type::Test · assignee qa.lead`. Precedence for every item below: what the ask says, then what is remembered, then nothing (or one question where the item is required). A remembered value is **proposed, not applied**: show it with the draft and confirm it in one line before posting. A label or an assignee is never inferred from the repo's other issues: an unknown label name makes the tracker create a new one silently. When the user names a value that is not remembered yet, offer to remember it for next time.
+
 1. **The range** — one of three shapes:
 
    | Shape | Ask looks like | Commit set |
@@ -54,11 +56,11 @@ Do not run `git log`, `Grep` or `Read` until these are settled. Take what the co
 
    With no tag in the repo at all, ask for a base commit or branch; do not pick one.
 
-2. **The integration branch** — `develop`, `main`, whatever the repo tags from. Read it from the repo's release doc if there is one; otherwise ask once.
+2. **The integration branch** — `develop`, `main`, whatever the repo tags from. From what is remembered, else the repo's release doc; otherwise ask once.
 
-3. **Where the result goes** — chat only (the default), a comment on the release MR, a new issue, the tag's Release page, a file. **A destination named in the ask is the ask to post**: `herald post to !123`, `herald 0.0.1.0..0.0.2.0 as an issue`. The draft is still shown in chat first, then posted without a second question. A new issue is titled `QA handoff: <range>` and carries the handoff as its body; labels and an assignee are set only when the ask names them, never from a guess at the repo's conventions.
+3. **Where the result goes** — chat only (the default), a comment on the release MR, a new issue, the tag's Release page, a file. **A destination named in the ask is the ask to post**: `herald post to !123`, `herald 0.0.1.0..0.0.2.0 as an issue`. The draft is still shown in chat first, then posted without a second question, unless a label or assignee came from memory rather than the ask, which takes the one-line confirmation above. A new issue is titled `QA handoff: <range>` and carries the handoff as its body; labels and an assignee are left off when neither the ask nor memory gives them. Say which source each came from when reporting the posted link.
 
-4. **The tester's identifier convention**, if any — the pattern their case ids follow (`TC_XXX_000`, `QA-1234`). Used only to recognise ids the issues already carry.
+4. **The tester's identifier convention**, if any — the pattern their case ids follow (`TC_XXX_000`, `QA-1234`), from memory when it is there. Used only to recognise ids the issues already carry.
 
 ## Step 2 — Refresh and enumerate
 
