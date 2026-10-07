@@ -6,6 +6,17 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.21.0
+- `herald` 0.2.0: a handoff issue's labels, assignee and the integration branch
+  can come from what is remembered about the project (the user's memory), after
+  the ask and before nothing. A remembered value is proposed with the draft and
+  confirmed in one line, never applied silently; a value named in the ask still
+  posts without a second question. Labels and assignees are never inferred from
+  the repo's other issues, because an unknown label name makes the tracker create
+  a new one silently. Memory rather than a `CLAUDE.md` pin, because the assignee
+  follows whoever is testing that week and a pin would need a repo change for it.
+  Found on the first real use: the handoff was posted as an issue with no label.
+
 ### `dev-core` 0.20.0
 - **New `herald` 0.1.0** (gate, experimental) — the QA handoff for a release. Takes a
   range (since the last tag by default, a tag range, or one MR), fetches, walks
