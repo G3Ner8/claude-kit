@@ -6,6 +6,17 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.20.0
+- **New `herald` 0.1.0** (gate, experimental) — the QA handoff for a release. Takes a
+  range (since the last tag by default, a tag range, or one MR), fetches, walks
+  every `feat` / `fix` / `perf` and unprefixed change, and reports what a person at
+  the screen will see differently: visible changes (a test that pinned the old
+  shape needs updating), cases that should now go green, and the rest in one line
+  each. Every visible change is proven at `file:line` in the diff, locale files
+  included; a claim the diff does not support is a sighting, not a row. Test-case
+  ids come only from the issue or MR, never guessed. Ends with the draft; posts
+  only on an explicit ask. Decision D18.
+
 ### `work-core` 0.2.2
 - `sitrep` 0.2.2: the "skip this skill for project status" pointer now names
   `dev-core:scout` (list shape) instead of the deprecated `surveyor`.

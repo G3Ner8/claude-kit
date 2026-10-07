@@ -1,7 +1,7 @@
 {
   "name": "dev-core",
-  "version": "0.19.0",
-  "description": "Cross-cutting engineering-discipline skills, independent of framework or stack — each a persona: drafter (plan → scope-tight work order for a headless agent), detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem), scout (reconnaissance on fresh code: connections, both sides of a seam, sightings). The stack-agnostic tier of claude-kit.",
+  "version": "0.20.0",
+  "description": "Cross-cutting engineering-discipline skills, independent of framework or stack — each a persona: drafter (plan → scope-tight work order for a headless agent), detective (debug discipline), inspector (intent-validation diff review), archivist (incident post-mortem), scout (reconnaissance on fresh code: connections, both sides of a seam, sightings), herald (what changed on screen between two tags, proven in the diff, for the people who test it). The stack-agnostic tier of claude-kit.",
   "author": {
     "name": "Chettawat Phosri"
   },
