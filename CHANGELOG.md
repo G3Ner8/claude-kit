@@ -6,6 +6,20 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `dev-core` 0.22.0
+- `herald` 0.3.0: the report splits into a **ledger** for the engineer (evidence
+  `file:line`, walked and set-aside counts, sightings; shown in chat, never posted)
+  and a **handoff** for the tester (the only thing posted). The handoff leads with
+  the build and where it runs, then three sections named by the tester's action:
+  intended changes (update the test, do not file a bug), should now pass (re-run),
+  not changed yet. It groups by screen, links the issue or MR instead of code, and
+  carries none of the sender's vocabulary: no batch or sprint names, no plan step
+  numbers without saying what the step is, no "walked", "set aside" or
+  *undocumented*, no component names. It writes no test steps; the tester owns the
+  plan. Found on the second real use: the posted handoff carried an internal batch
+  name, plan step numbers and `file:line`, the one template having served both
+  readers, and the tester had already picked it up when it was rewritten in place.
+
 ### `dev-core` 0.21.0
 - `herald` 0.2.0: a handoff issue's labels, assignee and the integration branch
   can come from what is remembered about the project (the user's memory), after
