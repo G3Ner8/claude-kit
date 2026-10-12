@@ -6,6 +6,38 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.3.0
+- `sitrep` 0.3.0: the timesheet appendix can be copied into a timesheet as it
+  stands. Three changes in the collector, all deterministic:
+  - **Wall-clock attended hours.** Each session's active time used to be
+    summed, so parallel sessions counted one hour of the day several times
+    over, and a session stayed "active" while the agent worked alone. On a
+    measured week: ~132h summed, ~77h once parallel sessions are unioned,
+    ~64h once only the 15 minutes after each human turn count. The collector
+    now sweeps that attended union: a stretch shared by N projects gives each
+    1/N, a meeting takes its whole stretch, local midnight splits a stretch,
+    and each cell rounds to the half hour. A human turn is a prompt, reply or
+    slash command; tool results, hook output and task notifications are not.
+    The Totals line gives both figures; Effort and the timesheet use the
+    attended one.
+  - **Projects, not repos.** A repo nested inside another repo bills to the
+    outermost one, so a superproject's submodules or a workspace repo's
+    service repos land on one row. `~/.sitrep/projects.json` renames or folds
+    groups.
+  - **Descriptions from commits.** The Daily log's "top ask" column was the
+    session's first prompt, which in practice is a role-setting line repeated
+    on every row. It is replaced by a Timesheet section that lists your own
+    non-merge commit subjects per day × project (feat/fix first, every repo
+    gets a turn under the cap), and the skill builds a one-line, verb-led
+    description with work item ids in brackets from them.
+  - Meetings now go in before collection: the skill writes the calendar's
+    events to `~/.sitrep/meetings.json` and passes `--meetings`, so the overlap
+    arithmetic happens in the collector rather than in the model's head.
+  - The appendix becomes `Date | Project | Description | Hours` with a
+    `Daily total` row per day and the collector's `⚠ weekend` / `⚠ over 10h`
+    flags, shaped for a timesheet whose only free-text field is the
+    description.
+
 ### `dev-core` 0.22.0
 - `herald` 0.3.0: the report splits into a **ledger** for the engineer (evidence
   `file:line`, walked and set-aside counts, sightings; shown in chat, never posted)

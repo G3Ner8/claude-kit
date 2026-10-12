@@ -23,9 +23,17 @@ CLAUDE.md decision D13).
 
 Briefings land in `~/.sitrep/`, one file per period. Open loops carry over
 between briefings until resolved (with their age) — that's the "don't forget"
-half of the job. Daily/weekly briefings end with a timesheet-draft appendix
-(hours marked `~`, adjust before submitting); calendar meetings join it when
-a calendar connector (e.g. Microsoft 365) is connected.
+half of the job. Daily/weekly briefings end with a timesheet-draft appendix: one row per day ×
+project with a one-line description and wall-clock hours (parallel sessions
+counted once, not summed), estimates to adjust before submitting. Calendar
+meetings join it when a calendar connector (e.g. Microsoft 365) is connected.
+
+Repos group into projects by nesting: a repo inside another repo bills to the
+outer one. To rename or fold groups, keep `~/.sitrep/projects.json`:
+
+```json
+{"CARSOL (Denso)": ["carsol-workspace"], "Internal tooling": ["claude-kit", "spec-distiller"]}
+```
 
 ## Requirements
 
