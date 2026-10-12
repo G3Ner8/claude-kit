@@ -4,11 +4,11 @@ description: Personal situation report — recap what you worked on, what it cos
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.2.2"
+  version: "0.3.0"
   type: action
   status: experimental
   stack: any (needs ~/.claude/projects session logs + git; gh/glab optional for PR/MR state)
-  scope: writes files — one briefing per run into ~/.sitrep/, plus the collector's repo cache ~/.sitrep/repos.json; reads repos and logs (only side effect is `git fetch` updating remote-tracking refs during loop re-verification)
+  scope: writes files — one briefing per run into ~/.sitrep/, plus the collector's repo cache ~/.sitrep/repos.json and the meetings input ~/.sitrep/meetings.json; reads repos and logs (only side effect is `git fetch` updating remote-tracking refs during loop re-verification)
 ---
 
 # Sitrep — situation report on your own work
@@ -61,12 +61,33 @@ briefing from memory of the conversation.
 
 ## Apply
 
-1. **Collect** — run the collector from this skill's base directory (announced
+1. **Meetings first (optional but attempt it)** — work away from the keyboard
+   is the single biggest blind spot, and the collector needs meetings *before*
+   it runs so that the timesheet hours account for them. If a calendar connector
+   is reachable (ToolSearch "calendar events" — Microsoft 365 / Outlook, or
+   Google Calendar), pull the window's events, drop cancelled and all-day OOO
+   items, and write the rest to `~/.sitrep/meetings.json` (overwritten each run):
+
+   ```json
+   [{"start": "2026-10-09T09:00:00", "end": "2026-10-09T09:30:00", "title": "Team sync"}]
+   ```
+
+   Times are the user's **local wall-clock** without an offset, or ISO with an
+   offset. Connectors may return UTC (`{dateTime, timeZone}`); convert first,
+   because a raw UTC time lands on the wrong day. The collector does the
+   overlap arithmetic: a meeting takes its whole stretch, and a session running
+   at the same time gets none of it.
+
+   No connector reachable → skip the file, and declare the blind spot in the
+   footer *with* the fix ("connect Microsoft 365 via `/mcp`"); never
+   reconstruct meetings from memory.
+
+   **Collect** — run the collector from this skill's base directory (announced
    when the skill loads):
 
    ```bash
-   python3 "<skill-base-dir>/collect.py" --days <1|7>     # daily / weekly
-   python3 "<skill-base-dir>/collect.py" --month YYYY-MM  # monthly
+   python3 "<skill-base-dir>/collect.py" --days <1|7> [--meetings ~/.sitrep/meetings.json]  # daily / weekly
+   python3 "<skill-base-dir>/collect.py" --month YYYY-MM                                    # monthly
    ```
 
    The digest arrives on stdout. It is working data: consult it, quote facts
@@ -81,26 +102,26 @@ briefing from memory of the conversation.
      from the lossy directory name. Keep the `?`; do not guess the real name.
    - **a `split:` line under a session** — that session ran across several days
      (its header shows a `29 Jul–31 Jul` span). The split is the per-day truth;
-     the Daily log already reflects it. Never attribute a spanning session's
-     hours to one day, and never date its work by the day it opened.
+     the Timesheet section already reflects it. Never attribute a spanning
+     session's hours to one day, and never date its work by the day it opened.
+   - **Two hour figures** — the Totals line gives **wall-clock attended**
+     hours (the union of all sessions' active time within 15 minutes after the
+     person typed something: the person's day, not the agent's) and the
+     **session-busy** hours (every session's active time, summed). Effort and
+     timesheet use wall-clock attended. Session-busy hours appear only as
+     context for how parallel the work was, never as time worked.
+   - **Timesheet cells** — one per day × project. A project is the outermost
+     repo a session's repo sits in (`Aware Payroll/pps-web` → `Aware Payroll`),
+     renamed or folded by `~/.sitrep/projects.json` when the user keeps one.
+     `no session time` means commits were made from another project's session:
+     their hours are already inside that other cell, so fold the description
+     there instead of inventing hours. `⚠ weekend` / `⚠ over 10h` flags carry
+     into the timesheet unchanged.
    - **`[redacted]`** — the collector removed a credential-shaped string. Leave
      it redacted and never reconstruct it from conversation memory.
    - **Git header counts** — repos from session cwds vs from the cross-run cache
      (`~/.sitrep/repos.json`); cached repos are as real as the rest. Repos the
      cap left unscanned are a footer blind spot.
-
-   **Meetings (optional but attempt it):** work away from the keyboard is the
-   single biggest blind spot. If a calendar connector is reachable (ToolSearch
-   "calendar events" — Microsoft 365 / Outlook, or Google Calendar), pull the
-   window's events (title, start, duration), drop cancelled and all-day OOO
-   items, and treat the rest as work items alongside the digest. Two traps:
-   - **Convert to the user's local timezone** first — connectors return UTC
-     (`{dateTime, timeZone}`), and a raw UTC time lands on the wrong day.
-   - A meeting may **overlap** a concurrent session — flag it in the timesheet
-     (`~` hours, user adjusts) rather than assuming it is additive.
-
-   No connector reachable → declare the blind spot in the footer *with* the fix
-   ("connect Microsoft 365 via `/mcp`"); never reconstruct meetings from memory.
 
 2. **Carry over, then re-verify (MANDATORY)** — read the most recent briefing in
    `~/.sitrep/` (any period). Its unchecked loops carry into the new briefing;
@@ -151,11 +172,12 @@ briefing from memory of the conversation.
      sub-bullet per distinct outcome (issue closed, MR merged, decision made) —
      never one paragraph joined by "·". Every MR/issue/PR is a markdown link.
   2. **Effort** — time and tokens always paired with what they bought
-     ("7.4h + 1.6M tokens → the R1/R2/R3 issue split"), never bare totals. With
-     calendar data, one line keeps the two kinds of time distinct ("~30h keyboard
-     + ~10h meetings") — measured from activity windows and meeting durations
-     respectively, never merged. Close with a delta against the previous briefing
-     of the **same** period: "~8.8h vs W30's ~30.1h — 4 of 7 days had no local
+     ("7.4h + 1.6M tokens → the R1/R2/R3 issue split"), never bare totals. Hours
+     are the digest's wall-clock figures (Timesheet window totals), never the
+     summed ones. With calendar data, one line keeps the two kinds of time
+     distinct ("~30h keyboard + ~10h meetings"), never merged. Close with a
+     delta against the previous briefing of the **same** period: "~8.8h vs
+     W30's ~30.1h — 4 of 7 days had no local
      signal". No same-period predecessor, or a log horizon in the digest → say
      the comparison is unavailable rather than compare against a floor. Omit this
      section in `daily`.
@@ -166,11 +188,31 @@ briefing from memory of the conversation.
      or a live re-query** (Step 2), and the loop says which confirmed it — never
      infer "waiting to merge" from a branch name or a session mentioning an MR.
   4. **Next up** — a short ranked list derived from the open loops.
-- **Timesheet draft appendix** (daily + weekly): a table `date | project or
-  meeting | summary | ~hours` from the digest's Daily log plus calendar events.
-  Summaries are one line of plain business language (what was worked on, not
-  which tools ran). Hours always carry `~` — the user adjusts before submitting
-  anywhere. Days with nothing show `(no local signal)`; never invent filler.
+- **Timesheet draft appendix** (daily + weekly), built to be copied row by row
+  into a timesheet whose only free-text field is the description:
+
+  ```
+  | Date       | Project       | Description                                                            | Hours |
+  |------------|---------------|------------------------------------------------------------------------|-------|
+  | 08 Oct Thu | Aware Payroll | Released pps-web 0.0.9.0, added ESS password reset for employees       | 5.5   |
+  | 08 Oct Thu | CARSOL        | Developed Order Summary (10.2.1) and Latest Orders (10.2.5)            | 2.5   |
+  |            | Daily total   |                                                                        | 8.0   |
+  ```
+
+  - One row per digest Timesheet cell (day × project); meetings are rows of
+    their own with project `Meeting`. Each day ends with a `Daily total` row
+    carrying the digest's flags (`⚠ weekend`, `⚠ over 10h`).
+  - **Hours** are the cell's half-hour figure, as a bare number (the `~` lives
+    in the table caption: "estimates, adjust before submitting"). A cell under
+    15 minutes is dropped and counted in the footer, not rounded up.
+  - **Description** is one line of at most ~120 characters, built from the
+    cell's commit subjects: verb-led and past tense (Released, Developed,
+    Fixed, Built, Reviewed, Attended), the work item id (card, issue, release)
+    in brackets after the clause it belongs to, and no internal vocabulary a
+    timesheet reader would not know (batch names, convention ids, tooling).
+    It says what was done, not which tools ran. A cell with no subjects takes
+    its description from the session gists, still one line.
+  - Days with nothing show `(no local signal)`; never invent filler.
 - Length per the period table (the timesheet appendix sits outside that budget).
 - Every cap the collector applied is echoed ("+N smaller sessions, X tokens").
 - Footer, always: provenance (sessions/repos scanned, digest size), the date
@@ -184,7 +226,10 @@ briefing from memory of the conversation.
 
 - The briefing file exists at the expected `~/.sitrep/` path and contains all
   contract sections for its period.
-- Totals quoted in the briefing match the digest's Totals line.
+- Totals quoted in the briefing match the digest's Totals line, and the hours
+  in Effort are its wall-clock figures.
+- Each timesheet day's rows add up to its `Daily total`, and no row carries
+  hours the digest's Timesheet section did not give it.
 - Every open loop from the previous briefing is either carried or explicitly
   marked resolved — none vanished.
 - Every carried loop was closed by a digest `✓ merged` line or by a live
@@ -195,14 +240,17 @@ briefing from memory of the conversation.
 Briefings are additive files; to undo a run, delete the file it wrote. Repos and
 session logs are read-only to this skill, so there is nothing else to roll back.
 The collector's `~/.sitrep/repos.json` is a rebuildable cache — deleting it costs
-nothing but the memory of repos not opened recently.
+nothing but the memory of repos not opened recently. `~/.sitrep/meetings.json`
+is rewritten each run. `~/.sitrep/projects.json` is the user's own file and is
+never written by this skill.
 
 ## Operating rules
 
 - The collector never calls a model; the model never reads raw logs. Keep the
   boundary in both directions.
 - Read-only toward working trees, branches, and logs. The only files written are
-  the briefing and the collector's own repo cache, both under `~/.sitrep/`.
+  the briefing, the collector's own repo cache and the meetings input, all
+  under `~/.sitrep/`.
   Step 2's `git fetch` updates remote-tracking refs — the single side effect
   outside that directory, and it touches no working tree, branch, or commit.
 - Project labels come from the digest verbatim, including a trailing `?` — the

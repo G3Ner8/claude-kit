@@ -14,6 +14,10 @@ or --month YYYY-MM calendar):
 - MR/PR state via glab (GitLab) or gh (GitHub), best-effort: open MRs/PRs
   (current state = open loops) plus MRs/PRs merged inside the window (= what
   shipped, and the positive signal that clears a carried-over open loop)
+- a timesheet table for short windows: wall-clock hours per day × project
+  (the union of every session's active time, never their sum), meetings from
+  an optional --meetings file, and your own commit subjects per cell as the
+  raw material for each row's description
 
 Emits ONE compact markdown digest on stdout (working data for the composing
 session — never pasted into the briefing verbatim). Zero model calls; stdlib
@@ -21,6 +25,7 @@ only. Hard caps everywhere, and whatever a cap cuts is counted, never hidden.
 """
 import argparse
 import json
+import math
 import re
 import subprocess
 import sys
@@ -33,12 +38,16 @@ TOP_SESSIONS = 10
 GIST_CHARS = 160
 TAIL_CHARS = 80  # a session's last words rarely carry signal — half the budget
 GAP_MIN = 10  # inter-event gaps longer than this don't count as active time
+ATTEND_MIN = 15  # wall-clock hours count only this long after a human turn
 GIT_LOG_CAP = 8
 MR_CAP = 8
 MERGED_CAP = 5  # merged titles repeat far more than open ones; cap them tighter
 TREND_MIN_DAYS = 14  # windows longer than this get the week × project table
 REPO_CACHE = Path.home() / ".sitrep" / "repos.json"
 REPO_CAP = 20  # each repo costs git + MR/PR calls; bounds worst-case runtime
+PROJECT_MAP = Path.home() / ".sitrep" / "projects.json"
+SUBJECT_CAP = 12  # commit subjects per timesheet cell
+LONG_DAY_H = 10  # a day whose wall-clock total passes this is flagged
 
 
 def parse_ts(s):
@@ -90,11 +99,6 @@ def clip(s, n=GIST_CHARS):
     return s[: n - 1] + "…" if len(s) > n else s
 
 
-def cell(s, n):
-    """clip() for markdown table cells — a raw `|` would break the row."""
-    return clip(s, n).replace("|", "¦")
-
-
 def active_days(s):
     """Local dates a session touched. A session is an interval, not a point: one
     running past midnight belongs to every day it worked, so day/week rollups
@@ -113,6 +117,36 @@ def meaningful(text):
     if len(words) <= 1 and ("/" in t or t.endswith((".md", ".txt"))):
         return False
     return True
+
+
+def human_turn(ev):
+    """An event the person typed: a prompt, a reply or a slash command. Tool
+    results, hook output (isMeta) and background task notifications also
+    arrive as user events, but nobody was at the keyboard for them."""
+    if ev.get("type") != "user" or ev.get("isMeta") or ev.get("isSidechain"):
+        return False
+    text = first_text((ev.get("message") or {}).get("content")).lstrip()
+    return bool(text) and not text.startswith(("<task-notification", "<system-reminder"))
+
+
+def attended(runs, turns):
+    """The parts of `runs` within ATTEND_MIN after a human turn. A session stays
+    busy while the agent works alone, so its active time measures the agent's
+    day; a timesheet wants the person's, which is the time around their turns."""
+    windows = []
+    for t in sorted(turns):
+        end = t + timedelta(minutes=ATTEND_MIN)
+        if windows and t <= windows[-1][1]:
+            windows[-1][1] = max(windows[-1][1], end)
+        else:
+            windows.append([t, end])
+    out = []
+    for a, b in runs:
+        for wa, wb in windows:
+            lo, hi = max(a, wa), min(b, wb)
+            if lo < hi:
+                out.append((lo, hi))
+    return out
 
 
 def run(cmd, cwd=None, timeout=15):
@@ -184,15 +218,119 @@ def window_from_args(args, now):
     return cutoff, now, f"{cutoff.date()} → {now.date()} ({args.days}d rolling)"
 
 
+def project_group(path, path_map=PROJECT_MAP):
+    """The project a repo or cwd bills to. A timesheet is filled per project,
+    not per repo: by default a repo nested inside another repo (a submodule, or
+    a workspace repo holding service repos) belongs to the outermost one, so
+    `Aware Payroll/pps-web` and `Aware Payroll/pps-ess` land on one row.
+    ~/.sitrep/projects.json renames or folds groups: {"<name>": ["<group or
+    repo basename>", ...]}. A missing or corrupt map is not an error."""
+    outer = Path(path)
+    for parent in Path(path).parents:
+        if (parent / ".git").exists():
+            outer = parent
+    group = outer.name
+    try:
+        for name, members in json.loads(path_map.read_text()).items():
+            if group in members or Path(path).name in members:
+                return name
+    except Exception:
+        pass
+    return group
+
+
+def load_meetings(path, cutoff, until):
+    """[(start, end, title)] clipped to the window, from a JSON list of
+    {"start", "end", "title"}. The composing model writes this file from a
+    calendar connector so that the arithmetic stays in this layer. Times
+    without an offset are local wall-clock, which is what a calendar shows."""
+    if not path:
+        return []
+    try:
+        raw = json.loads(Path(path).read_text())
+    except Exception as e:
+        sys.exit(f"Error: --meetings {path}: {e}")
+    local_tz = datetime.now().astimezone().tzinfo
+    out = []
+    for m in raw:
+        try:
+            a = datetime.fromisoformat(m["start"])
+            b = datetime.fromisoformat(m["end"])
+        except Exception:
+            continue
+        a = a if a.tzinfo else a.replace(tzinfo=local_tz)
+        b = b if b.tzinfo else b.replace(tzinfo=local_tz)
+        a, b = max(a, cutoff), min(b, until)
+        if a < b:
+            out.append((a, b, clip(m.get("title") or "Meeting", 80)))
+    return out
+
+
+def allocate(runs, meetings):
+    """Wall-clock minutes per (local date, project) from active runs.
+
+    `runs` is [(start, end, project)] and may overlap freely: sessions run in
+    parallel, so summing their active time counts one hour of the person's day
+    several times over. A sweep over every boundary instead credits each
+    stretch once: a minute shared by N projects gives each 1/N, and a minute
+    inside a meeting goes to the meeting alone, since that is where the person
+    was. Local midnights are boundaries too, so no stretch straddles two days.
+    Returns ({(date, project): minutes}, {(date, "Meeting"): [titles]})."""
+    events = []
+    for a, b, p in runs:
+        events += [(a, 1, p), (b, -1, p)]
+    for a, b, t in meetings:
+        events += [(a, 1, ("meeting", t)), (b, -1, ("meeting", t))]
+    if not events:
+        return {}, {}
+    first = min(e[0] for e in events).astimezone()
+    last = max(e[0] for e in events).astimezone()
+    day = first.replace(hour=0, minute=0, second=0, microsecond=0)
+    while day <= last:
+        events.append((day, 0, None))
+        day += timedelta(days=1)
+    # ends before starts at the same instant: back-to-back runs must not overlap
+    events.sort(key=lambda e: (e[0], e[1]))
+    live = defaultdict(int)
+    minutes = defaultdict(float)
+    titles = defaultdict(list)
+    prev = None
+    for t, delta, key in events:
+        if prev is not None and t > prev:
+            span = (t - prev).total_seconds() / 60
+            date = prev.astimezone().date()
+            meet = [k[1] for k, n in live.items() if n > 0 and isinstance(k, tuple)]
+            work = [k for k, n in live.items() if n > 0 and not isinstance(k, tuple)]
+            if meet:
+                minutes[(date, "Meeting")] += span
+                for title in meet:
+                    if title not in titles[(date, "Meeting")]:
+                        titles[(date, "Meeting")].append(title)
+            elif work:
+                for p in work:
+                    minutes[(date, p)] += span / len(work)
+        if key is not None:
+            live[key] += delta
+        prev = t
+    return dict(minutes), dict(titles)
+
+
+def half_hours(minutes):
+    """Round to the nearest half hour, halves up — a timesheet entry unit."""
+    return math.floor(minutes / 30 + 0.5) / 2
+
+
 def main():
     ap = argparse.ArgumentParser(description="sitrep collector")
     ap.add_argument("--days", type=int, default=7, help="rolling window in days (1/7/...)")
     ap.add_argument("--month", help="calendar month YYYY-MM (overrides --days)")
+    ap.add_argument("--meetings", help='JSON list of {"start", "end", "title"} for the timesheet')
     args = ap.parse_args()
 
     now = datetime.now(timezone.utc)
     cutoff, until, label = window_from_args(args, now)
     window_days = (until - cutoff).days or 1
+    meetings = load_meetings(args.meetings, cutoff, until)
     proj_root = Path.home() / ".claude" / "projects"
     if not proj_root.is_dir():
         print("Error: ~/.claude/projects not found — no session data to report on.")
@@ -221,6 +359,7 @@ def main():
         ask, tail, model = "", "", ""
         out_tok = n_user = 0
         times = []
+        turns = []  # human turns, including just before the window
         started_before = False
         tok_day = defaultdict(int)  # local date -> output tokens, for spanning sessions
         cwd_hits = defaultdict(int)  # this session's own cwds — the label source
@@ -251,6 +390,8 @@ def main():
                                 tail = txt  # last in-window assistant text
                     if not is_main:
                         continue
+                    if ts is not None and human_turn(ev):
+                        turns.append(ts)
                     if in_window:
                         times.append(ts)
                         if ev.get("cwd"):
@@ -276,9 +417,14 @@ def main():
         times.sort()
         active = timedelta()
         per_day = defaultdict(float)  # local date -> active minutes
+        runs = []  # contiguous active stretches, for the wall-clock sweep
         for a, b in zip(times, times[1:]):
             if b - a < timedelta(minutes=GAP_MIN):
                 active += b - a
+                if runs and runs[-1][1] == a:
+                    runs[-1][1] = b
+                else:
+                    runs.append([a, b])
                 # credit the gap to the day it STARTS. A session is not a point in
                 # time — one running 29th→31st must land on all three days, not
                 # collapse onto whichever day it happened to open on.
@@ -289,6 +435,7 @@ def main():
             "start": times[0],
             "end": times[-1],
             "per_day": dict(per_day),
+            "runs": attended(runs, turns),
             "tok_day": dict(tok_day),
             "active_min": int(active.total_seconds() / 60),
             "out_tok": out_tok,
@@ -329,6 +476,11 @@ def main():
         # dir name — marked `?` so the briefing never presents it as exact
         s["proj"] = disp.get(repo_of.get(s["cwd"], s["cwd"])) \
             or (s["dir"].strip("-").split("-")[-1] + "?")
+        s["group"] = project_group(repo_of.get(s["cwd"], s["cwd"])) if s["cwd"] else s["proj"]
+
+    alloc, meeting_titles = allocate(
+        [(a, b, s["group"]) for s in sessions for a, b in s["runs"]], meetings)
+    wall_min = sum(m for (_, p), m in alloc.items() if p != "Meeting")
 
     # ---- emit digest
     print(f"# sitrep digest — {label}")
@@ -369,7 +521,8 @@ def main():
     tot_out = sum(s["out_tok"] for s in sessions)
     tot_min = sum(s["active_min"] for s in sessions)
     projects = sorted({s["proj"] for s in sessions})
-    print(f"\n**Totals:** ~{tot_min / 60:.1f}h active, {tot_out:,} output tokens in main "
+    print(f"\n**Totals:** ~{wall_min / 60:.1f}h wall-clock attended (~{tot_min / 60:.1f}h "
+          f"session-busy, summed across parallel sessions), {tot_out:,} output tokens in main "
           f"sessions + {sub_tok:,} in {sub_files} subagent transcripts, "
           f"{sum(s['n_user'] for s in sessions)} prompts across {len(projects)} projects")
 
@@ -385,22 +538,6 @@ def main():
         span = f"{first:%d %b} → {last:%d %b}"
         print(f"- **{proj}**: {len(ss)} sessions, {sum(s['active_min'] for s in ss) / 60:.1f}h, "
               f"{sum(s['out_tok'] for s in ss):,} out-tok ({span})")
-
-    # ---- day × project log, short windows only (timesheet raw material)
-    if window_days <= TREND_MIN_DAYS and sessions:
-        print("\n## Daily log (day × project)\n")
-        print("| day | project | sessions | active | top ask |")
-        print("|---|---|---|---|---|")
-        daylog = defaultdict(lambda: [0, 0.0, None])  # (day, proj) -> [sessions, min, biggest]
-        for s in sessions:
-            for date in active_days(s):
-                d = daylog[(date.strftime("%Y-%m-%d %a"), s["proj"])]
-                d[0] += 1
-                d[1] += s["per_day"].get(date, 0.0)
-                if d[2] is None or s["out_tok"] > d[2]["out_tok"]:
-                    d[2] = s
-        for (day, proj), (n, mins, big) in sorted(daylog.items()):
-            print(f"| {day} | {proj} | {n} | {mins / 60:.1f}h | {cell(big['ask'], 70)} |")
 
     # ---- week × project trend, long windows only
     if window_days > TREND_MIN_DAYS and sessions:
@@ -438,10 +575,18 @@ def main():
         # it. Commits are split by author email against this repo's own identity.
         me = run(["git", "config", "user.email"], top)
         log = run(["git", "log", "--since", since, "--until", until_arg, "--all",
-                   "--format=%h\t%ae\t%s"], top)
-        rows = [l.split("\t", 2) for l in log.splitlines() if l.count("\t") >= 2]
-        mine = [r for r in rows if me and r[1] == me]
-        others = [r for r in rows if not (me and r[1] == me)]
+                   "--format=%h\t%ae\t%aI\t%P\t%s"], top)
+        rows = [l.split("\t", 4) for l in log.splitlines() if l.count("\t") >= 4]
+        mine = [(h, ae, s) for h, ae, _, _, s in rows if me and ae == me]
+        others = [(h, ae, s) for h, ae, _, _, s in rows if not (me and ae == me)]
+        # timesheet raw material: your own non-merge commits by local author date.
+        # A merge says where work landed, not what was done, so it is left out.
+        # `--since` filters on the committer date; a rebase keeps the old author
+        # date, so the window is applied again here.
+        dated = [(parse_ts(ad).astimezone().date(), scrub(s))
+                 for _, ae, ad, parents, s in rows
+                 if me and ae == me and len(parents.split()) < 2
+                 and parse_ts(ad) and cutoff <= parse_ts(ad) < until]
         dirty = run(["git", "status", "--porcelain"], top)
         branch = run(["git", "branch", "--show-current"], top) or "detached"
         remote = run(["git", "remote", "get-url", "origin"], top)
@@ -476,7 +621,7 @@ def main():
                          f": {clip(m['title'], 100)}" for m in merged[:MERGED_CAP]]
         has_mr = any(l.startswith(("- ⚠", "- ✓")) for l in mr_lines)
         if not rows and not dirty and not has_mr:
-            return name, None  # quiet repo
+            return name, None, top, dated  # quiet repo
         out = [f"### {name} (on `{branch}`)"]
         if mine:
             out += [f"- {h} {scrub(s)}" for h, _, s in mine[:GIT_LOG_CAP]]
@@ -499,19 +644,95 @@ def main():
         if dirty:
             out.append(f"- ⚠ uncommitted: {len(dirty.splitlines())} files")
         out += mr_lines
-        return name, "\n".join(out)
+        return name, "\n".join(out), top, dated
 
     quiet = []
+    subjects = defaultdict(list)  # (date, project) -> ["repo: subject"]
     with ThreadPoolExecutor(max_workers=8) as pool:
         reports = pool.map(lambda kv: repo_report(*kv), sorted(repos.items()))
-    for name, block in reports:
+    for name, block, top, dated in reports:
         if block is None:
             quiet.append(name)
         else:
             print(block + "\n")
+        group = project_group(top)
+        for date, subj in sorted(dated):
+            line = f"{Path(top).name}: {subj}"
+            if line not in subjects[(date, group)]:  # a rebased copy repeats its subject
+                subjects[(date, group)].append(line)
     if quiet:
         print(f"({len(quiet)} more repos scanned, no activity in window: {', '.join(sorted(quiet))})")
+
+    # ---- timesheet, short windows only: one cell per day × project
+    if window_days <= TREND_MIN_DAYS and (alloc or subjects):
+        print_timesheet(alloc, meeting_titles, subjects, bool(args.meetings))
     return 0
+
+
+KIND_RANK = {"feat": 0, "fix": 1, "perf": 2, "refactor": 3, "build": 4, "ci": 4,
+             "test": 5, "docs": 6, "chore": 7}
+
+
+def pick_subjects(lines, cap):
+    """What a cell shows once the cap bites: every repo gets a turn before any
+    repo gets a second line, and within a repo feat/fix come before docs and
+    chore, because a description is built from what changed, not what was noted."""
+    by_repo = defaultdict(list)
+    for line in lines:
+        repo, subj = line.split(": ", 1)
+        kind = re.match(r"(\w+)", subj)
+        by_repo[repo].append((KIND_RANK.get(kind.group(1) if kind else "", 8), line))
+    queues = [sorted(v) for _, v in sorted(by_repo.items())]
+    picked = []
+    while len(picked) < cap and any(queues):
+        for q in queues:
+            if q and len(picked) < cap:
+                picked.append(q.pop(0)[1])
+    return picked
+
+
+def print_timesheet(alloc, meeting_titles, subjects, have_meetings):
+    print("\n## Timesheet (day × project, wall-clock)\n")
+    print(f"Hours are the union of every session's active time within {ATTEND_MIN} min "
+          "after a human turn: a stretch shared by N projects gives each 1/N, and a "
+          "meeting takes its whole stretch. Each cell is "
+          "rounded to the half hour; the exact figure follows in brackets. Subjects are "
+          "your own non-merge commits by local author date.")
+    if not have_meetings:
+        print("\n⚠ No --meetings file: meeting time is not in these hours.")
+    days = sorted({d for d, _ in alloc} | {d for d, _ in subjects})
+    totals = defaultdict(float)
+    for date in days:
+        cells = sorted({p for d, p in alloc if d == date} | {p for d, p in subjects if d == date},
+                       key=lambda p: (p == "Meeting", -alloc.get((date, p), 0)))
+        day_min = sum(alloc.get((date, p), 0) for p in cells)
+        flags = []
+        if date.weekday() >= 5:
+            flags.append("weekend")
+        if day_min / 60 > LONG_DAY_H:
+            flags.append(f"over {LONG_DAY_H}h")
+        flag = f" ⚠ {', '.join(flags)}" if flags else ""
+        print(f"\n### {date:%Y-%m-%d %a}: ~{half_hours(day_min)}h ({day_min / 60:.2f}){flag}")
+        for p in cells:
+            mins = alloc.get((date, p), 0)
+            totals[p] += mins
+            if not mins:
+                hours = "no session time (commits made from another project's session)"
+            elif not half_hours(mins):
+                hours = f"under 15 min ({mins / 60:.2f})"
+            else:
+                hours = f"~{half_hours(mins)}h ({mins / 60:.2f})"
+            print(f"- **{p}** {hours}")
+            if p == "Meeting":
+                for title in meeting_titles.get((date, p), []):
+                    print(f"  - {title}")
+            subj = subjects.get((date, p), [])
+            for line in pick_subjects(subj, SUBJECT_CAP):
+                print(f"  - {clip(line, 120)}")
+            if len(subj) > SUBJECT_CAP:
+                print(f"  - (+{len(subj) - SUBJECT_CAP} more commits)")
+    print("\n**Window totals (wall-clock):** " + " · ".join(
+        f"{p} ~{t / 60:.1f}h" for p, t in sorted(totals.items(), key=lambda x: -x[1])))
 
 
 if __name__ == "__main__":
