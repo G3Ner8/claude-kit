@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+#
+# mcv-watch: one stream of the events a coordinator acts on, for every worker
+# of a project. Run it under Claude Code's Monitor tool: each printed line
+# wakes the coordinator for a turn, so only lines worth a turn are printed.
+#
+# Usage:
+#   mcv-watch <project>            poll every MCV_WATCH_INTERVAL seconds (default 5) until killed
+#   mcv-watch <project> --once     one poll, keeping state in MCV_WATCH_STATE (for tests)
+#
+# Printed, one line per event, tab-separated:
+#   <time> <project>/<id> state blocked         a worker stopped at an approval or question dialog
+#   <time> <project>/<id> state done            a worker's turn ended (see below)
+#   <time> <project>/<id> <kind> <qid|-> <text> a new line in the worker's status log
+#   <time> <project>/<id> gone -                the worker's pane is no longer there
+#
+# Not printed: changes to working, idle or unknown; the coordinator's own
+# "answered" lines; anything already in a log when the watcher starts.
+# "state done" is also skipped when the worker's last log line since its
+# previous state event was needs-decision, blocked, done or failed, because
+# that line already woke the coordinator. A turn that ends with no log line,
+# or after only a note, does print it: then the coordinator reads the screen.
+#
+# Environment: MCV_HOME (default ~/.claude/mcv), MCV_WATCH_INTERVAL,
+# MCV_WATCH_STATE (state folder; a temporary one when not set, except with
+# --once), MCV_HERDR (the herdr helper; default: mcv-herdr.sh next to this file).
+
+set -euo pipefail
+
+MCV_HOME="${MCV_HOME:-$HOME/.claude/mcv}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+HERDR="${MCV_HERDR:-$HERE/mcv-herdr.sh}"
+INTERVAL="${MCV_WATCH_INTERVAL:-5}"
+
+usage() {
+  [[ -n "${1:-}" ]] && printf 'mcv-watch: %s\n' "$1" >&2
+  awk 'NR >= 3 && /^set -euo/ { exit } NR >= 3' "${BASH_SOURCE[0]}" | sed 's/^#$//; s/^# //' >&2
+  exit 2
+}
+
+project="${1:-}"
+[[ "$project" =~ ^[a-z][a-z0-9_-]*$ ]] || usage "expected a project name"
+once=""
+[[ "${2:-}" == "--once" ]] && once=1
+tasks="$MCV_HOME/$project/tasks"
+
+# One poll. Per task, the state folder keeps one line:
+#   <last state> <last change counter> <log lines read> <kind of last printed log line> <gone 0|1>
+poll() {
+  local dir="$1" first=0 agents
+  [[ -e "$dir/.started" ]] || first=1
+  if ! agents="$("$HERDR" agents 2>&1)"; then
+    printf 'mcv-watch: %s\n' "$agents" >&2
+    return 0
+  fi
+
+  local f
+  for f in "$dir"/*; do
+    [[ -f "$f" && -f "$tasks/$(basename "$f")/meta" ]] || rm -f "$f"
+  done
+
+  local meta
+  for meta in "$tasks"/*/meta; do
+    [[ -f "$meta" ]] || continue
+    local id task pane log sf
+    id="$(basename "$(dirname "$meta")")"
+    task="$project/$id"
+    pane="$(jq -r '.pane_id' "$meta")"
+    log="$(dirname "$meta")/status.log"
+    sf="$dir/$id"
+
+    local prev=- prev_seq=- offset=0 lastkind=- gone=0 new=0
+    if [[ -f "$sf" ]]; then
+      read -r prev prev_seq offset lastkind gone <"$sf"
+    else
+      new=1
+    fi
+
+    local lines=0
+    [[ -f "$log" ]] && lines="$(wc -l <"$log" | tr -d ' ')"
+    # On the watcher's first poll, old lines are history, not events. A task
+    # first seen later is new, so its log is followed from the start.
+    (( new && first )) && offset="$lines"
+
+    if (( lines > offset )); then
+      local ts kind qid text
+      while IFS=$'\t' read -r ts kind qid text; do
+        [[ "$kind" == answered ]] && continue
+        printf '%s\t%s\t%s\t%s\t%s\n' "$ts" "$task" "$kind" "$qid" "$text"
+        lastkind="$kind"
+      done < <(tail -n +"$((offset + 1))" "$log" | head -n "$((lines - offset))")
+      offset="$lines"
+    fi
+
+    local row status seq now
+    row="$(awk -F'\t' -v p="$pane" '$1 == p { print $2 " " $3; exit }' <<<"$agents")"
+    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    if [[ -z "$row" ]]; then
+      (( gone )) || printf '%s\t%s\tgone\t-\n' "$now" "$task"
+      gone=1
+    else
+      gone=0
+      status="${row%% *}"
+      seq="${row#* }"
+      # A new state, or the same state with a moved counter (a whole turn
+      # happened between two polls), counts as a transition.
+      if [[ ( "$status" == blocked || "$status" == done ) && ( "$status" != "$prev" || "$seq" != "$prev_seq" ) ]]; then
+        if [[ "$status" == done ]] && [[ "$lastkind" =~ ^(needs-decision|blocked|done|failed)$ ]]; then
+          :
+        else
+          printf '%s\t%s\tstate\t%s\n' "$now" "$task" "$status"
+        fi
+        lastkind=-
+      fi
+      prev="$status"
+      prev_seq="$seq"
+    fi
+
+    printf '%s %s %s %s %s\n' "$prev" "$prev_seq" "$offset" "$lastkind" "$gone" >"$sf"
+  done
+
+  touch "$dir/.started"
+}
+
+if [[ -n "$once" ]]; then
+  [[ -n "${MCV_WATCH_STATE:-}" ]] || usage "--once needs MCV_WATCH_STATE, the folder that keeps state between polls"
+  mkdir -p "$MCV_WATCH_STATE"
+  poll "$MCV_WATCH_STATE"
+  exit 0
+fi
+
+state="${MCV_WATCH_STATE:-}"
+if [[ -z "$state" ]]; then
+  state="$(mktemp -d)"
+  # The Monitor tool stops the watcher with a signal, usually mid-sleep.
+  trap 'rm -rf "$state"; exit 0' INT TERM
+  trap 'rm -rf "$state"' EXIT
+fi
+mkdir -p "$state"
+while true; do
+  poll "$state"
+  sleep "$INTERVAL"
+done

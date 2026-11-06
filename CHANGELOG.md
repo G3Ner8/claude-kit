@@ -6,6 +6,47 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `mcv` 0.1.0 (new plugin, experimental, not usable yet)
+- New plugin: run several Claude Code sessions on one project while you talk to one. A coordinator
+  session starts worker sessions, each in its own git worktree, through the herdr terminal manager.
+  Decision and scope: CLAUDE.md D19, `plugins/mcv/README.md`.
+- `bin/mcv-herdr.sh`: the helper that does every herdr call — `doctor`, `spawn`, `prompt`, `read`,
+  `agents`, `remove`. A worker gets `MCV_TASK=<project>/<id>` through Claude's own `--settings`, so
+  nothing is typed into its shell first. `spawn` refuses a branch that already exists, since herdr
+  would check it out as is, even `main`, and it fetches and branches from the remote's default branch
+  (or `--base <ref>`), so a worker never starts from a stale checkout. `prompt --no-wait` returns as
+  soon as the worker starts, so a caller is never held past Claude Code's 2-minute Bash limit. Checked
+  against herdr 0.9.5 on 2026-11-06.
+- Worker git rules, in the text the hooks will inject: a fixed floor (own branch only, no force-push,
+  no secrets), then the project's own rules, or common practice where a project has none (Conventional
+  Commits, rebase onto the latest base, push and open a draft PR/MR).
+- `bin/mcv-status`: the worker's status log. A worker reports `needs-decision` (numbered question),
+  `blocked`, `done`, `failed` or `note`, one line per event; the coordinator closes a question with
+  `--task <project>/<id> answered`. It also prints the worker rules and the AskUserQuestion refusal
+  that the hooks will inject, and prints nothing when `MCV_TASK` is not set. Tests:
+  `tests/mcv/test-status.sh`.
+- `bin/mcv-watch <project>`: one event stream for the coordinator, meant for Claude Code's Monitor
+  tool. Prints only what is worth a coordinator turn: new status-log lines, a worker reaching
+  `blocked` or `done`, a vanished worker. Skips `working`/`idle`, the coordinator's own answers, and a
+  `done` that a question or report line already announced. Tests: `tests/mcv/test-watch.sh`.
+- `hooks/hooks.json`: two hooks, both silent unless `MCV_TASK` is set. SessionStart gives a worker
+  its rules; PreToolUse refuses AskUserQuestion with directions to `mcv-status needs-decision`.
+  Checked in real sessions: a worker received the rules and its AskUserQuestion call was refused; a
+  normal session with the plugin loaded was untouched. Tests: `tests/mcv/test-hooks.sh`.
+- `skills/mcv/SKILL.md`: the `/mcv` skill the coordinator follows. Builds `.claude/mcv.json` with the
+  user on first use, starts one watcher, confirms every worker (task id, repo, branch) before starting
+  it, labels questions `<task id> #<n>`, checks the worker's screen before sending an answer, and
+  never answers questions or approves dialogs for the user.
+- Status: every part is in place and checked on its own; a full run on a real project is still to do.
+
+### Kit
+- CLAUDE.md admits `hooks/` and `bin/` in a plugin (Section 2), with the rule that every plugin hook
+  does nothing unless the plugin's own environment variable is set; new Coordination tier (D19).
+- `validate-contract.sh` rule 5: every `bin/` file is executable and every `hooks.json` parses. Rule 4
+  no longer aborts silently when a plugin has no marketplace entry yet.
+- CI: new `plugin-tests` job runs every `tests/<plugin>/test-*.sh` (CLAUDE.md Section 2 puts plugin
+  tests there).
+
 ### `work-core` 0.3.0
 - `sitrep` 0.3.0: the timesheet appendix can be copied into a timesheet as it
   stands. Three changes in the collector, all deterministic:

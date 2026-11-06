@@ -10,6 +10,7 @@ A tiered [Claude Code](https://docs.claude.com/en/docs/claude-code) plugin marke
 | [`react-core`](./plugins/react-core/) | 8 React skills — perf, composition, audit, revamp, ux-review, dry, test-patterns, debug | React 19 / Vite · experimental |
 | [`agent-profiles`](./plugins/agent-profiles/) | `/profile-generator` + agent templates (implement → harden → verify → test) | React 19 / Vite · experimental |
 | [`work-core`](./plugins/work-core/) | `sitrep` (personal situation report — daily/weekly/monthly recap + open loops from local ground truth) | Any role · experimental |
+| [`mcv`](./plugins/mcv/) | `/mcv` — run several Claude Code sessions on one project while you talk to one: a coordinator starts worker sessions in their own git worktrees and passes their questions to you. Not yet tried end to end | Any stack · requires [herdr](https://herdr.dev) · experimental |
 
 The `dev-core` seven are personas spanning the work lifecycle: **architect** designs the plan, **drafter** writes the work order, **detective** finds the cause, **inspector** gates the change, **archivist** preserves the lesson, **scout** goes and looks before anyone commits, **herald** tells the testers what they will see once it ships.
 
@@ -21,6 +22,7 @@ The `dev-core` seven are personas spanning the work lifecycle: **architect** des
 /plugin install react-core@claude-kit      # React 19 / Vite projects only
 /plugin install agent-profiles@claude-kit  # frontend (JS/TS) — React-only today
 /plugin install work-core@claude-kit       # any role — personal work-awareness
+/plugin install mcv@claude-kit             # needs herdr; experimental, see plugins/mcv
 ```
 
 Update later with `/plugin marketplace update`.

@@ -12,13 +12,16 @@
 #   4. marketplace.json version MUST equal the plugin's plugin.json version —
 #      the marketplace version is the consumers' cache key (CLAUDE.md Section 12);
 #      a missed mirror means installed consumers silently keep the old copy.
+#   5. A plugin's runtime files are usable: every file in plugins/*/bin/ is
+#      executable, and every plugins/*/hooks/hooks.json parses as JSON. A
+#      file created by the Write tool lands without the execute bit.
 #
 # Pair with `validate-frontmatter.sh` — that script handles per-file fields;
 # this one handles cross-file alignment.
 #
 # Exit codes:
 #   0   all contract checks pass
-#   1   one or more contract failures (rule 2 or 3 violated)
+#   1   one or more contract failures (rules 2-5, or rule 1 under --strict)
 #   2   bad usage
 #
 # In Phase 2, rule-1 misses are reported as WARN. They become FAIL in
@@ -45,7 +48,7 @@ while [[ $# -gt 0 ]]; do
     --strict) STRICT=1; RULE_1_SEVERITY="error"; shift ;;
     --plugin) PLUGIN_FILTER="${2:-}"; shift 2 ;;
     -h|--help)
-      sed -n '3,28p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '3,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
@@ -128,7 +131,7 @@ for pj in "$REPO_ROOT"/plugins/*/.claude-plugin/plugin.json; do
   pver="$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$pj" | head -1 | sed -E 's/.*"([^"]+)"/\1/')"
   mver="$(grep -A8 "\"name\"[[:space:]]*:[[:space:]]*\"$pname\"" "$marketplace" 2>/dev/null \
             | grep -m1 -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' \
-            | sed -E 's/.*"([^"]+)"/\1/')"
+            | sed -E 's/.*"([^"]+)"/\1/' || true)"
   if [[ -z "$mver" ]]; then
     echo "❌ $pname — no marketplace.json entry (or entry has no version field)"
     fail_count=$((fail_count + 1))
@@ -137,6 +140,34 @@ for pj in "$REPO_ROOT"/plugins/*/.claude-plugin/plugin.json; do
     ok_count=$((ok_count + 1))
   else
     echo "❌ $pname — plugin.json $pver but marketplace.json $mver (mirror the bump: marketplace version is the consumers' cache key)"
+    fail_count=$((fail_count + 1))
+  fi
+done
+
+echo ""
+
+# ─── Rule 5: plugin runtime files (bin/, hooks/) are usable ─────────────────
+
+echo "── rule 5: plugin bin/ executable, hooks.json parses ──"
+for bin in "$REPO_ROOT"/plugins/*/bin/*; do
+  [[ -f "$bin" ]] || continue
+  rel="${bin#"$REPO_ROOT/"}"
+  if [[ -x "$bin" ]]; then
+    echo "✓  $rel"
+    ok_count=$((ok_count + 1))
+  else
+    echo "❌ $rel — not executable (chmod +x)"
+    fail_count=$((fail_count + 1))
+  fi
+done
+for hj in "$REPO_ROOT"/plugins/*/hooks/hooks.json; do
+  [[ -f "$hj" ]] || continue
+  rel="${hj#"$REPO_ROOT/"}"
+  if python3 -m json.tool "$hj" >/dev/null 2>&1; then
+    echo "✓  $rel"
+    ok_count=$((ok_count + 1))
+  else
+    echo "❌ $rel — not valid JSON"
     fail_count=$((fail_count + 1))
   fi
 done

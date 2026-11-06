@@ -22,10 +22,11 @@ claude-kit is a **tiered** personal kit. Skills/agents are organised by how wide
 |---|---|---|---|---|
 | **Cross-cutting** (stack-agnostic) | **`dev-core`** | Engineering disciplines usable on any codebase, any stack — persona skills: plan → agent work order (`drafter`), debug (`detective`), intent-validation review (`inspector`), incident post-mortem (`archivist`), reconnaissance on fresh code (`scout`) | — | experimental |
 | **Cross-role** (any role, stack-agnostic) | **`work-core`** | Personal work-awareness skills — reports on *your own work* across projects, not on a codebase: `sitrep` (situation report: recap + effort + open loops from local ground truth — session logs, git, MR/PR state) | — | experimental |
+| **Coordination** (stack-agnostic, requires herdr) | **`mcv`** | Run several Claude Code sessions on one project: a coordinator session (the `/mcv` skill) starts worker sessions, each in its own git worktree, and passes their questions and results to the user. Uses the herdr terminal manager. First plugin to ship `bin/` and `hooks/` | — (external: herdr) | experimental (D19) |
 | **Domain** (React 19 / Vite) | **`react-core`** | Portable React knowledge — skills consumed by any React 19 / Vite project | — | experimental (D14) |
 | **Domain** (React 19 / Vite) | **`agent-profiles`** | Templates + a generator skill that scaffolds project-specific agent profiles | react-core (by reference) | experimental (D14) |
 
-**Tier rule:** a skill belongs to the highest tier whose scope it fully fits. If it works on any stack → `dev-core`. If it assumes React/Vite → `react-core`. Future tiers may break domains down further (per-task layers).
+**Tier rule:** a skill belongs to the highest tier whose scope it fully fits; the table lists tiers from widest scope to narrowest, with the three stack-agnostic tiers side by side above the domain tier. If it works on any stack → `dev-core`. If it reports on your own work rather than a codebase → `work-core`. If it starts or coordinates other Claude Code sessions → `mcv`. If it assumes React/Vite → `react-core`. Future tiers may break domains down further (per-task layers).
 
 Dependency direction is **one-way**: a profile depends on `agent-profiles` → `react-core`; domain tiers may reference `dev-core` but never the reverse. A plugin never depends on something downstream of it.
 
@@ -45,9 +46,11 @@ claude-kit/
 │   └── marketplace.json         # plugin catalog
 ├── scripts/                     # validators + helpers (see Section 10)
 └── plugins/
-    └── <plugin>/                # dev-core · react-core · agent-profiles
+    └── <plugin>/                # dev-core · react-core · agent-profiles · work-core · mcv
         ├── .claude-plugin/plugin.json
         ├── README.md
+        ├── hooks/hooks.json     # optional — runtime hooks; opt-in only (see below)
+        ├── bin/                 # optional — executables the plugin's skill and hooks call
         ├── skills/
         │   ├── <name>/
         │   │   ├── SKILL.md     # mandatory
@@ -68,6 +71,28 @@ marketplace scan both skip underscore-prefixed folders. Drafts move out of
 
 **`_deprecated/`** uses the same underscore rule for retired skills kept for
 archival.
+
+**`hooks/` and `bin/`** are optional runtime files (first used by `mcv`,
+D19). A plugin hook runs in every session, in every project, where the plugin
+is installed, so every hook MUST be opt-in: it exits 0 with no output unless
+the plugin's own environment variable is set (mcv: `MCV_TASK`).
+
+`bin/` files are called by absolute path, never a bare name on `PATH`:
+
+- a hook: `${CLAUDE_PLUGIN_ROOT}/bin/<file>`;
+- a skill: from the skill's own folder, which Claude Code states when it loads
+  the skill ("Base directory for this skill: <path>"), e.g.
+  `<path>/../../bin/<file>`;
+- a `bin/` file: relative to its own location.
+
+`validate-contract.sh` rule 5 checks that every `bin/` file is executable and
+that `hooks.json` parses. It cannot check the opt-in guard, so each plugin with
+hooks ships a test that runs every hook with the variable unset and asserts
+there is no output.
+
+A plugin's tests live in `tests/<plugin>/` at the repo root, outside the plugin
+folder, so they are not installed with it; stubs and sample data go in
+`tests/<plugin>/fixtures/`.
 
 ---
 
@@ -247,7 +272,7 @@ one-shot).
 | Generator/meta skill | `<noun>-generator` | `profile-generator` |
 | Agent (profile-bound) | `<scope>-<role>` | `web-implement`, `web-test` |
 | Template file | `<role>.template.md` | `implement.template.md` |
-| Plugin folder | `<noun>-<modifier>` | `react-core`, `pps-web-profile` |
+| Plugin folder | `<noun>-<modifier>` (one exception: `mcv`, an acronym, D19) | `react-core`, `pps-web-profile` |
 
 **Anti-patterns** (do not):
 - `react_audit` (underscore) — kebab-case only
@@ -354,6 +379,7 @@ up.
 2. **Hidden skills not advertised** — anything under `_in-progress/` or `_deprecated/` MUST NOT appear in any README (always fails).
 3. **Marketplace integrity** — every `source` in `.claude-plugin/marketplace.json` points to an existing plugin folder.
 4. **Version mirror** — every plugin's `marketplace.json` version equals its `plugin.json` version. The marketplace version is the consumers' cache key (Section 12 step 3); a missed mirror means installed consumers silently keep the old cached copy (always fails).
+5. **Plugin runtime files usable** — every `plugins/*/bin/*` file is executable and every `plugins/*/hooks/hooks.json` parses as JSON (always fails). Plugins without `bin/` or `hooks/` have nothing to check.
 
 CI integration (future): run both validators on PR — block merge on failure.
 
@@ -458,6 +484,8 @@ Foundational decisions resolved during the Phase 1 foundation pass.
 | D17 | `surveyor` (project-status drift audit) had stopped being used — 1 invocation in the D14 census window, none by its owner since — while the actual recurring need was different: before starting a piece of frontend work, or after losing the thread mid-work, go look at the *current* code on both sides of the FE/BE seam and report what is there. Repurpose surveyor, or replace it? | **replaced with `scout`**; surveyor moved to `_deprecated/`. What the owner described *is* surveyor's Step 2-5 (a declared list checked against ground), which tells us why surveyor went unused rather than that the job was worthless: it never fetched, so "ground" was whatever was on disk; it worked inside one repo, so a work item blocked on a missing backend route read as "not started"; and it was framed as an auditor of documents, where the need was "tell me where I stand". Scout is a **reconnaissance** persona: fetch first (fast-forward only a clean integration checkout, otherwise read through `origin/<branch>`, never move the user's tree), then follow a point's connections out to the boundary and report — one report shape for five ask-shapes (a work list, the branch you are on, a point, a checkable question, before-work), so it stays narrow where surveyor sprawled. Three boundary rules keep it from becoming its neighbours: **line of sight** is set by the boundary (module / package / repo), not a hop count — read the contract on both sides, never descend past it; **see, don't investigate** — a sighting has exactly three parts (where, what contradicts what, hand to whom) and anything that looks like a bug hands to `detective`, which reproduces and names the cause; **measure, don't direct** — no ranked next-up (inherited from surveyor 0.3.0 / D14). Write-back exists but is gated on an explicit ask to sync a list, in whatever words — the behaviour is the contract, the phrase is an example (Section 8's lesson: one user's wording must not become the trigger) — and touches status markers only, never item text. Rejected: reusing the `surveyor` name for the new job (D8: the name must read as the job — a surveyor measures what stands against the plan; a scout goes ahead and looks — and the D8/D9 rows would misread); merging into `architect` (single-repo, needs a spec, produces a plan; scout crosses the seam, starts from a loose ask, produces a map); framing it as `inspector` on work-in-progress (inspector asks "complete and no more", which mid-flight is always "not yet" — scout asks "what's left and what's straying"). Ships `experimental` under D13's demand gate. Extends D7, D8, D13, D14. | ✅ 2026-09-05 |
 
 | D18 | A tester asked why their automated scripts went red on a build. Ten fixes had merged; the release note listed them by commit subject, which says what was fixed and not what the screen now shows, and nobody had told the test side which failures were intended. Add a skill, extend an existing one, or leave it to the release note? | **new `herald`** (gate, experimental) — the QA handoff for a release. The release note is the wrong instrument: it is written from subjects for stakeholders, and a subject omits the visible shape (a fix that "keeps the payroll card off the cache" also changed what the Refresh button does, and the subject never said so). What the test side needs is the list of what a person at the screen will see differently, each line proven in the diff and tied to the case ids the issue already names, so a red script reads as "update the test" or "file a bug". Three range shapes (since the last tag, a tag range, one MR), one report shape. Three boundary rules, inherited from its neighbours: **cite or it did not happen** (`scout`'s rule, applied to the diff rather than the ground) — every visible change names `file:line`, locale files included, because the first real-use run filtered them out and lost the Before/Now text; **falsify, then list** (`detective`'s move) — a claim from an MR or issue is checked against the diff before it becomes a row, and a mismatch is a sighting; **never invent an identifier** — case ids come from the issue or the tester, blank beats guessed. Announces, never judges: "this should not have changed" is `inspector`'s sentence. Posts nothing on its own; the draft is the deliverable. Naming per D7/D8: a herald carries the word from the court to the people, which is the job; `liaison` (two-way, and long), `envoy`, `courier` rejected as either wrong direction or opaque. Extends D7, D8, D17. | ✅ 2026-10-07 |
+
+| D19 | Running several Claude Code sessions on one project needs one session that starts the others, hands them tasks and passes their questions to the user. Adopt [kunchenguid/firstmate](https://github.com/kunchenguid/firstmate) (an existing shell-based orchestrator for multiple Claude sessions), or build our own — and where does it live? | **build our own `mcv`**, on top of [herdr](https://herdr.dev) (a terminal workspace manager for coding agents, which does the process and worktree work), invoked as `/mcv`; plugin, skill and runtime names (`mcv-*`, `MCV_TASK`) are all `mcv`. **Section 7 exception:** the plugin name is an acronym (Multi-session Coordination Vantage), not `<noun>-<modifier>`. What it does opens the plugin's description, which every plugin list shows beside the name; spelling the full name out as the plugin name was considered and dropped, since it lengthened the slash menu, the install command and every path while adding nothing the description does not say. firstmate was rejected for two reasons: its coordinating session runs from firstmate's own repo, outside the project, so it never loads the project's CLAUDE.md, skills or memory and is not allowed to write to the project; and its size and churn (~425k lines of shell, 256 commits in 30 days, read 2026-11-05) make it a dependency to track rather than a tool to use. New **Coordination** tier: mcv starts and coordinates other Claude Code sessions, which is neither a discipline consulted while working on a codebase (`dev-core`) nor a report on your own work (`work-core`). **Section 6 exception:** the coordinator is a skill, not an agent, because it is the user's own long-lived main session: it talks to the user throughout, and a watcher script wakes it (through Claude Code's Monitor tool) when a worker asks a question or stops. A one-shot subagent can do neither. Section 6's rule stands for subagent-shaped work. The plugin is the first with `bin/` and `hooks/`, so Section 2 now admits both, under one rule: a plugin hook runs in every session where the plugin is installed and must do nothing unless the plugin's own environment variable is set. `validate-contract.sh` gains rule 5 (bin executable, hooks.json parses) and stops aborting silently when a plugin has no marketplace entry yet (rule 4's missing-entry branch was unreachable under `set -euo pipefail`). Scope and requirements: `plugins/mcv/README.md`. | ✅ 2026-11-06 |
 
 Future decisions append to this table; never edit a resolved row in place —
 add a new row referencing the prior decision instead.
