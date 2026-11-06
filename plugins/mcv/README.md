@@ -37,7 +37,9 @@ run (use Claude Code subagents inside one session).
   every herdr update.
 - **Claude Code runs inside herdr.** Start herdr (run `herdr` in a terminal), then start Claude Code in
   one of its panes. Every mcv command refuses to run from a plain terminal, `doctor` included.
-- `jq`, `git`, and bash. Tested only on macOS (stock bash 3.2); other platforms are untested.
+- `jq` 1.5 or newer, `git` 2.17 or newer, and bash 3.2 or newer. Written on macOS (stock bash
+  3.2); the tests also pass on Ubuntu 24.04, and the main commands were checked with jq 1.5 and
+  git 2.17. Running the tests needs git 2.28 or newer. herdr itself is tested only on macOS here.
 
 ## Install
 

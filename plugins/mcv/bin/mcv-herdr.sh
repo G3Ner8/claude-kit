@@ -87,18 +87,11 @@ need_herdr_pane() {
 # Run herdr and return its stdout. On failure, turn herdr's JSON error
 # (stderr, exit 1) into one line naming the herdr command.
 h() {
-  local err out
-  err="$(mktemp)"
-  if out="$(herdr "$@" 2>"$err")"; then
-    rm -f "$err"
-    printf '%s' "$out"
+  if h_try "$@"; then
+    printf '%s' "$HOUT"
     return 0
   fi
-  local msg
-  msg="$(jq -r '.error | "\(.code): \(.message)"' <"$err" 2>/dev/null || true)"
-  [[ -n "$msg" && "$msg" != "null: null" ]] || msg="$(head -1 "$err")"
-  rm -f "$err"
-  die "herdr $1 ${2:-}: $msg"
+  die "herdr $1 ${2:-}: $HERR_MSG"
 }
 
 # Like h, but sets variables instead of printing or dying: stdout in HOUT;
@@ -109,15 +102,18 @@ HOUT=""
 HERR_CODE=""
 HERR_MSG=""
 h_try() {
-  local err
+  local err rc=0
   err="$(mktemp)"
-  if HOUT="$(herdr "$@" 2>"$err")"; then
+  HOUT="$(herdr "$@" 2>"$err")" || rc=$?
+  if (( rc == 0 )); then
     rm -f "$err"
     return 0
   fi
   HERR_CODE="$(jq -r '.error.code // empty' <"$err" 2>/dev/null || true)"
   HERR_MSG="$(jq -r '.error | "\(.code): \(.message)"' <"$err" 2>/dev/null || true)"
   [[ -n "$HERR_CODE" ]] || HERR_MSG="$(head -1 "$err")"
+  # herdr can fail without a word (killed, say); still name what happened.
+  [[ -n "$HERR_MSG" ]] || HERR_MSG="exited with status $rc and no message"
   rm -f "$err"
   return 1
 }
@@ -158,18 +154,14 @@ task_dir() {
 # die() inside a command substitution only leaves the subshell, so every
 # caller of task_dir assigns first and exits on failure before using it.
 
-# One spawn at a time per repository. Concurrent fetches and worktree
-# creations race for the lock on the repository's .git/config and fail half
-# way. The lock holds "<pid> <epoch seconds>"; a lock whose pid has exited
-# without releasing it (a crash) is taken over, but only if it is unchanged
-# since it was read and at least 2 seconds old, so a lock another spawn has
-# just taken is never deleted.
-LOCK=""
-lock_repo() {
-  local key l seen pid at i=0
-  key="$(printf '%s' "$1" | cksum | cut -d' ' -f1)"
-  mkdir -p "$MCV_HOME/.locks"
-  l="$MCV_HOME/.locks/$key"
+# Take lock folder $1, waiting up to $2 seconds (0: do not wait); fail when
+# it is still held. The lock holds "<pid> <epoch seconds>". A lock whose pid
+# has exited without releasing it (a crash) is taken over, but only if it is
+# unchanged since it was read and at least 2 seconds old, so a lock another
+# process has just taken is never deleted.
+take_lock() {
+  local l="$1" seen pid at i=0
+  mkdir -p "$(dirname "$l")"
   until mkdir "$l" 2>/dev/null; do
     seen="$(cat "$l/pid" 2>/dev/null || true)"
     read -r pid at <<<"$seen" || true
@@ -179,29 +171,65 @@ lock_repo() {
       rm -rf "$l"
       continue
     fi
-    (( i++ < 300 )) \
-      || die "another spawn in $1 has held $l for 5 minutes; delete that folder if no spawn is running"
+    (( i++ < $2 )) || return 1
     sleep 1
   done
-  LOCK="$l"
   printf '%s %s\n' "$$" "$(date +%s)" >"$l/pid"
+}
+
+# One spawn at a time per repository. Concurrent fetches and worktree
+# creations race for the lock on the repository's .git/config and fail half
+# way.
+LOCK=""
+lock_repo() {
+  local l
+  l="$MCV_HOME/.locks/$(printf '%s' "$1" | cksum | cut -d' ' -f1)"
+  take_lock "$l" 300 \
+    || die "another spawn in $1 has held $l for 5 minutes; delete that folder if no spawn is running"
+  LOCK="$l"
 }
 unlock_repo() {
   [[ -z "$LOCK" ]] || rm -rf "$LOCK"
   LOCK=""
 }
 
-# On a failed spawn: release the lock, and delete the branch this spawn
-# created if no worktree holds it (git refuses to delete a checked-out branch,
-# so a branch whose worktree was kept for `remove` stays).
+# One spawn at a time per worker name, taken before anything is checked or
+# made. Two spawns of one task, or of two tasks whose names join the same
+# (a-b/c and a/b-c), would otherwise both pass the checks and overwrite each
+# other's task.
+CLAIM=""
+
+# What a failed spawn undoes, on any exit (a signal included): the locks,
+# then, until Claude was asked to start, the worktree and the task folder,
+# and the branch this spawn created if no worktree holds it any more. Once
+# Claude was asked to start, the task stays for `remove`.
 NEW_ROOT=""
 NEW_BRANCH=""
+NEW_WS=""
+NEW_DIR=""
+NEW_NAME=""
 spawn_cleanup() {
-  local rc=$?
-  unlock_repo
-  if (( rc != 0 )) && [[ -n "$NEW_BRANCH" ]]; then
-    git -C "$NEW_ROOT" branch -D "$NEW_BRANCH" >/dev/null 2>&1 || true
+  local rc=$? ws p
+  if (( rc != 0 )); then
+    # A signal during worktree create stops this script only once herdr has
+    # answered, before its answer is read: find the workspace by its label
+    # and the worktree by the branch, which this spawn alone created.
+    if [[ -z "$NEW_WS" && -n "$NEW_BRANCH" && -n "$NEW_NAME" ]]; then
+      NEW_WS="$(herdr workspace list 2>/dev/null \
+        | jq -r --arg l "$NEW_NAME" '[.result.workspaces[]? | select(.label == $l)][0].workspace_id // empty' \
+          2>/dev/null || true)"
+    fi
+    [[ -z "$NEW_WS" ]] || herdr worktree remove --workspace "$NEW_WS" >/dev/null 2>&1 || true
+    if [[ -n "$NEW_BRANCH" ]]; then
+      p="$(git -C "$NEW_ROOT" worktree list --porcelain 2>/dev/null \
+        | awk -v b="branch refs/heads/$NEW_BRANCH" '/^worktree /{w=substr($0,10)} $0==b{print w; exit}')"
+      [[ -z "$p" ]] || git -C "$NEW_ROOT" worktree remove --force "$p" >/dev/null 2>&1 || true
+    fi
+    [[ -z "$NEW_DIR" ]] || rm -rf "$NEW_DIR"
+    [[ -z "$NEW_BRANCH" ]] || git -C "$NEW_ROOT" branch -D "$NEW_BRANCH" >/dev/null 2>&1 || true
   fi
+  unlock_repo
+  [[ -z "$CLAIM" ]] || rm -rf "$CLAIM"
 }
 
 # Copy into worktree $2 the files of main checkout $1 that its
@@ -273,11 +301,18 @@ branch_taken() {
   return 1
 }
 
-# Remove a worktree herdr just created, then fail.
+# Remove a worktree herdr just created, and the task folder written for it,
+# then fail, saying whether the removal worked.
 abandon_worktree() {
-  herdr worktree remove --workspace "$1" >/dev/null 2>&1 || true
+  local ws="$1"
   shift
-  die "$*"
+  NEW_WS=""
+  [[ -z "$NEW_DIR" ]] || rm -rf "$NEW_DIR"
+  NEW_DIR=""
+  if herdr worktree remove --workspace "$ws" >/dev/null 2>&1; then
+    die "$*; the worktree was removed"
+  fi
+  die "$*; removing the worktree failed too: close herdr workspace $ws, then run git worktree prune"
 }
 
 cmd_doctor() {
@@ -355,8 +390,25 @@ cmd_spawn() {
   local name="$project-$id"
   (( ${#name} <= 32 )) || die "'$name' is ${#name} characters; <project>-<id> may be at most 32"
 
+  # Letter case is compared through tr, which knows only ASCII under some
+  # locales (é and É would pass as different names), so names stay ASCII.
+  ! printf '%s' "$branch" | LC_ALL=C grep -q '[^ -~]' \
+    || die "'$branch': use ASCII letters, digits and - _ . / in branch names"
+
+  # From here on, every exit (a signal included) runs the cleanup.
+  trap spawn_cleanup EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  trap 'exit 129' HUP
+  take_lock "$MCV_HOME/.claims/$name" 0 \
+    || die "another spawn of worker '$name' is running"
+  CLAIM="$MCV_HOME/.claims/$name"
+
   local dir="$MCV_HOME/$project/tasks/$id"
   [[ ! -e "$dir/meta" ]] || die "task $project/$id already exists; pick another id or remove it first"
+  # A folder without meta is what a crashed spawn or an old version left (a
+  # status log, say); the new task must not inherit its question numbers.
+  rm -rf "$dir"
   # Different tasks can join to the same name (a-b/c and a/b-c are both
   # a-b-c), and herdr may already run an agent of that name.
   local other
@@ -390,7 +442,6 @@ cmd_spawn() {
 
   lock_repo "$root"
   NEW_ROOT="$root"
-  trap spawn_cleanup EXIT
 
   # Start from the latest remote state, as a person would pull before
   # branching: fetch, then branch from --base, or from the remote's default
@@ -417,6 +468,7 @@ cmd_spawn() {
 
   # From here on, a branch named $branch was made by this spawn.
   NEW_BRANCH="$branch"
+  NEW_NAME="$name"
   local created ws pane wt linked
   created="$(h worktree create --cwd "$root" --branch "$branch" ${base:+--base "$base"} \
     --label "$name" --no-focus)"
@@ -426,16 +478,42 @@ cmd_spawn() {
   linked="$(jfield "$created" .result.workspace.worktree.is_linked_worktree)"
   [[ -n "$ws" ]] \
     || die "herdr worktree create gave no workspace id; look in herdr for a workspace labelled $name and close it"
+  NEW_WS="$ws"
   [[ -n "$pane" && -n "$wt" && -d "$wt" ]] \
-    || abandon_worktree "$ws" "herdr worktree create gave unexpected output; the worktree was removed"
+    || abandon_worktree "$ws" "herdr worktree create gave unexpected output"
+
+  # The task is written as soon as the worktree exists, so a spawn killed
+  # from here on leaves a task `remove` can clean up, not a stray worktree.
+  # While Claude starts, which can take a minute, its pane is not in herdr's
+  # agent list yet; the "starting" marker stops mcv-watch from reporting the
+  # worker gone. It stays if Claude fails to start, until `remove`.
+  local copied=0 created_at
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  mkdir -p "$dir"
+  NEW_DIR="$dir"
+  : >"$dir/starting"
+  write_meta() {
+    local meta tmp
+    meta="$(jq -cn --arg task "$project/$id" --arg agent "$name" --arg ws "$ws" --arg pane "$pane" \
+      --arg wt "$wt" --arg repo "$root" --arg branch "$branch" --arg base "${base:-HEAD}" \
+      --arg context "$context" --argjson copied "$copied" --arg created "$created_at" \
+      '{task: $task, agent: $agent, workspace_id: $ws, pane_id: $pane, worktree: $wt,
+        repo: $repo, branch: $branch, base: $base, context: $context, copied: $copied,
+        created: $created}')"
+    # Written whole, then renamed, so mcv-watch never reads half a file.
+    tmp="$(mktemp "$dir/.meta.XXXXXX")"
+    printf '%s\n' "$meta" >"$tmp"
+    mv "$tmp" "$dir/meta"
+  }
+  write_meta
 
   # A worker must never run in the user's own checkout. A separate worktree
   # has its own git dir, distinct from the repository's shared one.
   local own common
   own="$(cd "$wt" && cd "$(git rev-parse --git-dir)" && pwd -P)" \
-    || abandon_worktree "$ws" "$wt is not a git worktree; it was removed"
+    || abandon_worktree "$ws" "$wt is not a git worktree"
   common="$(cd "$wt" && cd "$(git rev-parse --git-common-dir)" && pwd -P)" \
-    || abandon_worktree "$ws" "$wt is not a git worktree; it was removed"
+    || abandon_worktree "$ws" "$wt is not a git worktree"
   if [[ "$linked" != true || "$own" == "$common" ]]; then
     abandon_worktree "$ws" "refusing: herdr opened $wt, which is the repository's main checkout, not a separate worktree"
   fi
@@ -460,25 +538,16 @@ cmd_spawn() {
   # (a test account's .env, say): the repository lists them in
   # .worktreeinclude, as Claude Code's own worktrees do, and they are copied
   # from the main checkout.
-  local copied
-  copied="$(copy_includes "$root" "$wt")" || abandon_worktree "$ws" "$copied; the worktree was removed"
+  local out
+  out="$(copy_includes "$root" "$wt")" || abandon_worktree "$ws" "$out"
+  copied="$out"
+  write_meta
 
-  # While Claude starts, which can take a minute, its pane is not in herdr's
-  # agent list yet; the "starting" marker stops mcv-watch from reporting the
-  # worker gone. It stays if Claude fails to start, until `remove`.
-  mkdir -p "$dir"
-  : >"$dir/starting"
-  local meta
-  meta="$(jq -cn --arg task "$project/$id" --arg agent "$name" --arg ws "$ws" --arg pane "$pane" \
-    --arg wt "$wt" --arg repo "$root" --arg branch "$branch" --arg base "${base:-HEAD}" \
-    --arg context "$context" --argjson copied "$copied" \
-    --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    '{task: $task, agent: $agent, workspace_id: $ws, pane_id: $pane, worktree: $wt,
-      repo: $repo, branch: $branch, base: $base, context: $context, copied: $copied,
-      created: $created}')"
-  # Written whole, then renamed, so mcv-watch never reads half a file.
-  printf '%s\n' "$meta" >"$dir/meta.tmp"
-  mv "$dir/meta.tmp" "$dir/meta"
+  # From here on the task stays, even if Claude fails to start: `remove`
+  # cleans it up, and the branch is held by its worktree.
+  NEW_WS=""
+  NEW_DIR=""
+  NEW_BRANCH=""
 
   # MCV_TASK goes in through Claude's own settings, not the pane's shell, so
   # nothing is typed into the shell before Claude starts. MCV_HOME goes with
@@ -504,7 +573,7 @@ cmd_spawn() {
     -- ${ctx_args[@]+"${ctx_args[@]}"} --settings "$settings" ${1+"$@"} >/dev/null
   rm -f "$dir/starting"
 
-  jq -c '{task, agent, worktree, branch, base, context, copied}' <<<"$meta"
+  jq -c '{task, agent, worktree, branch, base, context, copied}' "$dir/meta"
 }
 
 cmd_prompt() {

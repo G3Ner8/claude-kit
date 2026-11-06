@@ -56,6 +56,15 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   compared ignoring case, since on macOS a branch `MAIN` could move `main`. Checked with real
   workers: workspace notes, skills and copied files arrive; an edit in the context is refused.
   Tests: `tests/mcv/` (266 checks). README: "What a worker has".
+- A third QA pass, on interruptions, races between commands and old data: `spawn` claims the
+  worker name before checking anything, so two spawns of one task (or of two tasks whose names join
+  the same) can no longer both succeed; it writes the task as soon as the worktree exists, so an
+  interrupted spawn leaves something `remove` can clean up, and on INT/TERM/HUP it undoes its own
+  worktree, branch and task; a leftover task folder without meta is cleared; branch names must be
+  ASCII. `mcv-watch` shows questions still open when it starts (a coordinator started later sees
+  them), survives an unreadable log, ignores blank lines, stops at once on TERM, and polls 200 tasks
+  in under 3 seconds instead of 7. `mcv-status` mends a log that ends mid-line, strips control
+  characters, and refuses `--task` from a worker. README states minimum versions. Tests: 300 checks.
 - Status: every part is in place and checked on its own; a full run on a real project is still to do.
 
 ### Kit

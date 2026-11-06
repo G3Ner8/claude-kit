@@ -95,9 +95,11 @@ Skip this skill for:
    repo's notes does not resolve from a worktree), a related branch. Facts, not a pointer to read a
    whole file.
 4. **Confirm before starting.** Show every worker you are about to start and wait for a yes. The
-   user may rename ids or branches here. If more would be working at once than `max_workers`
-   (default 2), say which wait, and start them in this order as earlier ones report `done`,
-   `failed` or `gone` or are removed. The queue lives only in this conversation; tell the user so.
+   user may rename ids or branches here. At most `max_workers` (default 2) workers are active at
+   once. A worker is active from its `spawn` until it reports `done` or `failed`, is `gone`, or is
+   removed; waiting at a dialog or on a question still counts, and so does one whose Claude failed
+   to start until the user lets it through or it is removed. Say which workers wait, and start them
+   in this order as active ones end. The queue lives only in this conversation; tell the user so.
 
    ```
    Starting 2 workers, 1 waiting:
@@ -109,8 +111,9 @@ Skip this skill for:
 5. **Start each worker.** `BIN/mcv-herdr.sh spawn <project> <id> <repo path> <branch>`, adding
    `--base <base>` when the config has one and `--context <absolute path of context>` when it has
    one, except for a repo that is the context folder itself (the project root listed among `repos`):
-   it already has that folder's notes, and `spawn` refuses a context inside the repository. It prints the task, worktree, branch, base, context and the files it copied. If it
-   fails, tell the user its one-line reason. If Claude failed to start, `BIN/mcv-herdr.sh read
+   it already has that folder's notes, and `spawn` refuses a context inside the repository. It
+   prints the task, worktree, branch, base, context and how many files it copied from
+   `.worktreeinclude`. If it fails, tell the user its one-line reason. If Claude failed to start, `BIN/mcv-herdr.sh read
    <project>/<id>` shows the screen: describe it. Usually it is Claude's folder trust dialog, whose
    default answer is "No, exit": ask the user to pick "Yes" in the worker's herdr pane, then go on
    with step 6. If the user does not want it, offer `remove`.
@@ -126,6 +129,9 @@ hooks. Do not repeat them in the task text.
 ### Handling what the watcher reports
 
 Each line from the watcher is one event, tab-separated: time, `<project>/<id>`, then the event.
+When the watcher starts (a new session, or after it was restarted) it first shows every question
+still without an answered line, so nothing asked earlier is lost. A question whose `<id> #<n>` you
+already relayed in this conversation is the same question: do not ask the user twice.
 
 | Event | What to do |
 |---|---|
@@ -168,7 +174,8 @@ you know.
 ### When the user asks where things stand
 
 `BIN/mcv-herdr.sh agents` lists every herdr agent with its state; mcv workers are named
-`<project>-<id>`. Tasks are the folders under `~/.claude/mcv/<project>/tasks/`. A question is open
+`<project>-<id>`. Tasks are the folders under `$MCV_HOME/<project>/tasks/` (`MCV_HOME` defaults to
+`~/.claude/mcv`). A question is open
 when its `needs-decision` line in that task's `status.log` has no `answered` line with the same id.
 Report per worker: id, repo and branch, state, open questions.
 
@@ -176,7 +183,7 @@ Report per worker: id, repo and branch, state, open questions.
 
 - After `spawn`: the printed JSON has the task, branch and base you confirmed with the user, and
   the context the config names.
-- At no time are more than `max_workers` workers working.
+- At no time are more than `max_workers` workers active.
 - After `prompt --no-wait`: the state is `working`, or `blocked` (then handle it as a dialog).
 - After every answer: the task's log has an `answered` line for that question id.
 - Before the user leaves: list any worker still running and any open question.

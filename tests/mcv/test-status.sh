@@ -175,5 +175,30 @@ expect "a fresh lock is waited for, not taken over" \
   '[[ $rc -eq 0 && "$(tail -2 "$log2" | head -1)" == "released by holder" && "$(tail -1 "$log2")" == *"after a fresh lock" ]]' \
   "rc=$rc $(tail -2 "$log2")"
 
+# A log that ends mid-line (a writer killed, an old log) gets its newline
+# back before the next line, so a question never hides inside another line.
+mkdir -p "$home/shop/tasks/t3"
+echo '{}' >"$home/shop/tasks/t3/meta"
+log3="$home/shop/tasks/t3/status.log"
+printf '2026-01-01T00:00:00Z\tnote\t-\tcut off' >"$log3"
+q="$(MCV_TASK=shop/t3 "$S" needs-decision "after a cut line")"
+expect "after a cut-off line: the question is q1 on its own line" \
+  '[[ "$q" == q1 && "$(tail -1 "$log3" | cut -f2,3)" == "needs-decision"$'"'"'\t'"'"'q1 ]]' "$(cat "$log3")"
+env -u MCV_TASK "$S" --task shop/t3 answered q1 "ok" >/dev/null 2>&1; rc=$?
+expect "and it can be answered" '[[ $rc -eq 0 ]]' "rc=$rc"
+
+# Control characters other than tab and newline never reach the log.
+MCV_TASK=shop/t3 "$S" note "$(printf 'a\033[31mred\033[0m\007b')" >/dev/null
+last="$(tail -1 "$log3")"
+expect "escape and bell characters are removed" '[[ "$last" == *$'"'"'\t'"'"'"a[31mred[0mb" ]]' "$(printf '%q' "$last")"
+MCV_TASK=shop/t3 "$S" note "สวัสดี ✓" >/dev/null
+expect "Thai and other UTF-8 text is kept" '[[ "$(tail -1 "$log3")" == *"สวัสดี ✓" ]]'
+
+# A worker cannot close a question; only the coordinator records answers.
+MCV_TASK=shop/t3 "$S" needs-decision "mine" >/dev/null
+out="$(MCV_TASK=shop/t3 "$S" --task shop/t3 answered q2 "self" 2>&1)"; rc=$?
+expect "--task with MCV_TASK set is refused" '[[ $rc -eq 1 && "$out" == *"only the coordinator"* ]]' "rc=$rc $out"
+expect "the question stays open" '! cut -f2,3 "$log3" | grep -qx "answered"$'"'"'\t'"'"'"q2"'
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

@@ -142,5 +142,13 @@ for i in abc 0 -1; do
   expect "MCV_WATCH_INTERVAL=$i refused" '[[ $rc -eq 2 && "$out" == *"MCV_WATCH_INTERVAL"* ]]' "rc=$rc $out"
 done
 
+# herdr failing without a word still gives a reason.
+out="$(FAKE_SILENT=1 "$H" agents 2>&1)"; rc=$?
+expect "a silent herdr failure names its exit status" \
+  'one_line && [[ "$out" == *"exited with status 3 and no message" ]]' "rc=$rc $out"
+out="$(FAKE_SILENT=1 "$H" doctor 2>&1)"; rc=$?
+expect "doctor with a silent herdr failure: one line with a reason" \
+  'one_line && [[ "$out" == *"exited with status 3"* ]]' "rc=$rc $out"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

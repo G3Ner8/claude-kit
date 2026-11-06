@@ -16,7 +16,9 @@
 #                                               (not while spawn is still starting it)
 #
 # Not printed: changes to working, idle or unknown; the coordinator's own
-# "answered" lines; anything already in a log when the watcher starts.
+# "answered" lines; anything already in a log when the watcher starts,
+# except questions that have no answered line yet, which are printed once
+# so a coordinator started later still sees them.
 # "state done" is also skipped when the worker's last log line since its
 # previous state event was needs-decision, blocked, done or failed, because
 # that line already woke the coordinator. A turn that ends with no log line,
@@ -76,20 +78,25 @@ poll() {
 
   local f
   for f in "$dir"/*; do
-    [[ -f "$f" && -f "$tasks/$(basename "$f")/meta" ]] || rm -f "$f"
+    [[ -f "$f" && -f "$tasks/${f##*/}/meta" ]] || rm -f "$f"
   done
+
+  # One timestamp per poll; forking date per task made a poll of 200 tasks
+  # slower than the interval.
+  local now
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   local meta
   for meta in "$tasks"/*/meta; do
     [[ -f "$meta" ]] || continue
-    local id task pane log sf
-    id="$(basename "$(dirname "$meta")")"
+    local tdir="${meta%/meta}" id task pane log sf
+    id="${tdir##*/}"
     task="$project/$id"
     # An unreadable meta (being written, or damaged) skips the task this
     # poll instead of stopping the watcher.
     pane="$(jq -r '.pane_id // empty' "$meta" 2>/dev/null || true)"
     [[ "$pane" =~ ^[^[:space:]]+$ ]] || continue
-    log="$(dirname "$meta")/status.log"
+    log="$tdir/status.log"
     sf="$dir/$id"
 
     local spane=- prev=- prev_seq=- offset=0 lastkind=- gone=0 new=1 damaged=0
@@ -106,39 +113,57 @@ poll() {
     fi
 
     local lines=0
-    [[ -f "$log" ]] && lines="$(wc -l <"$log" | tr -d ' ')"
-    # On the watcher's first poll, old lines are history, not events. A task
-    # first seen later is new, so its log is followed from the start. A
-    # damaged state line cannot say what was read; skip to the end rather
-    # than repeat questions already answered.
+    if [[ -f "$log" ]]; then
+      # A log that cannot be read just now (removed mid-poll, say) skips the
+      # task this poll; it must not stop the watcher for every other task.
+      lines="$(wc -l 2>/dev/null <"$log" | tr -d ' ')" && [[ "$lines" =~ ^[0-9]+$ ]] || continue
+    fi
+    # On the watcher's first poll, old lines are history, not events, except
+    # questions still without an answer: a coordinator that starts after
+    # they were asked must still see them. A damaged state line cannot say
+    # what was read, so it is handled the same way. A task first seen later
+    # is new, so its log is followed from the start.
     if (( (new && first) || damaged )); then
+      if (( lines > 0 )); then
+        local open
+        open="$(awk -F'\t' -v t="$task" '
+          $2 == "needs-decision" { q[$3] = $1 "\t" t "\t" $2 "\t" $3 "\t" $4; order[++n] = $3 }
+          $2 == "answered"       { delete q[$3] }
+          END { for (i = 1; i <= n; i++) if (order[i] in q) { print q[order[i]]; delete q[order[i]] } }
+        ' "$log" 2>/dev/null || true)"
+        if [[ -n "$open" ]]; then
+          printf '%s\n' "$open"
+          lastkind=needs-decision
+        fi
+      fi
       offset="$lines"
     fi
-    (( damaged )) && printf 'mcv-watch: %s: state was damaged; following its log from now on\n' "$task" >&2
+    (( damaged )) && printf 'mcv-watch: %s: state was damaged; its open questions are shown again, and its log followed from now on\n' "$task" >&2
     # A log shorter than what was read was started again.
     (( lines < offset )) && offset=0
 
     if (( lines > offset )); then
       local ts kind qid text
       while IFS=$'\t' read -r ts kind qid text; do
-        [[ "$kind" == answered ]] && continue
+        # A blank or broken line is not an event, and must not become the
+        # "last kind" (an empty one would read as damaged state next poll).
+        [[ -z "$kind" || "$kind" == answered ]] && continue
         printf '%s\t%s\t%s\t%s\t%s\n' "$ts" "$task" "$kind" "$qid" "$text"
         lastkind="$kind"
       done < <(tail -n +"$((offset + 1))" "$log" | head -n "$((lines - offset))")
       offset="$lines"
     fi
 
-    local row status seq now
+    local row status seq
     if (( ! herdr_ok )); then
       printf '%s %s %s %s %s %s\n' "$pane" "$prev" "$prev_seq" "$offset" "$lastkind" "$gone" >"$sf"
       continue
     fi
     row="$(awk -F'\t' -v p="$pane" '$1 == p { print $2 " " $3; exit }' <<<"$agents")"
-    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     if [[ -z "$row" ]]; then
       # A worker still starting (spawn's marker) that has never been seen in
       # the agent list is not gone yet.
-      if [[ -e "$(dirname "$meta")/starting" && "$prev" == - ]]; then
+      if [[ -e "$tdir/starting" && "$prev" == - ]]; then
         :
       else
         (( gone )) || printf '%s\t%s\tgone\t-\n' "$now" "$task"
@@ -185,5 +210,8 @@ fi
 mkdir -p "$state"
 while true; do
   poll "$state"
-  sleep "$INTERVAL"
+  # Sleep in the background and wait for it: bash runs a trap only between
+  # commands, so a foreground sleep held a stop signal for up to INTERVAL.
+  sleep "$INTERVAL" &
+  wait $! || true
 done

@@ -17,6 +17,8 @@
 # FAKE_FAIL=partial makes worktree create report a workspace id but no pane;
 # FAKE_FAIL=garbage makes it print something that is not JSON (both after
 # creating the worktree).
+#   workspace list           the workspaces worktree create made, with their labels
+#   (FAKE_FAIL_REMOVE=1 makes worktree remove fail)
 #   status --json            FAKE_STATUS, or a healthy herdr 0.9.5
 #   integration status       FAKE_INTEG, or "claude: current (v11)"
 #   agent list               FAKE_AGENT_LIST, or no agents
@@ -27,6 +29,8 @@ set -euo pipefail
 D="${FAKE_DIR:?FAKE_DIR not set}"
 mkdir -p "$D/ws"
 printf '%s\n' "$*" >>"$D/calls"
+# FAKE_SILENT=1: fail with status 3 and nothing on stderr, as a killed herdr does.
+[[ "${FAKE_SILENT:-}" != 1 ]] || exit 3
 
 fail() { printf '{"error":{"code":"%s","message":"%s"}}\n' "$1" "$2" >&2; exit 1; }
 
@@ -63,7 +67,15 @@ case "${1:-} ${2:-}" in
       workspace: {workspace_id: $ws, worktree: {is_linked_worktree: true}},
       worktree: {path: $wt}}}'
     ;;
+  "workspace list")
+    for f in "$D"/ws/ws-*; do
+      [[ -f "$f" ]] || continue
+      l="${f##*/ws-}"
+      jq -cn --arg ws "ws-$l" --arg l "$l" '{workspace_id: $ws, label: $l}'
+    done | jq -cs '{result: {workspaces: .}}'
+    ;;
   "worktree remove")
+    [[ "${FAKE_FAIL_REMOVE:-}" != 1 ]] || fail internal "worktree remove failed"
     ws="$4"
     [[ -f "$D/ws/$ws" ]] || fail workspace_not_found "workspace $ws not found"
     IFS=$'\t' read -r repo wt <"$D/ws/$ws"

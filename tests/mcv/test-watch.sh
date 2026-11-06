@@ -194,5 +194,64 @@ mkdir -p "$MCV_HOME/other/tasks"
 out="$(poll)"
 expect "another project's poll in the same state folder: nothing replayed" '[[ -z "$out" ]]' "$out"
 
+# A watcher started after questions were asked shows the ones still open,
+# once, and nothing else from the past.
+export MCV_WATCH_STATE="$root/state2"
+mkdir -p "$MCV_WATCH_STATE"
+task h w:p8
+agents "w:p8,done,5,acme-h"
+say h needs-decision "first?"
+env -u MCV_TASK "$STATUS" --task acme/h answered q1 "yes" >/dev/null
+say h note "progress"
+say h needs-decision "second?"
+out="$(poll 2>/dev/null)"
+expect "new watcher: the open question is shown" '[[ "$out" == *"acme/h"$'"'"'\t'"'"'"needs-decision"$'"'"'\t'"'"'"q2"$'"'"'\t'"'"'"second?" ]]' "$out"
+expect "new watcher: the answered question and the note are not" '[[ "$out" != *"first?"* && "$out" != *progress* ]]' "$out"
+expect "new watcher: no state done on top of the open question" '[[ "$out" != *"acme/h"$'"'"'\t'"'"'"state"* ]]' "$out"
+out="$(poll 2>/dev/null)"
+expect "the open question is shown once" '[[ "$out" != *"second?"* ]]' "$out"
+
+# Damaged state shows the open questions again rather than losing them.
+: >"$MCV_WATCH_STATE/acme/h"
+out="$(poll 2>/dev/null)"
+expect "damaged state: the open question is shown again" '[[ "$out" == *"second?" ]]' "$out"
+
+# A blank line in a log is not an event and does not lose what follows.
+printf '\n' >>"$MCV_HOME/acme/tasks/h/status.log"
+out="$(poll 2>/dev/null)"
+expect "a blank log line prints nothing" '[[ "$out" != *"acme/h"* ]]' "$out"
+say h needs-decision "third?"
+out="$(poll 2>&1)"
+expect "the question after a blank line is shown, with no state warning" \
+  '[[ "$out" == *"third?" && "$out" != *damaged* ]]' "$out"
+
+# A log that cannot be read skips that task; the others are still reported.
+if [[ "$(id -u)" -ne 0 ]]; then
+  task i w:p9
+  agents "w:p8,done,5,acme-h|w:p9,idle,1,acme-i"
+  poll >/dev/null 2>&1
+  say i note "unreadable soon"
+  chmod 000 "$MCV_HOME/acme/tasks/i/status.log"
+  say h note "still flowing"
+  out="$(poll 2>&1)"; rc=$?
+  chmod 600 "$MCV_HOME/acme/tasks/i/status.log"
+  expect "an unreadable log does not stop the watcher" '[[ $rc -eq 0 && "$out" == *"still flowing" ]]' "rc=$rc $out"
+  out="$(poll 2>&1)"
+  expect "once readable again, its line is shown" '[[ "$out" == *"unreadable soon" ]]' "$out"
+else
+  ok "an unreadable log (skipped: running as root)"
+  ok "once readable again (skipped: running as root)"
+fi
+
+# The long-running watcher stops at once on TERM, not after its interval.
+MCV_WATCH_INTERVAL=30 env -u MCV_WATCH_STATE "$W" acme >/dev/null 2>&1 &
+wpid=$!
+sleep 1
+start=$(date +%s)
+kill -TERM "$wpid"
+wait "$wpid" 2>/dev/null
+took=$(( $(date +%s) - start ))
+expect "TERM stops the watcher within 2 seconds (interval 30)" '[[ $took -le 2 ]]' "took ${took}s"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

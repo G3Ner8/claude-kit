@@ -11,6 +11,7 @@
 #
 # The coordinator records an answer, which closes the question:
 #   mcv-status --task <project>/<id> answered <question-id> <text>
+# (refused when MCV_TASK is set: a worker never closes its own questions)
 #
 # mcv's hooks call:
 #   mcv-status --contract              SessionStart: the rules a worker follows
@@ -75,6 +76,11 @@ lock_log() {
   LOCK="$l"
   trap 'rm -rf "$LOCK"' EXIT
   printf '%s %s\n' "$$" "$(date +%s)" >"$l/pid"
+  # A writer killed mid-line, or an old log, can end without a newline; the
+  # next line would join it, and a question would hide inside another line.
+  if [[ -s "$1" && -n "$(tail -c 1 "$1")" ]]; then
+    printf '\n' >>"$1"
+  fi
 }
 
 # Append one event as one line.
@@ -83,6 +89,9 @@ append() {
   text="${text//$'\r'/ }"
   text="${text//$'\n'/ }"
   text="${text//$'\t'/ }"
+  # Other control characters (a terminal escape, say) would reach the
+  # coordinator's screen as they are.
+  text="$(printf '%s' "$text" | LC_ALL=C tr -d '\000-\010\013-\037\177')"
   printf '%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$kind" "$qid" "$text" >>"$log"
 }
 
@@ -151,6 +160,9 @@ case "${1:-}" in
 
   --task)
     [[ $# -eq 5 && "$3" == answered ]] || usage "usage: --task <project>/<id> answered <question-id> <text>"
+    # Only the coordinator records answers; a worker closing its own question
+    # would hide it from the user.
+    [[ -z "${MCV_TASK:-}" ]] || die "a worker cannot record answers; only the coordinator does"
     log="$(log_of "$2")" || exit 1
     qid="$4"
     [[ "$qid" =~ ^q[1-9][0-9]*$ ]] || die "question id '$qid': expected q1, q2, ..."
