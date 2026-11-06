@@ -128,5 +128,71 @@ out="$(poll)"
 expect "log event has five fields" '[[ $(awk -F"\t" "{print NF}" <<<"$out") -eq 5 ]]' "$out"
 expect "event starts with a UTC timestamp" '[[ "$out" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z ]]' "$out"
 
+# A worker spawn is still starting (marker set, not yet an agent) is not gone.
+task e w:p5
+: >"$MCV_HOME/acme/tasks/e/starting"
+out="$(poll)"
+expect "starting worker missing from the agent list: no gone" '[[ "$out" != *"acme/e"* ]]' "$out"
+agents "w:p1,blocked,12,acme-a|w:p2,done,4,acme-b|w:p4,idle,1,acme-d|w:p5,idle,1,acme-e"
+out="$(poll)"
+expect "started worker seen idle: nothing printed" '[[ "$out" != *"acme/e"* ]]' "$out"
+# Once seen, a worker that disappears is gone even if the marker remains.
+agents "w:p1,blocked,12,acme-a|w:p2,done,4,acme-b|w:p4,idle,1,acme-d"
+out="$(poll)"
+expect "seen worker that vanishes is gone despite the marker" '[[ "$out" == *"acme/e"$'"'"'\t'"'"'"gone"* ]]' "$out"
+
+# A task removed and spawned again under the same id within one poll: the new
+# worker's first question is printed though its log is shorter than the old.
+base_agents="w:p1,blocked,12,acme-a|w:p2,done,4,acme-b|w:p4,idle,1,acme-d"
+task f w:p6
+agents "$base_agents|w:p6,working,1,acme-f"
+say f note one; say f note two; say f note three
+poll >/dev/null
+rm -rf "$MCV_HOME/acme/tasks/f"
+task f w:p7
+agents "$base_agents|w:p7,working,1,acme-f"
+say f needs-decision "which db?"
+out="$(poll)"
+expect "respawned id: the new worker's question is printed" '[[ "$out" == *"needs-decision"$'"'"'\t'"'"'"q1"$'"'"'\t'"'"'"which db?" ]]' "$out"
+
+# A log that was started again (shorter than what was read) is followed from
+# its start. mcv only appends, so this is a log cut by hand.
+say f note x; say f note y
+poll >/dev/null
+printf '' >"$MCV_HOME/acme/tasks/f/status.log"
+say f note "after truncation"
+out="$(poll)"
+expect "truncated log: its new line is printed" '[[ "$out" == *"after truncation" ]]' "$out"
+
+# A damaged state line or a damaged meta does not stop the watcher.
+: >"$MCV_WATCH_STATE/acme/f"
+say d note "still here"
+out="$(poll 2>"$root/err")"; rc=$?
+expect "damaged state: the poll still succeeds" '[[ $rc -eq 0 ]]' "rc=$rc"
+expect "damaged state: other tasks still report" '[[ "$out" == *"still here" ]]' "$out"
+expect "damaged state: a warning on stderr" 'grep -q "acme/f: state was damaged" "$root/err"' "$(cat "$root/err")"
+mkdir -p "$MCV_HOME/acme/tasks/g"
+echo 'not json' >"$MCV_HOME/acme/tasks/g/meta"
+say d note "and here"
+out="$(poll 2>&1)"; rc=$?
+expect "damaged meta: the poll still succeeds and reports others" '[[ $rc -eq 0 && "$out" == *"and here" ]]' "rc=$rc $out"
+rm -rf "$MCV_HOME/acme/tasks/g"
+
+# herdr failing: log lines are still passed on; the warning comes once.
+say d note "herdr is down"
+out="$(STUB_DOWN=1 poll 2>"$root/err")"; rc=$?
+expect "herdr down: log lines still printed" '[[ $rc -eq 0 && "$out" == *"herdr is down" ]]' "rc=$rc $out"
+expect "herdr down: one warning" 'grep -q "worker states unavailable" "$root/err"' "$(cat "$root/err")"
+out="$(STUB_DOWN=1 poll 2>"$root/err")"
+expect "herdr still down: no second warning" '[[ ! -s "$root/err" ]]' "$(cat "$root/err")"
+out="$(poll 2>&1)"
+expect "herdr back: no gone for workers it lists" '[[ "$out" != *gone* ]]' "$out"
+
+# Two projects sharing one state folder do not reset each other.
+mkdir -p "$MCV_HOME/other/tasks"
+"$W" other --once >/dev/null
+out="$(poll)"
+expect "another project's poll in the same state folder: nothing replayed" '[[ -z "$out" ]]' "$out"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

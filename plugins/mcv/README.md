@@ -91,21 +91,32 @@ Run `H` with no arguments for every command and option.
 
 - `shop` is a **project** name and `t1` a **task id**; you choose both. Use lowercase letters, digits,
   `-` and `_`; the project starts with a letter; `<project>-<id>` is at most 32 characters.
-- `spawn` needs a branch name that does not exist yet. It fetches first, then starts the branch from the
-  remote's default branch (for example `origin/main`), or from `--base <ref>` if you give one, so a
-  worker never starts from a stale or unrelated checkout. A repository with no remote starts from its
-  current HEAD. The worktree goes under `~/.herdr/worktrees/`. If no herdr workspace is open for that
-  repository yet, herdr also opens one for its main checkout.
-- If `spawn` fails while starting Claude, the task is left in place so it can be cleaned up: run
-  `remove` before using the same id again.
+- `spawn` needs a branch name that does not exist yet, locally or on a remote; `main`, `master` and
+  `develop` are always refused. It fetches first, then starts the branch from the remote's default
+  branch (for example `origin/main`), or from `--base <ref>` if you give one, so a worker never starts
+  from a stale or unrelated checkout. A repository with no remote starts from its current HEAD; a
+  `--base` that names a local branch is used as it is. If the remote's default branch cannot be found
+  (for example offline), `spawn` stops and asks for `--base` rather than branch from a stale HEAD. The
+  new branch has no upstream, so a plain `git push` from the worker cannot reach the base branch; the
+  worker sets one when it first pushes its own branch. Two spawns in the same repository run one
+  after the other. The worktree goes under `~/.herdr/worktrees/`. If no herdr workspace is open for
+  that repository yet, herdr also opens one for its main checkout.
+- If `spawn` fails while starting Claude, the task is left in place. The usual cause is Claude's
+  folder trust dialog, shown the first time Claude opens a folder; its default answer is "No, exit",
+  so pick "Yes" in the worker's herdr pane, and `prompt` then works. Otherwise run `remove` before
+  using the same id again.
 - `prompt` waits until the worker stops, up to 10 minutes by default (`--timeout <ms>`). It prints only
   the worker's new state; `read` shows what the worker said. When Claude runs the helper for you, its
   Bash tool stops waiting after 2 minutes unless given a longer timeout, so for long work use
   `prompt --no-wait`, which returns as soon as the worker has started, and check back with `read`.
-- `remove` refuses while the worktree has uncommitted or untracked files. The branch stays as a local
-  branch; push it first if you need it elsewhere.
+- `remove` refuses while the worktree has uncommitted or untracked files, or when git cannot read it.
+  Files your `.gitignore` ignores (build output, dependencies, a local `.env`) are deleted with the
+  worktree. The branch stays as a local branch; push it first if you need it elsewhere. It also works after you have closed the worker's
+  herdr workspace yourself.
+- `read` shows the worker's screen even after Claude has exited there; `prompt` then says the worker
+  is no longer running Claude.
 - Task state is kept outside every repository, in `~/.claude/mcv/<project>/tasks/<id>/`; set
-  `MCV_HOME` to keep it elsewhere.
+  `MCV_HOME` to keep it elsewhere (`spawn` passes it on to each worker).
 
 Worker states, as herdr reports them:
 
@@ -157,5 +168,5 @@ to push without being told, workers will not push.
   session's state.
 - mcv keeps the bookkeeping: which task each worker has, its questions and your answers.
 - A worker is marked by the environment variable `MCV_TASK=<project>/<id>`, set only in that worker's
-  Claude process. mcv's hooks act only when `MCV_TASK` is set, so installing mcv does not
-  change your other Claude Code sessions.
+  Claude process. mcv's hooks act only when `MCV_TASK` names a task mcv started, so installing mcv
+  does not change your other Claude Code sessions.

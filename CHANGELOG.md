@@ -12,9 +12,11 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   Decision and scope: CLAUDE.md D19, `plugins/mcv/README.md`.
 - `bin/mcv-herdr.sh`: the helper that does every herdr call — `doctor`, `spawn`, `prompt`, `read`,
   `agents`, `remove`. A worker gets `MCV_TASK=<project>/<id>` through Claude's own `--settings`, so
-  nothing is typed into its shell first. `spawn` refuses a branch that already exists, since herdr
-  would check it out as is, even `main`, and it fetches and branches from the remote's default branch
-  (or `--base <ref>`), so a worker never starts from a stale checkout. `prompt --no-wait` returns as
+  nothing is typed into its shell first. `spawn` refuses a branch that already exists, locally or on
+  a remote, and always `main`/`master`/`develop`, since herdr would check it out as is; it fetches and
+  branches from the remote's default branch (or `--base <ref>`), so a worker never starts from a stale
+  checkout, and clears the upstream git gives the new branch, so a plain `git push` cannot reach the
+  base branch. Spawns in one repository run one at a time. `prompt --no-wait` returns as
   soon as the worker starts, so a caller is never held past Claude Code's 2-minute Bash limit. Checked
   against herdr 0.9.5 on 2026-11-06.
 - Worker git rules, in the text the hooks will inject: a fixed floor (own branch only, no force-push,
@@ -29,7 +31,7 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   tool. Prints only what is worth a coordinator turn: new status-log lines, a worker reaching
   `blocked` or `done`, a vanished worker. Skips `working`/`idle`, the coordinator's own answers, and a
   `done` that a question or report line already announced. Tests: `tests/mcv/test-watch.sh`.
-- `hooks/hooks.json`: two hooks, both silent unless `MCV_TASK` is set. SessionStart gives a worker
+- `hooks/hooks.json`: two hooks, both silent unless `MCV_TASK` names a task mcv started. SessionStart gives a worker
   its rules; PreToolUse refuses AskUserQuestion with directions to `mcv-status needs-decision`.
   Checked in real sessions: a worker received the rules and its AskUserQuestion call was refused; a
   normal session with the plugin loaded was untouched. Tests: `tests/mcv/test-hooks.sh`.
@@ -37,6 +39,13 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   user on first use, starts one watcher, confirms every worker (task id, repo, branch) before starting
   it, labels questions `<task id> #<n>`, checks the worker's screen before sending an answer, and
   never answers questions or approves dialogs for the user.
+- Hardened after an adversarial QA pass (176 cases, then a regression test for each fix): `remove`
+  works after the user closed the worker's workspace; a task id cannot reach outside mcv's state
+  folder; the watcher no longer reports a worker gone while it starts, keeps following a task
+  removed and spawned again under the same id, survives damaged state, and passes log lines on while
+  herdr is down; status-log writes hold a lock, so question ids never repeat; `prompt` and `read`
+  handle a worker whose Claude has exited; `MCV_HOME` reaches the worker; every error is one line.
+  Tests: `tests/mcv/` (200 checks), on macOS bash 3.2 and Ubuntu 24.04.
 - Status: every part is in place and checked on its own; a full run on a real project is still to do.
 
 ### Kit

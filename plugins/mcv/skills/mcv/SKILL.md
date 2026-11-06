@@ -80,9 +80,10 @@ Skip this skill for:
    ```
 4. **Start each worker.** `BIN/mcv-herdr.sh spawn <project> <id> <repo path> <branch>`, adding
    `--base <base>` when the config has one. It prints the task, worktree, branch and base. If it
-   fails, tell the user its one-line reason. If Claude failed to start (for example at a folder
-   trust dialog), `BIN/mcv-herdr.sh read <project>/<id>` shows the screen: describe it, and offer
-   `remove` once the user has dealt with it.
+   fails, tell the user its one-line reason. If Claude failed to start, `BIN/mcv-herdr.sh read
+   <project>/<id>` shows the screen: describe it. Usually it is Claude's folder trust dialog, whose
+   default answer is "No, exit": ask the user to pick "Yes" in the worker's herdr pane, then go on
+   with step 5. If the user does not want it, offer `remove`.
 5. **Send the task.** `BIN/mcv-herdr.sh prompt <project>/<id> "<dispatch, with {task} replaced>"
    --no-wait`. It returns within seconds with the state `working` (or `blocked` if the worker hit a
    dialog at once). Never call `prompt` without `--no-wait`: Claude Code's Bash tool stops waiting
@@ -105,7 +106,10 @@ Each line from the watcher is one event, tab-separated: time, `<project>/<id>`, 
 | `done - <text>` | Report the summary. Ask whether to remove the worker; do not remove it unasked. |
 | `failed - <text>` | Report the reason and ask what to do next. |
 | `note - <text>` | Mention it in one line. |
-| `gone -` | The worker's pane disappeared. Tell the user; its task and branch remain; offer `remove`. |
+| `gone -` | The worker is no longer running Claude: its pane was closed, or Claude exited in it. Tell the user; its task and branch remain; offer `remove`. |
+
+If `prompt` says a worker is not running Claude any more, handle it like `gone -`: `read` its screen
+for what it said last, tell the user, and offer `remove`.
 
 **Labelling questions.** Label each question `<id> #<n>`, with repo and branch after it, so that two
 workers in the same repo never look alike. Keep the worker's recommendation if it gave one.

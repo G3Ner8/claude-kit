@@ -15,21 +15,29 @@
 #       Check that herdr, its server, its Claude integration and jq are ready.
 #   spawn <project> <id> <repo-path> <new-branch> [--base <ref>] [-- <claude-args>...]
 #       Fetch, then create a git worktree of <repo-path> on a branch that must
-#       not exist yet, starting from <ref> (default: the remote's default
+#       not exist yet, locally or on a remote (main, master and develop are
+#       always refused), starting from <ref> (default: the remote's default
 #       branch, e.g. origin/main; a repository with no remote uses its current
-#       HEAD). herdr chooses the folder, under ~/.herdr/worktrees/. Then start
+#       HEAD). The new branch has no upstream until the worker pushes it. One
+#       spawn runs at a time per repository; a second one waits for the
+#       first. herdr chooses the folder, under ~/.herdr/worktrees/. Then start
 #       an idle Claude in it with MCV_TASK=<project>/<id> set. Send it work with `prompt`. Arguments after
 #       `--` go to claude, e.g. -- --permission-mode default. If Claude fails to
-#       start, the task is left in place; run `remove` before reusing the id.
+#       start (for example at the folder trust dialog), the task is left in
+#       place: once the user lets Claude through in its pane, `prompt` works;
+#       otherwise run `remove` before reusing the id. <project>-<id> must not
+#       be the name of another task or herdr agent.
 #   prompt <project>/<id> <text> [--no-wait] [--timeout <ms>]
 #       Send text and wait until the worker stops (default 10 minutes). Prints
 #       only the worker's new state; use `read` to see what it said. Refused
 #       unless the worker is idle or done. With --no-wait, return as soon as
 #       the worker has started (state working, or blocked at a dialog), within
 #       seconds. Without it, when run from Claude Code's Bash tool, give the
-#       tool a timeout longer than --timeout.
+#       tool a timeout longer than --timeout. Says so plainly when Claude has
+#       exited in the worker's pane.
 #   read <project>/<id> [<lines>]
-#       Print the last lines of the worker's terminal (default 80), plain text.
+#       Print the last lines of the worker's terminal (default 80), plain text,
+#       also after Claude has exited there.
 #   agents
 #       Every herdr agent, not only mcv workers, one per line, tab-separated:
 #       pane id, state, a counter that increases on every state change (compare
@@ -37,8 +45,10 @@
 #       workers are named <project>-<id>; "-" when unnamed).
 #   remove <project>/<id>
 #       Close the worker, delete its worktree folder and the task's mcv state.
-#       Refused while the worktree has uncommitted or untracked files. The
-#       branch is kept, as a local branch; push it first if you need it.
+#       Refused while the worktree has uncommitted or untracked files, or git
+#       cannot read it; ignored files are deleted with it. The branch is
+#       kept, as a local branch; push it first if you need it.
+#       Also works after the user has closed the worker's herdr workspace.
 #
 # <project> and <id>: lowercase letters, digits, - and _; <project> starts with
 # a letter; "<project>-<id>" is at most 32 characters (it becomes the herdr
@@ -83,13 +93,41 @@ h() {
   die "herdr $1 ${2:-}: $msg"
 }
 
-# True when version $1 >= version $2 (dotted numbers only).
+# Like h, but sets variables instead of printing or dying: stdout in HOUT;
+# on failure it returns 1, with herdr's error code in HERR_CODE and a
+# one-line message in HERR_MSG. Call it directly, not inside $(...), or the
+# variables are lost with the subshell.
+HOUT=""
+HERR_CODE=""
+HERR_MSG=""
+h_try() {
+  local err
+  err="$(mktemp)"
+  if HOUT="$(herdr "$@" 2>"$err")"; then
+    rm -f "$err"
+    return 0
+  fi
+  HERR_CODE="$(jq -r '.error.code // empty' <"$err" 2>/dev/null || true)"
+  HERR_MSG="$(jq -r '.error | "\(.code): \(.message)"' <"$err" 2>/dev/null || true)"
+  [[ -n "$HERR_CODE" ]] || HERR_MSG="$(head -1 "$err")"
+  rm -f "$err"
+  return 1
+}
+
+# One field of herdr's JSON output, or nothing when the output is not what
+# this script expects, so callers fail with a sentence, not a jq error.
+jfield() { jq -r "$2 // empty" <<<"$1" 2>/dev/null || true; }
+
+# True when version $1 >= version $2. Compares the leading dotted numbers;
+# a suffix such as -beta is ignored.
 version_ge() {
   local IFS=.
-  local -a a=($1) b=($2)
+  local -a a=(${1%%[^0-9.]*}) b=(${2%%[^0-9.]*})
   local i
   for i in 0 1 2; do
     local x="${a[$i]:-0}" y="${b[$i]:-0}"
+    [[ "$x" =~ ^[0-9]+$ ]] || x=0
+    [[ "$y" =~ ^[0-9]+$ ]] || y=0
     (( x > y )) && return 0
     (( x < y )) && return 1
   done
@@ -99,35 +137,86 @@ version_ge() {
 # Resolve "<project>/<id>" to its task folder; die when the task is unknown.
 task_dir() {
   local task="$1"
-  [[ "$task" == */* ]] || die "expected <project>/<id>, got '$task'"
-  local d="$MCV_HOME/${task%%/*}/tasks/${task#*/}"
+  local p="${task%%/*}" i="${task#*/}"
+  # The id becomes a folder that `remove` deletes, so nothing but a valid
+  # name (no "..", no "/") gets that far.
+  [[ "$task" == */* && "$p" =~ $PROJECT_RE && "$i" =~ $ID_RE ]] \
+    || die "expected <project>/<id>, got '$task'"
+  local d="$MCV_HOME/$p/tasks/$i"
   [[ -f "$d/meta" ]] || die "no task '$task' (nothing at $d/meta)"
   printf '%s' "$d"
 }
 
 # die() inside a command substitution only leaves the subshell, so every
-# caller assigns first and exits on failure before using the value.
-agent_of() {
-  local d
-  d="$(task_dir "$1")" || exit 1
-  jq -r '.agent' "$d/meta"
+# caller of task_dir assigns first and exits on failure before using it.
+
+# One spawn at a time per repository. Concurrent fetches and worktree
+# creations race for the lock on the repository's .git/config and fail half
+# way. The lock holds "<pid> <epoch seconds>"; a lock whose pid has exited
+# without releasing it (a crash) is taken over, but only if it is unchanged
+# since it was read and at least 2 seconds old, so a lock another spawn has
+# just taken is never deleted.
+LOCK=""
+lock_repo() {
+  local key l seen pid at i=0
+  key="$(printf '%s' "$1" | cksum | cut -d' ' -f1)"
+  mkdir -p "$MCV_HOME/.locks"
+  l="$MCV_HOME/.locks/$key"
+  until mkdir "$l" 2>/dev/null; do
+    seen="$(cat "$l/pid" 2>/dev/null || true)"
+    read -r pid at <<<"$seen" || true
+    if [[ "$pid" =~ ^[0-9]+$ && "$at" =~ ^[0-9]+$ ]] && (( $(date +%s) - at >= 2 )) \
+      && ! kill -0 "$pid" 2>/dev/null \
+      && [[ "$(cat "$l/pid" 2>/dev/null || true)" == "$seen" ]]; then
+      rm -rf "$l"
+      continue
+    fi
+    (( i++ < 300 )) \
+      || die "another spawn in $1 has held $l for 5 minutes; delete that folder if no spawn is running"
+    sleep 1
+  done
+  LOCK="$l"
+  printf '%s %s\n' "$$" "$(date +%s)" >"$l/pid"
+}
+unlock_repo() {
+  [[ -z "$LOCK" ]] || rm -rf "$LOCK"
+  LOCK=""
 }
 
-agent_status() {
-  h agent get "$1" | jq -r '.result.agent.agent_status'
+# On a failed spawn: release the lock, and delete the branch this spawn
+# created if no worktree holds it (git refuses to delete a checked-out branch,
+# so a branch whose worktree was kept for `remove` stays).
+NEW_ROOT=""
+NEW_BRANCH=""
+spawn_cleanup() {
+  local rc=$?
+  unlock_repo
+  if (( rc != 0 )) && [[ -n "$NEW_BRANCH" ]]; then
+    git -C "$NEW_ROOT" branch -D "$NEW_BRANCH" >/dev/null 2>&1 || true
+  fi
+}
+
+# Remove a worktree herdr just created, then fail.
+abandon_worktree() {
+  herdr worktree remove --workspace "$1" >/dev/null 2>&1 || true
+  shift
+  die "$*"
 }
 
 cmd_doctor() {
   need_herdr_pane
+  [[ $# -eq 0 ]] || die "usage: doctor"
   command -v jq >/dev/null || die "jq not found; install jq"
   command -v herdr >/dev/null || die "herdr not found; install it from https://herdr.dev"
 
   local st client server_status server_version compatible
   st="$(h status --json)"
-  client="$(jq -r '.client.version' <<<"$st")"
-  server_status="$(jq -r '.server.status' <<<"$st")"
-  server_version="$(jq -r '.server.version' <<<"$st")"
-  compatible="$(jq -r '.server.endpoint_compatible' <<<"$st")"
+  client="$(jfield "$st" .client.version)"
+  server_status="$(jfield "$st" .server.status)"
+  server_version="$(jfield "$st" .server.version)"
+  compatible="$(jfield "$st" .server.endpoint_compatible)"
+  [[ -n "$client" && -n "$server_status" ]] \
+    || die "herdr status gave unexpected output; is herdr >= $MIN_HERDR?"
 
   version_ge "$client" "$MIN_HERDR" || die "herdr $client is older than $MIN_HERDR; run: herdr update"
   [[ "$server_status" == running ]] \
@@ -139,7 +228,7 @@ cmd_doctor() {
 
   local integ
   integ="$(h integration status | grep '^claude:' || true)"
-  [[ "$integ" == "claude: current"* ]] \
+  [[ "$integ" =~ ^claude:\ current([[:space:]]|$) ]] \
     || die "herdr's Claude integration is not current (${integ:-missing}); run: herdr integration install claude"
 
   jq -cn --arg c "$client" --arg s "$server_version" \
@@ -151,11 +240,21 @@ cmd_spawn() {
   [[ $# -ge 4 ]] || die "usage: spawn <project> <id> <repo-path> <new-branch> [--base <ref>] [-- <claude-args>...]"
   local project="$1" id="$2" repo="$3" branch="$4" base=""
   shift 4
-  if [[ "${1:-}" == "--base" ]]; then
-    base="${2:?--base needs a ref, e.g. origin/main}"
-    shift 2
-  fi
-  [[ "${1:-}" == "--" ]] && shift
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --base)
+        [[ $# -ge 2 && -n "$2" ]] || die "--base needs a ref, e.g. origin/main"
+        base="$2"
+        shift 2 ;;
+      --) shift; break ;;
+      *) die "unknown option '$1'; Claude's own options go after --" ;;
+    esac
+  done
+  # --branch also expands shorthands such as @{-1}, so the name must come back
+  # unchanged; "@" alone is git's name for HEAD.
+  [[ "$branch" != @ && "$(git check-ref-format --branch "$branch" 2>/dev/null)" == "$branch" ]] \
+    && git check-ref-format "refs/heads/$branch" \
+    || die "'$branch' is not a valid branch name"
 
   [[ "$project" =~ $PROJECT_RE ]] \
     || die "project '$project': use lowercase letters, digits, - and _, starting with a letter"
@@ -166,23 +265,44 @@ cmd_spawn() {
 
   local dir="$MCV_HOME/$project/tasks/$id"
   [[ ! -e "$dir/meta" ]] || die "task $project/$id already exists; pick another id or remove it first"
+  # Different tasks can join to the same name (a-b/c and a/b-c are both
+  # a-b-c), and herdr may already run an agent of that name.
+  local other
+  other="$(grep -lF "\"agent\":\"$name\"" "$MCV_HOME"/*/tasks/*/meta 2>/dev/null | head -1 || true)"
+  [[ -z "$other" ]] \
+    || die "worker name '$name' is taken by task $(jq -r .task "$other"); pick another id"
+  if herdr agent get "$name" >/dev/null 2>&1; then
+    die "herdr already has an agent named '$name'; pick another id"
+  fi
 
   local root
   root="$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" || die "not a git repository: $repo"
 
   # herdr reuses an existing branch without complaint, even main, so a worker
-  # could end up committing to it. Only a branch that does not exist is taken.
+  # could end up committing to it. Only a branch that exists nowhere, locally
+  # or on a remote (checked after the fetch below), is taken.
+  case "$branch" in
+    main|master|develop) die "'$branch' is a shared branch; give the worker a new branch name" ;;
+  esac
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
     die "branch '$branch' already exists in $root; give the worker a new branch name"
   fi
 
+  lock_repo "$root"
+  NEW_ROOT="$root"
+  trap spawn_cleanup EXIT
+
   # Start from the latest remote state, as a person would pull before
   # branching: fetch, then branch from --base, or from the remote's default
-  # branch. A repository with no remote branches from its current HEAD.
-  local remote
+  # branch. A repository with no remote branches from its current HEAD. A
+  # --base that is not on a remote (a local branch) is used as it is.
+  local remote r
   if [[ -z "$base" ]] && git -C "$root" remote get-url origin >/dev/null 2>&1; then
     git -C "$root" remote set-head origin --auto >/dev/null 2>&1 || true
     base="$(git -C "$root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null || true)"
+    # Falling back to the local HEAD here would start a stale branch quietly.
+    [[ -n "$base" ]] \
+      || die "cannot tell origin's default branch in $root (offline?); pass --base <ref>"
   fi
   if [[ -n "$base" ]]; then
     remote="${base%%/*}"
@@ -192,40 +312,71 @@ cmd_spawn() {
     git -C "$root" rev-parse --verify --quiet "$base^{commit}" >/dev/null \
       || die "base '$base' is not a commit in $root"
   fi
+  for r in $(git -C "$root" remote); do
+    if git -C "$root" show-ref --verify --quiet "refs/remotes/$r/$branch"; then
+      die "branch '$branch' already exists on $r; give the worker a new branch name"
+    fi
+  done
 
+  # From here on, a branch named $branch was made by this spawn.
+  NEW_BRANCH="$branch"
   local created ws pane wt linked
   created="$(h worktree create --cwd "$root" --branch "$branch" ${base:+--base "$base"} \
     --label "$name" --no-focus)"
-  ws="$(jq -r '.result.workspace.workspace_id' <<<"$created")"
-  pane="$(jq -r '.result.root_pane.pane_id' <<<"$created")"
-  wt="$(jq -r '.result.worktree.path' <<<"$created")"
-  linked="$(jq -r '.result.workspace.worktree.is_linked_worktree' <<<"$created")"
+  ws="$(jfield "$created" .result.workspace.workspace_id)"
+  pane="$(jfield "$created" .result.root_pane.pane_id)"
+  wt="$(jfield "$created" .result.worktree.path)"
+  linked="$(jfield "$created" .result.workspace.worktree.is_linked_worktree)"
+  [[ -n "$ws" ]] \
+    || die "herdr worktree create gave no workspace id; look in herdr for a workspace labelled $name and close it"
+  [[ -n "$pane" && -n "$wt" && -d "$wt" ]] \
+    || abandon_worktree "$ws" "herdr worktree create gave unexpected output; the worktree was removed"
 
   # A worker must never run in the user's own checkout. A separate worktree
   # has its own git dir, distinct from the repository's shared one.
   local own common
-  own="$(cd "$wt" && cd "$(git rev-parse --git-dir)" && pwd -P)"
-  common="$(cd "$wt" && cd "$(git rev-parse --git-common-dir)" && pwd -P)"
+  own="$(cd "$wt" && cd "$(git rev-parse --git-dir)" && pwd -P)" \
+    || abandon_worktree "$ws" "$wt is not a git worktree; it was removed"
+  common="$(cd "$wt" && cd "$(git rev-parse --git-common-dir)" && pwd -P)" \
+    || abandon_worktree "$ws" "$wt is not a git worktree; it was removed"
   if [[ "$linked" != true || "$own" == "$common" ]]; then
-    herdr worktree remove --workspace "$ws" >/dev/null 2>&1 || true
-    die "refusing: herdr opened $wt, which is the repository's main checkout, not a separate worktree"
+    abandon_worktree "$ws" "refusing: herdr opened $wt, which is the repository's main checkout, not a separate worktree"
   fi
 
+  # The branch is created from a remote-tracking ref, so git makes that ref
+  # its upstream (origin/main). A plain `git push` or `git pull` in the worker
+  # would then target the base branch. The branch has no upstream until the
+  # worker pushes it.
+  git -C "$wt" branch --unset-upstream "$branch" >/dev/null 2>&1 || true
+  if [[ -n "$(git -C "$wt" config "branch.$branch.merge" || true)" ]]; then
+    abandon_worktree "$ws" "could not clear the upstream of '$branch' in $wt"
+  fi
+  unlock_repo
+
+  # While Claude starts, which can take a minute, its pane is not in herdr's
+  # agent list yet; the "starting" marker stops mcv-watch from reporting the
+  # worker gone. It stays if Claude fails to start, until `remove`.
   mkdir -p "$dir"
+  : >"$dir/starting"
   local meta
   meta="$(jq -cn --arg task "$project/$id" --arg agent "$name" --arg ws "$ws" --arg pane "$pane" \
     --arg wt "$wt" --arg repo "$root" --arg branch "$branch" --arg base "${base:-HEAD}" \
     --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     '{task: $task, agent: $agent, workspace_id: $ws, pane_id: $pane, worktree: $wt,
       repo: $repo, branch: $branch, base: $base, created: $created}')"
-  printf '%s\n' "$meta" >"$dir/meta"
+  # Written whole, then renamed, so mcv-watch never reads half a file.
+  printf '%s\n' "$meta" >"$dir/meta.tmp"
+  mv "$dir/meta.tmp" "$dir/meta"
 
   # MCV_TASK goes in through Claude's own settings, not the pane's shell, so
-  # nothing is typed into the shell before Claude starts.
+  # nothing is typed into the shell before Claude starts. MCV_HOME goes with
+  # it: the worker's environment comes from herdr, not from this session, and
+  # its status log must land where this session's watcher looks.
   local settings
-  settings="$(jq -cn --arg t "$project/$id" '{env: {MCV_TASK: $t}}')"
+  settings="$(jq -cn --arg t "$project/$id" --arg h "$MCV_HOME" '{env: {MCV_TASK: $t, MCV_HOME: $h}}')"
   h agent start "$name" --kind claude --pane "$pane" --timeout 60000 \
     -- --settings "$settings" ${1+"$@"} >/dev/null
+  rm -f "$dir/starting"
 
   jq -c '{task, agent, worktree, branch, base}' <<<"$meta"
 }
@@ -238,54 +389,98 @@ cmd_prompt() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --no-wait) nowait=1; shift ;;
-      --timeout) timeout="${2:?--timeout needs a value in ms}"; shift 2 ;;
+      --timeout)
+        [[ $# -ge 2 && "$2" =~ ^[1-9][0-9]*$ ]] || die "--timeout needs a number of milliseconds"
+        timeout="$2"
+        shift 2 ;;
       *) die "unknown option '$1'" ;;
     esac
   done
 
-  local name status
-  name="$(agent_of "$task")" || exit 1
-  status="$(agent_status "$name")" || exit 1
+  local d name status
+  d="$(task_dir "$task")" || exit 1
+  name="$(jfield "$(cat "$d/meta")" .agent)"
+  [[ -n "$name" ]] || die "task $task has a damaged meta file ($d/meta)"
+  # When Claude exits in its pane, herdr either drops the agent
+  # (agent_not_found) or still lists it as done but refuses prompts
+  # (agent_not_ready). Both mean the same to the coordinator.
+  local gone_msg="worker $task is not running Claude any more (it exited, or never finished starting); read its screen, then remove it"
+  if ! h_try agent get "$name"; then
+    [[ "$HERR_CODE" != agent_not_found ]] || die "$gone_msg"
+    die "herdr agent get: $HERR_MSG"
+  fi
+  status="$(jfield "$HOUT" .result.agent.agent_status)"
+  [[ -n "$status" ]] || die "herdr agent get gave unexpected output"
   [[ "$status" == idle || "$status" == done ]] \
     || die "worker $task is $status; prompt is only sent to a worker that has stopped (idle or done)"
 
-  if [[ -n "$nowait" ]]; then
-    # Return as soon as the worker has started (or stopped at a dialog);
-    # herdr itself fails the call if neither happens within 5 seconds.
-    h agent prompt "$name" "$text" --wait --until working --until blocked --timeout 15000 \
-      | jq -c '{state: .result.agent.agent_status}'
-  else
-    h agent prompt "$name" "$text" --wait --timeout "$timeout" \
-      | jq -c '{state: .result.agent.agent_status}'
+  # Return as soon as the worker has started (or stopped at a dialog); herdr
+  # fails the call if neither happens within 15 seconds.
+  local -a waitopts=(--timeout "$timeout")
+  [[ -z "$nowait" ]] || waitopts=(--until working --until blocked --timeout 15000)
+  if ! h_try agent prompt "$name" "$text" --wait "${waitopts[@]}"; then
+    [[ "$HERR_CODE" != agent_not_ready ]] || die "$gone_msg"
+    die "herdr agent prompt: $HERR_MSG"
   fi
+  # A worker that failed to start (e.g. at a trust dialog) and was then let
+  # through by the user has started after all.
+  rm -f "$d/starting"
+  status="$(jfield "$HOUT" .result.agent.agent_status)"
+  jq -cn --arg s "${status:-unknown}" '{state: $s}'
 }
 
 cmd_read() {
   need_herdr_pane
-  [[ $# -ge 1 ]] || die "usage: read <project>/<id> [<lines>]"
-  local name
-  name="$(agent_of "$1")" || exit 1
-  h agent read "$name" --source recent-unwrapped --lines "${2:-80}"
+  [[ $# -ge 1 && $# -le 2 ]] || die "usage: read <project>/<id> [<lines>]"
+  [[ "${2:-80}" =~ ^[1-9][0-9]*$ ]] || die "lines must be a number, got '$2'"
+  # Read the pane, not the agent: the screen stays readable after Claude has
+  # exited and herdr has dropped the agent.
+  local d pane
+  d="$(task_dir "$1")" || exit 1
+  pane="$(jfield "$(cat "$d/meta")" .pane_id)"
+  [[ -n "$pane" ]] || die "task $1 has a damaged meta file ($d/meta)"
+  h pane read "$pane" --source recent-unwrapped --lines "${2:-80}"
 }
 
 cmd_agents() {
   need_herdr_pane
-  h agent list | jq -r '.result.agents[]
-    | [.pane_id, .agent_status, (.state_change_seq // 0 | tostring), (.name // "-")] | @tsv'
+  [[ $# -eq 0 ]] || die "usage: agents"
+  local out
+  out="$(h agent list)"
+  jq -r '.result.agents[]
+    | [.pane_id, .agent_status, (.state_change_seq // 0 | tostring), (.name // "-")] | @tsv' \
+    <<<"$out" 2>/dev/null || die "herdr agent list gave unexpected output"
 }
 
 cmd_remove() {
   need_herdr_pane
   [[ $# -eq 1 ]] || die "usage: remove <project>/<id>"
-  local dir wt ws branch
+  local dir m wt ws branch repo
   dir="$(task_dir "$1")" || exit 1
-  wt="$(jq -r '.worktree' "$dir/meta")"
-  ws="$(jq -r '.workspace_id' "$dir/meta")"
-  branch="$(jq -r '.branch' "$dir/meta")"
-  if [[ -d "$wt" && -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]]; then
-    die "refusing: $wt has uncommitted changes; commit or discard them first"
+  m="$(cat "$dir/meta")"
+  wt="$(jfield "$m" .worktree)"
+  ws="$(jfield "$m" .workspace_id)"
+  branch="$(jfield "$m" .branch)"
+  repo="$(jfield "$m" .repo)"
+  [[ -n "$wt" && -n "$ws" && -n "$repo" ]] || die "task $1 has a damaged meta file ($dir/meta)"
+  # Unsure counts as dirty: a worktree git cannot read is not deleted.
+  if [[ -d "$wt" ]]; then
+    local st
+    st="$(git -C "$wt" status --porcelain 2>/dev/null)" \
+      || die "refusing: git cannot read the state of $wt; check it by hand"
+    [[ -z "$st" ]] || die "refusing: $wt has uncommitted changes; commit or discard them first"
   fi
-  h worktree remove --workspace "$ws" >/dev/null
+  # When the user has already closed the worker's herdr workspace, herdr no
+  # longer knows the worktree; git removes it instead.
+  if ! h_try worktree remove --workspace "$ws"; then
+    [[ "$HERR_CODE" == workspace_not_found ]] || die "herdr worktree remove: $HERR_MSG"
+    if [[ -d "$wt" ]]; then
+      git -C "$repo" worktree remove "$wt" 2>/dev/null \
+        || die "herdr no longer knows workspace $ws, and git could not remove $wt"
+    else
+      git -C "$repo" worktree prune 2>/dev/null || true
+    fi
+  fi
   rm -rf "$dir"
   jq -cn --arg b "$branch" '{removed: true, branch_kept: $b}'
 }

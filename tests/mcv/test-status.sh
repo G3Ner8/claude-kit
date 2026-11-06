@@ -31,6 +31,20 @@ expect "nothing written without MCV_TASK" '[[ -z "$(ls -A "$home")" ]]'
 
 export MCV_HOME="$home" MCV_TASK=shop/t1
 
+# A task that does not exist (no meta) is not a worker: kinds refuse, hooks
+# stay silent, nothing is written.
+out="$("$S" note hi 2>&1)"; rc=$?
+expect "worker kind for a task with no meta exits 1" '[[ $rc -eq 1 && "$out" == *"no task"* ]]' "rc=$rc $out"
+for t in shop/t1 garbage "shop/../x" "SHOP/t1" "shop/t1/x"; do
+  out="$(MCV_TASK="$t" "$S" --contract 2>&1)$(MCV_TASK="$t" "$S" --deny-ask 2>&1)"; rc=$?
+  expect "hooks silent for MCV_TASK '$t' with no task behind it" '[[ $rc -eq 0 && -z "$out" ]]' "rc=$rc $out"
+done
+expect "nothing written for a task with no meta" '[[ -z "$(ls -A "$home")" ]]'
+
+# The task as spawn leaves it.
+mkdir -p "$home/shop/tasks/t1"
+echo '{}' >"$home/shop/tasks/t1/meta"
+
 # Question numbering.
 q1="$("$S" needs-decision "Which login flow?")"
 q2="$("$S" needs-decision "Keep the old route?")"
@@ -85,7 +99,7 @@ expect "contract forbids AskUserQuestion" '[[ "$ctx" == *"AskUserQuestion"* ]]'
 expect "contract says to end the turn" '[[ "$ctx" == *"end your turn"* ]]'
 expect "contract keeps AskUserQuestion off even when the user types directly" \
   '[[ "$ctx" == *"outranks the coordinator. Even then"*"never AskUserQuestion"* ]]'
-expect "contract without meta names no branch" '[[ "$ctx" == *"the branch you started on"* ]]'
+expect "contract with no branch in meta names none" '[[ "$ctx" == *"the branch you started on"* ]]'
 expect "contract forbids force-push" '[[ "$ctx" == *"Never force-push"* ]]'
 expect "contract defers to project git rules" '[[ "$ctx" == *"they win"* ]]'
 printf '{"branch":"fix/login"}\n' >"$home/shop/tasks/t1/meta"
@@ -98,6 +112,51 @@ expect "--deny-ask denies" '[[ "$(jq -r .hookSpecificOutput.permissionDecision <
 reason="$(jq -r .hookSpecificOutput.permissionDecisionReason <<<"$d")"
 expect "deny reason gives the mcv-status path" '[[ "$reason" == *"$S"* ]]'
 expect "deny reason names needs-decision" '[[ "$reason" == *"needs-decision"* ]]'
+
+# Question ids are q<n>, matched literally: no regex, no forged lines.
+for q in "q." "q1.*" "$(printf 'q1\nanswered')" "x1" "q0"; do
+  env -u MCV_TASK "$S" --task shop/t1 answered "$q" "x" >/dev/null 2>&1; rc=$?
+  expect "answered refuses question id '$(printf '%s' "$q" | tr '\n' ' ')'" '[[ $rc -eq 1 ]]' "rc=$rc"
+done
+expect "no forged line in the log" '! grep -q "^answered" "$log"'
+
+# Concurrent writers: question numbers never repeat, a question is answered
+# once, long lines never interleave.
+mkdir -p "$home/shop/tasks/t2"
+echo '{}' >"$home/shop/tasks/t2/meta"
+log2="$home/shop/tasks/t2/status.log"
+for i in $(seq 1 20); do MCV_TASK=shop/t2 "$S" needs-decision "question $i" >"$home/q$i" & done
+wait
+ids="$(cat "$home"/q* | sort | uniq | wc -l | tr -d ' ')"
+expect "20 concurrent questions get 20 different ids" '[[ "$ids" -eq 20 ]]' "$(cat "$home"/q* | sort | tr '\n' ' ')"
+rm -f "$home"/q*
+for i in $(seq 1 5); do env -u MCV_TASK "$S" --task shop/t2 answered q3 "answer $i" >/dev/null 2>&1 & done
+wait
+expect "5 concurrent answers to one question: one recorded" \
+  '[[ "$(cut -f2,3 "$log2" | grep -c "^answered"$'"'"'\t'"'"'"q3$")" -eq 1 ]]'
+big="$(printf 'x%.0s' $(seq 1 20000))"
+for i in $(seq 1 8); do MCV_TASK=shop/t2 "$S" note "$i$big" & done
+wait
+expect "8 concurrent 20 KB lines: each line whole" \
+  '[[ "$(awk -F"\t" "NF == 4 && \$2 == \"note\" && \$4 ~ /^[1-8]x+\$/ && length(\$4) == 20001" "$log2" | wc -l | tr -d " ")" -eq 8 ]]'
+expect "no lock left behind" '[[ ! -e "$log2.lock" ]]'
+
+# A lock left by a writer that died is taken over.
+sleep 0 & dead=$!
+wait "$dead"
+mkdir "$log2.lock" && echo "$dead $(( $(date +%s) - 60 ))" >"$log2.lock/pid"
+MCV_TASK=shop/t2 "$S" note "after a stale lock" >/dev/null 2>&1; rc=$?
+expect "a stale lock is taken over" '[[ $rc -eq 0 && "$(tail -1 "$log2")" == *"after a stale lock" ]]' "rc=$rc"
+
+# A lock just taken (under 2 seconds old) is never taken over, even when its
+# pid has exited: that pid may have just released it to another writer.
+mkdir "$log2.lock" && echo "$dead $(date +%s)" >"$log2.lock/pid"
+( sleep 1; echo "released by holder" >>"$log2"; rm -rf "$log2.lock" ) &
+MCV_TASK=shop/t2 "$S" note "after a fresh lock" >/dev/null 2>&1; rc=$?
+wait
+expect "a fresh lock is waited for, not taken over" \
+  '[[ $rc -eq 0 && "$(tail -2 "$log2" | head -1)" == "released by holder" && "$(tail -1 "$log2")" == *"after a fresh lock" ]]' \
+  "rc=$rc $(tail -2 "$log2")"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

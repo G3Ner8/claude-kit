@@ -13,6 +13,7 @@
 #   <time> <project>/<id> state done            a worker's turn ended (see below)
 #   <time> <project>/<id> <kind> <qid|-> <text> a new line in the worker's status log
 #   <time> <project>/<id> gone -                the worker's pane is no longer there
+#                                               (not while spawn is still starting it)
 #
 # Not printed: changes to working, idle or unknown; the coordinator's own
 # "answered" lines; anything already in a log when the watcher starts.
@@ -20,6 +21,10 @@
 # previous state event was needs-decision, blocked, done or failed, because
 # that line already woke the coordinator. A turn that ends with no log line,
 # or after only a note, does print it: then the coordinator reads the screen.
+#
+# While herdr fails, log lines are still printed and worker states wait; one
+# warning goes to stderr per outage. A task whose meta cannot be read is
+# skipped until it can.
 #
 # Environment: MCV_HOME (default ~/.claude/mcv), MCV_WATCH_INTERVAL,
 # MCV_WATCH_STATE (state folder; a temporary one when not set, except with
@@ -41,17 +46,32 @@ usage() {
 project="${1:-}"
 [[ "$project" =~ ^[a-z][a-z0-9_-]*$ ]] || usage "expected a project name"
 once=""
-[[ "${2:-}" == "--once" ]] && once=1
+case "$#:${2:-}" in
+  1:) ;;
+  2:--once) once=1 ;;
+  *) usage "unexpected arguments: ${*:2}" ;;
+esac
+[[ "$INTERVAL" =~ ^[0-9]+(\.[0-9]+)?$ && ! "$INTERVAL" =~ ^0+(\.0+)?$ ]] \
+  || usage "MCV_WATCH_INTERVAL must be a number of seconds above 0, got '$INTERVAL'"
 tasks="$MCV_HOME/$project/tasks"
 
-# One poll. Per task, the state folder keeps one line:
-#   <last state> <last change counter> <log lines read> <kind of last printed log line> <gone 0|1>
+# One poll. The state folder has one subfolder per project, so watchers of
+# two projects can share it; per task it keeps one line:
+#   <pane> <last state> <last change counter> <log lines read> <kind of last printed log line> <gone 0|1>
+# The pane names the task's current worker: a task removed and spawned again
+# under the same id, even within one poll, gets a new pane and a fresh start.
 poll() {
-  local dir="$1" first=0 agents
+  local dir="$1/$project" first=0 agents herdr_ok=1
+  mkdir -p "$dir"
   [[ -e "$dir/.started" ]] || first=1
+  # The status logs do not need herdr, so their lines are still passed on
+  # while herdr fails; only worker states wait. One warning per outage.
   if ! agents="$("$HERDR" agents 2>&1)"; then
-    printf 'mcv-watch: %s\n' "$agents" >&2
-    return 0
+    herdr_ok=0
+    [[ -e "$dir/.herdr-down" ]] || printf 'mcv-watch: worker states unavailable: %s\n' "$agents" >&2
+    : >"$dir/.herdr-down"
+  else
+    rm -f "$dir/.herdr-down"
   fi
 
   local f
@@ -65,22 +85,38 @@ poll() {
     local id task pane log sf
     id="$(basename "$(dirname "$meta")")"
     task="$project/$id"
-    pane="$(jq -r '.pane_id' "$meta")"
+    # An unreadable meta (being written, or damaged) skips the task this
+    # poll instead of stopping the watcher.
+    pane="$(jq -r '.pane_id // empty' "$meta" 2>/dev/null || true)"
+    [[ "$pane" =~ ^[^[:space:]]+$ ]] || continue
     log="$(dirname "$meta")/status.log"
     sf="$dir/$id"
 
-    local prev=- prev_seq=- offset=0 lastkind=- gone=0 new=0
+    local spane=- prev=- prev_seq=- offset=0 lastkind=- gone=0 new=1 damaged=0
     if [[ -f "$sf" ]]; then
-      read -r prev prev_seq offset lastkind gone <"$sf"
-    else
-      new=1
+      read -r spane prev prev_seq offset lastkind gone <"$sf" || true
+      if [[ ! "$offset" =~ ^[0-9]+$ || ! "$gone" =~ ^[01]$ || -z "$lastkind" ]]; then
+        damaged=1
+      elif [[ "$spane" == "$pane" ]]; then
+        new=0
+      fi
+      if (( new )); then
+        prev=- prev_seq=- offset=0 lastkind=- gone=0
+      fi
     fi
 
     local lines=0
     [[ -f "$log" ]] && lines="$(wc -l <"$log" | tr -d ' ')"
     # On the watcher's first poll, old lines are history, not events. A task
-    # first seen later is new, so its log is followed from the start.
-    (( new && first )) && offset="$lines"
+    # first seen later is new, so its log is followed from the start. A
+    # damaged state line cannot say what was read; skip to the end rather
+    # than repeat questions already answered.
+    if (( (new && first) || damaged )); then
+      offset="$lines"
+    fi
+    (( damaged )) && printf 'mcv-watch: %s: state was damaged; following its log from now on\n' "$task" >&2
+    # A log shorter than what was read was started again.
+    (( lines < offset )) && offset=0
 
     if (( lines > offset )); then
       local ts kind qid text
@@ -93,11 +129,21 @@ poll() {
     fi
 
     local row status seq now
+    if (( ! herdr_ok )); then
+      printf '%s %s %s %s %s %s\n' "$pane" "$prev" "$prev_seq" "$offset" "$lastkind" "$gone" >"$sf"
+      continue
+    fi
     row="$(awk -F'\t' -v p="$pane" '$1 == p { print $2 " " $3; exit }' <<<"$agents")"
     now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     if [[ -z "$row" ]]; then
-      (( gone )) || printf '%s\t%s\tgone\t-\n' "$now" "$task"
-      gone=1
+      # A worker still starting (spawn's marker) that has never been seen in
+      # the agent list is not gone yet.
+      if [[ -e "$(dirname "$meta")/starting" && "$prev" == - ]]; then
+        :
+      else
+        (( gone )) || printf '%s\t%s\tgone\t-\n' "$now" "$task"
+        gone=1
+      fi
     else
       gone=0
       status="${row%% *}"
@@ -116,7 +162,7 @@ poll() {
       prev_seq="$seq"
     fi
 
-    printf '%s %s %s %s %s\n' "$prev" "$prev_seq" "$offset" "$lastkind" "$gone" >"$sf"
+    printf '%s %s %s %s %s %s\n' "$pane" "$prev" "$prev_seq" "$offset" "$lastkind" "$gone" >"$sf"
   done
 
   touch "$dir/.started"

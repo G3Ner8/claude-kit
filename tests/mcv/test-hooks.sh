@@ -44,7 +44,15 @@ for name in SessionStart PreToolUse; do
 done
 expect "no state written by unset hooks" '[[ -z "$(ls -A "$home")" ]]'
 
-# Set: the hooks do their job.
+# Set, but to no task spawn created: still silent.
+for t in acme/t1 garbage; do
+  out="$(run MCV_TASK="$t" sh -c "$session_cmd; $pre_cmd" </dev/null 2>&1)"; rc=$?
+  expect "hooks with MCV_TASK '$t' and no task: silent, exit 0" '[[ $rc -eq 0 && -z "$out" ]]' "rc=$rc $out"
+done
+
+# Set to a task: the hooks do their job.
+mkdir -p "$home/acme/tasks/t1"
+echo '{"branch":"fix/x"}' >"$home/acme/tasks/t1/meta"
 out="$(run MCV_TASK=acme/t1 sh -c "$session_cmd" </dev/null)"
 expect "SessionStart with MCV_TASK: worker rules as SessionStart context" \
   '[[ "$(jq -r .hookSpecificOutput.hookEventName <<<"$out" 2>/dev/null)" == SessionStart ]]' "$out"
