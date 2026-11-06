@@ -46,6 +46,16 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   herdr is down; status-log writes hold a lock, so question ids never repeat; `prompt` and `read`
   handle a worker whose Claude has exited; `MCV_HOME` reaches the worker; every error is one line.
   Tests: `tests/mcv/` (200 checks), on macOS bash 3.2 and Ubuntu 24.04.
+- What a worker gets beyond its worktree: `spawn --context <folder>` opens the project folder around
+  the repository to it (`--add-dir`, with that folder's CLAUDE.md, CLAUDE.local.md and skills
+  loaded), denies Claude's file edits there and tells the worker it is read-only; a repository's
+  `.worktreeinclude` names ignored files (a test account's `.env`) to copy in, decided by the
+  worktree's own git so nothing committed is overwritten. Config gains `context` and `max_workers`
+  (default 2); the coordinator proposes `base` when the remote's default branch is not where work
+  starts, and writes into each task the facts the worker cannot find itself. Branch names are
+  compared ignoring case, since on macOS a branch `MAIN` could move `main`. Checked with real
+  workers: workspace notes, skills and copied files arrive; an edit in the context is refused.
+  Tests: `tests/mcv/` (266 checks). README: "What a worker has".
 - Status: every part is in place and checked on its own; a full run on a real project is still to do.
 
 ### Kit

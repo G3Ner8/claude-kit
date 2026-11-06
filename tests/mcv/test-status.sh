@@ -106,6 +106,23 @@ printf '{"branch":"fix/login"}\n' >"$home/shop/tasks/t1/meta"
 ctx="$("$S" --contract | jq -r .hookSpecificOutput.additionalContext)"
 expect "contract names the worker's branch from meta" '[[ "$ctx" == *"Work only on \`fix/login\`"* ]]'
 
+expect "contract without context has no context rule" '[[ "$ctx" != *"opened for you to read"* ]]'
+
+# With a context: a read-only rule, and ../ explained when the repo sits in it.
+mkdir -p "$home/proj/app"
+proj="$(cd "$home/proj" && pwd -P)"
+printf '{"branch":"fix/login","context":"%s","repo":"%s/app"}\n' "$proj" "$proj" >"$home/shop/tasks/t1/meta"
+ctx="$("$S" --contract | jq -r .hookSpecificOutput.additionalContext)"
+expect "contract names the context folder as read-only" \
+  '[[ "$ctx" == *"$proj is the project around this repository"*"Never write, move or delete anything there"* ]]' "$ctx"
+expect "contract maps ../ to the context when the repo sits in it" \
+  '[[ "$ctx" == *"may use ../<path>; from this worktree that means $proj/<path>"* ]]' "$ctx"
+printf '{"branch":"fix/login","context":"%s","repo":"/elsewhere/app"}\n' "$proj" >"$home/shop/tasks/t1/meta"
+ctx="$("$S" --contract | jq -r .hookSpecificOutput.additionalContext)"
+expect "no ../ line when the repo is not directly in the context" \
+  '[[ "$ctx" == *"opened for you to read"* && "$ctx" != *"may use ../"* ]]' "$ctx"
+printf '{"branch":"fix/login"}\n' >"$home/shop/tasks/t1/meta"
+
 d="$("$S" --deny-ask)"
 expect "--deny-ask is JSON" 'jq -e . <<<"$d" >/dev/null'
 expect "--deny-ask denies" '[[ "$(jq -r .hookSpecificOutput.permissionDecision <<<"$d")" == deny ]]'

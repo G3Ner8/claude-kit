@@ -41,20 +41,39 @@ Skip this skill for:
    confirm it. Schema:
 
    ```json
-   { "project":  "<short-name>",
-     "repos":    { "<repo-name>": "<repo path, relative to the project root>" },
-     "dispatch": "<text sent to a new worker; {task} is replaced with the task>",
-     "base":     "<optional: the ref workers branch from, e.g. origin/develop>" }
+   { "project":     "<short-name>",
+     "repos":       { "<repo-name>": "<repo path, relative to the project root>" },
+     "dispatch":    "<text sent to a new worker; {task} is replaced with the task>",
+     "base":        "<optional: the ref workers branch from, e.g. origin/develop>",
+     "context":     "<optional: a folder, relative to the project root, workers may read>",
+     "max_workers": 2 }
    ```
 
-   Building it: propose `project` from the folder name, lowercase, letters, digits and `-` only,
-   at most 12 characters (it prefixes every worker name, and herdr allows 32 in all). Propose
-   `repos`: this folder if it is a git repository, plus every subfolder that is a git repository with
-   its own `.claude/` folder; list other git subfolders as "not included" so the user can add them.
-   Propose `dispatch` as `{task}` unless the project's CLAUDE.md names a command for starting work.
-   Leave `base` out unless the user names one (workers then branch from the remote's default
-   branch). Show the whole file, write it only after the user agrees, and mention it is personal
-   until they choose to commit it.
+   Building it, one field at a time:
+   - `project`: from the folder name, lowercase, letters, digits and `-` only, at most 12
+     characters (it prefixes every worker name, and herdr allows 32 in all).
+   - `repos`: this folder if it is a git repository, plus every subfolder that is a git repository
+     with its own `.claude/` folder; list other git subfolders as "not included" so the user can add
+     them. When this folder is a repository that only holds the others (plans, docs), say so and
+     propose leaving it out.
+   - `dispatch`: `{task}` unless the project's CLAUDE.md names a command for starting work.
+   - `base`: for each repo, compare the remote's default branch (`git symbolic-ref --short
+     refs/remotes/origin/HEAD`) with the branch its CLAUDE.md or CONTRIBUTING says work starts from,
+     and with whether `origin/develop` exists. If they differ (the remote's default is `main` and
+     work starts from `develop`, say), propose `base` and say why in one line: without it, workers
+     branch from the remote's default branch. If the repos disagree with each other, say that one
+     `base` cannot serve them all and suggest one coordinator per repo.
+   - `context`: only when the repos are subfolders of this one. Propose `"."` and explain in one
+     line: workers then also read this folder's CLAUDE.md, CLAUDE.local.md and skills, which they
+     otherwise lose because their worktrees live elsewhere. The user may decline if that file is
+     too broad for the workers; then you pass them what they need in the task text instead.
+   - `max_workers`: 2. Each worker is a full Claude Code session; more at once costs more usage and
+     machine, and their test runs compete.
+
+   Show the whole file, write it only after the user agrees, and mention it is personal until they
+   choose to commit it. If a repo has files the workers need that git ignores (a test account's
+   `.env`, say), tell the user they can list them in a `.worktreeinclude` file at that repo's root
+   (`.gitignore` syntax); `spawn` copies them into each worktree.
 4. **One watcher is running.** If you have not started it in this session, start it with the Monitor
    tool: `BIN/mcv-watch <project>`. Never start a second one for the same project.
 
@@ -69,26 +88,37 @@ Skip this skill for:
    digits and `-`, unique in this project, and short enough that `<project>-<id>` is at most 32
    characters. Pick a new branch name following the project's own convention if its CLAUDE.md or
    CONTRIBUTING has one, else `fix/<id>` for a fix and `feat/<id>` for anything else.
-3. **Confirm before starting.** Show every worker you are about to start and wait for a yes. The
-   user may rename ids or branches here.
+3. **Write the task so the worker can do it without you.** The worker sees its own repo, plus the
+   `context` folder if the config has one, and nothing of this conversation. Put in the task text
+   the facts it needs that it cannot find there: a decision the user made, an endpoint and its
+   shape, the absolute path of a sibling repo it should read (a `../other-repo` written in its
+   repo's notes does not resolve from a worktree), a related branch. Facts, not a pointer to read a
+   whole file.
+4. **Confirm before starting.** Show every worker you are about to start and wait for a yes. The
+   user may rename ids or branches here. If more would be working at once than `max_workers`
+   (default 2), say which wait, and start them in this order as earlier ones report `done`,
+   `failed` or `gone` or are removed. The queue lives only in this conversation; tell the user so.
 
    ```
-   Starting 2 workers:
+   Starting 2 workers, 1 waiting:
      login-fix    -> admin, branch fix/login        task: fix the redirect after login
      export-csv   -> admin, branch feat/export-csv  task: add a CSV export button
+     order-pdf    -> admin, branch feat/order-pdf   (waits for one of the above)
    OK? (names can be changed)
    ```
-4. **Start each worker.** `BIN/mcv-herdr.sh spawn <project> <id> <repo path> <branch>`, adding
-   `--base <base>` when the config has one. It prints the task, worktree, branch and base. If it
+5. **Start each worker.** `BIN/mcv-herdr.sh spawn <project> <id> <repo path> <branch>`, adding
+   `--base <base>` when the config has one and `--context <absolute path of context>` when it has
+   one, except for a repo that is the context folder itself (the project root listed among `repos`):
+   it already has that folder's notes, and `spawn` refuses a context inside the repository. It prints the task, worktree, branch, base, context and the files it copied. If it
    fails, tell the user its one-line reason. If Claude failed to start, `BIN/mcv-herdr.sh read
    <project>/<id>` shows the screen: describe it. Usually it is Claude's folder trust dialog, whose
    default answer is "No, exit": ask the user to pick "Yes" in the worker's herdr pane, then go on
-   with step 5. If the user does not want it, offer `remove`.
-5. **Send the task.** `BIN/mcv-herdr.sh prompt <project>/<id> "<dispatch, with {task} replaced>"
+   with step 6. If the user does not want it, offer `remove`.
+6. **Send the task.** `BIN/mcv-herdr.sh prompt <project>/<id> "<dispatch, with {task} replaced>"
    --no-wait`. It returns within seconds with the state `working` (or `blocked` if the worker hit a
    dialog at once). Never call `prompt` without `--no-wait`: Claude Code's Bash tool stops waiting
    after 2 minutes.
-6. Tell the user the workers are running, and carry on with the conversation. The watcher wakes you.
+7. Tell the user the workers are running, and carry on with the conversation. The watcher wakes you.
 
 The worker's own rules (how to ask, git rules, staying in its worktree) reach it through mcv's
 hooks. Do not repeat them in the task text.
@@ -103,10 +133,10 @@ Each line from the watcher is one event, tab-separated: time, `<project>/<id>`, 
 | `blocked - <text>` (a log line) | The worker says it cannot continue. Tell the user why and ask what to do. |
 | `state blocked` | The worker stopped at a dialog on its screen. `read` it, describe in plain words what it wants (which command, which file, which question), and ask the user. Never approve it yourself; in this version the user approves or denies in the worker's herdr pane. |
 | `state done` | The worker's turn ended without a report. `read` its screen and summarise what it said. If it asked something in plain text, relay that as a question labelled `<id> (on screen)`. |
-| `done - <text>` | Report the summary. Ask whether to remove the worker; do not remove it unasked. |
-| `failed - <text>` | Report the reason and ask what to do next. |
+| `done - <text>` | Report the summary. Ask whether to remove the worker; do not remove it unasked. Start the next waiting worker, if any. |
+| `failed - <text>` | Report the reason and ask what to do next. Start the next waiting worker, if any. |
 | `note - <text>` | Mention it in one line. |
-| `gone -` | The worker is no longer running Claude: its pane was closed, or Claude exited in it. Tell the user; its task and branch remain; offer `remove`. |
+| `gone -` | The worker is no longer running Claude: its pane was closed, or Claude exited in it. Tell the user; its task and branch remain; offer `remove`. Start the next waiting worker, if any. |
 
 If `prompt` says a worker is not running Claude any more, handle it like `gone -`: `read` its screen
 for what it said last, tell the user, and offer `remove`.
@@ -144,7 +174,9 @@ Report per worker: id, repo and branch, state, open questions.
 
 ## Verification
 
-- After `spawn`: the printed JSON has the task, branch and base you confirmed with the user.
+- After `spawn`: the printed JSON has the task, branch and base you confirmed with the user, and
+  the context the config names.
+- At no time are more than `max_workers` workers working.
 - After `prompt --no-wait`: the state is `working`, or `blocked` (then handle it as a dialog).
 - After every answer: the task's log has an `answered` line for that question id.
 - Before the user leaves: list any worker still running and any open question.

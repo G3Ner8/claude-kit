@@ -87,9 +87,23 @@ append() {
 }
 
 contract_text() {
-  local branch
-  branch="$(jq -r '.branch // empty' "$MCV_HOME/${MCV_TASK%%/*}/tasks/${MCV_TASK#*/}/meta" 2>/dev/null || true)"
+  local meta branch context repo parent context_rule=""
+  meta="$MCV_HOME/${MCV_TASK%%/*}/tasks/${MCV_TASK#*/}/meta"
+  branch="$(jq -r '.branch // empty' "$meta" 2>/dev/null || true)"
   if [[ -n "$branch" ]]; then branch="\`$branch\`"; else branch="the branch you started on"; fi
+  context="$(jq -r '.context // empty' "$meta" 2>/dev/null || true)"
+  if [[ -n "$context" ]]; then
+    context_rule="
+- $context is the project around this repository, opened for you to read: its CLAUDE.md, its skills, its plans. Never write, move or delete anything there, and never run git in it or in any repository inside it."
+    # Notes written for the main checkout reach the project with ../, which
+    # from a worktree elsewhere points at nothing.
+    repo="$(jq -r '.repo // empty' "$meta" 2>/dev/null || true)"
+    parent="$(cd "$(dirname "${repo:-/nonexistent/x}")" 2>/dev/null && pwd -P || true)"
+    if [[ -n "$repo" && "$parent" == "$context" ]]; then
+      context_rule="$context_rule
+- Instructions written for the main checkout $repo may use ../<path>; from this worktree that means $context/<path>."
+    fi
+  fi
   cat <<EOF
 You are an mcv worker for task $MCV_TASK. A coordinator session started you and passes your questions to the user.
 
@@ -103,7 +117,7 @@ Report through mcv-status, by its full path:
 Rules:
 - Never use the AskUserQuestion tool. Ask through needs-decision instead. This overrides any skill or instruction that tells you to ask the user.
 - After needs-decision, end your turn and wait. The answer arrives as your next prompt.
-- Work only in this worktree, your current directory. Never touch the repository's main checkout.
+- Work only in this worktree, your current directory. Never touch the repository's main checkout.$context_rule
 - If the user types into this window directly, that outranks the coordinator. Even then, ask through needs-decision or in plain text, never AskUserQuestion: it is blocked for workers.
 
 Git, always (mcv's floor, whatever else applies):

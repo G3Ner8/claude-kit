@@ -13,7 +13,7 @@
 # Commands:
 #   doctor
 #       Check that herdr, its server, its Claude integration and jq are ready.
-#   spawn <project> <id> <repo-path> <new-branch> [--base <ref>] [-- <claude-args>...]
+#   spawn <project> <id> <repo-path> <new-branch> [--base <ref>] [--context <folder>] [-- <claude-args>...]
 #       Fetch, then create a git worktree of <repo-path> on a branch that must
 #       not exist yet, locally or on a remote (main, master and develop are
 #       always refused), starting from <ref> (default: the remote's default
@@ -27,6 +27,14 @@
 #       place: once the user lets Claude through in its pane, `prompt` works;
 #       otherwise run `remove` before reusing the id. <project>-<id> must not
 #       be the name of another task or herdr agent.
+#       Files the repository's .worktreeinclude names (.gitignore syntax),
+#       such as a .env, are copied from <repo-path> into the worktree when the
+#       worktree's git ignores them and has no file there (at most 100).
+#       --context <folder> also lets the worker read that folder and loads its
+#       CLAUDE.md, CLAUDE.local.md and skills: use it for the project root
+#       when the repository is one of several inside it. Claude's file edits
+#       there are denied, and the worker is told it is read-only. Refused: a
+#       folder inside the repository, /, or one holding the worktree.
 #   prompt <project>/<id> <text> [--no-wait] [--timeout <ms>]
 #       Send text and wait until the worker stops (default 10 minutes). Prints
 #       only the worker's new state; use `read` to see what it said. Refused
@@ -196,6 +204,75 @@ spawn_cleanup() {
   fi
 }
 
+# Copy into worktree $2 the files of main checkout $1 that its
+# .worktreeinclude names (.gitignore syntax), keeping their paths, and print
+# how many. On failure print the reason and return 1.
+#
+# The worktree's own git decides what is copied, not the main checkout's:
+# the worktree is on the base branch, which may track a file the main
+# checkout ignores, or not ignore it at all. Copying such a file would
+# overwrite committed content or leave an untracked secret for `git add -A`.
+# So a file is copied only when the worktree ignores it and has no file
+# there yet. Only regular files are copied; a symlink would point elsewhere
+# once moved. The list is meant for a few small files (an .env), so it is
+# capped.
+MAX_INCLUDES=100
+copy_includes() {
+  local root="$1" wt="$2" f
+  local -a files=()
+  if [[ ! -f "$root/.worktreeinclude" ]]; then
+    echo 0
+    return 0
+  fi
+  while IFS= read -r -d '' f; do
+    [[ -f "$root/$f" && ! -L "$root/$f" && ! -e "$wt/$f" && ! -L "$wt/$f" ]] || continue
+    files+=("$f")
+  done < <(git -C "$root" ls-files -z --others --ignored \
+             --exclude-from="$root/.worktreeinclude" 2>/dev/null \
+           | git -C "$wt" check-ignore -z --stdin 2>/dev/null)
+  if (( ${#files[@]} > MAX_INCLUDES )); then
+    echo ".worktreeinclude names ${#files[@]} files, more than $MAX_INCLUDES; list only the few a worker needs (a dependency folder is installed, not copied)"
+    return 1
+  fi
+  for f in ${files[@]+"${files[@]}"}; do
+    { mkdir -p "$wt/$(dirname "$f")" && cp -p "$root/$f" "$wt/$f"; } 2>/dev/null \
+      || { echo "could not copy $f from .worktreeinclude into the worktree"; return 1; }
+  done
+  echo "${#files[@]}"
+}
+
+lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+
+# True when folder $1 is folder $2 or lies inside it. Each step up from $1
+# is compared with $2 by device and inode, so letter case and symlinks in
+# the spelling do not matter.
+within() {
+  local d
+  d="$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -P)" || return 1
+  while :; do
+    [[ "$d" -ef "$2" ]] && return 0
+    [[ "$d" == / ]] && return 1
+    d="$(dirname "$d")"
+  done
+}
+
+# Print the first ref of repository $1 that is branch $2 (given in lower
+# case) in any letter case, locally or on any remote, and succeed; fail when
+# there is none.
+branch_taken() {
+  local ref
+  while IFS= read -r ref; do
+    case "$ref" in
+      refs/heads/"$2") ;;
+      refs/remotes/*/"$2") [[ "${ref#refs/remotes/*/}" == "$2" ]] || continue ;;
+      *) continue ;;
+    esac
+    printf '%s' "$ref"
+    return 0
+  done < <(git -C "$1" for-each-ref --format='%(refname)' refs/heads refs/remotes | tr '[:upper:]' '[:lower:]')
+  return 1
+}
+
 # Remove a worktree herdr just created, then fail.
 abandon_worktree() {
   herdr worktree remove --workspace "$1" >/dev/null 2>&1 || true
@@ -237,8 +314,8 @@ cmd_doctor() {
 
 cmd_spawn() {
   need_herdr_pane
-  [[ $# -ge 4 ]] || die "usage: spawn <project> <id> <repo-path> <new-branch> [--base <ref>] [-- <claude-args>...]"
-  local project="$1" id="$2" repo="$3" branch="$4" base=""
+  [[ $# -ge 4 ]] || die "usage: spawn <project> <id> <repo-path> <new-branch> [--base <ref>] [--context <folder>] [-- <claude-args>...]"
+  local project="$1" id="$2" repo="$3" branch="$4" base="" context=""
   shift 4
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -246,10 +323,25 @@ cmd_spawn() {
         [[ $# -ge 2 && -n "$2" ]] || die "--base needs a ref, e.g. origin/main"
         base="$2"
         shift 2 ;;
+      --context)
+        [[ $# -ge 2 && -n "$2" ]] || die "--context needs a folder"
+        [[ -z "$context" ]] || die "--context given twice"
+        context="$(CDPATH='' cd -- "$2" 2>/dev/null && pwd -P)" || die "--context: no such folder: $2"
+        [[ "$context" != / ]] || die "--context / would open the whole disk; give the project folder"
+        shift 2 ;;
       --) shift; break ;;
       *) die "unknown option '$1'; Claude's own options go after --" ;;
     esac
   done
+  # The context is the folder around the repository. One inside it, or the
+  # repository itself, adds nothing the worktree lacks. Compared by device
+  # and inode (-ef), not by spelling: macOS file systems ignore case.
+  if [[ -n "$context" ]]; then
+    local repo_real
+    repo_real="$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" || die "not a git repository: $repo"
+    within "$context" "$repo_real" \
+      && die "--context $context is inside the repository; give the folder around it"
+  fi
   # --branch also expands shorthands such as @{-1}, so the name must come back
   # unchanged; "@" alone is git's name for HEAD.
   [[ "$branch" != @ && "$(git check-ref-format --branch "$branch" 2>/dev/null)" == "$branch" ]] \
@@ -280,13 +372,21 @@ cmd_spawn() {
 
   # herdr reuses an existing branch without complaint, even main, so a worker
   # could end up committing to it. Only a branch that exists nowhere, locally
-  # or on a remote (checked after the fetch below), is taken.
-  case "$branch" in
+  # or on a remote (checked again after the fetch below), is taken. Names
+  # are compared ignoring case: on macOS a new loose ref MAIN is the same
+  # file as main once main is packed, and commits to MAIN move main.
+  local lc r
+  lc="$(lower "$branch")"
+  case "$lc" in
     main|master|develop) die "'$branch' is a shared branch; give the worker a new branch name" ;;
+    refs/*|head|head/*) die "'$branch' is not a usable branch name; give a plain name such as fix/login" ;;
   esac
-  if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
-    die "branch '$branch' already exists in $root; give the worker a new branch name"
-  fi
+  for r in $(git -C "$root" remote); do
+    [[ "$lc" != "$(lower "$r")"/* ]] \
+      || die "'$branch' starts with the remote name $r; give a plain name such as fix/login"
+  done
+  r="$(branch_taken "$root" "$lc")" \
+    && die "branch '$branch' already exists as ${r#refs/} in $root; give the worker a new branch name"
 
   lock_repo "$root"
   NEW_ROOT="$root"
@@ -312,11 +412,8 @@ cmd_spawn() {
     git -C "$root" rev-parse --verify --quiet "$base^{commit}" >/dev/null \
       || die "base '$base' is not a commit in $root"
   fi
-  for r in $(git -C "$root" remote); do
-    if git -C "$root" show-ref --verify --quiet "refs/remotes/$r/$branch"; then
-      die "branch '$branch' already exists on $r; give the worker a new branch name"
-    fi
-  done
+  r="$(branch_taken "$root" "$lc")" \
+    && die "branch '$branch' already exists as ${r#refs/} in $root; give the worker a new branch name"
 
   # From here on, a branch named $branch was made by this spawn.
   NEW_BRANCH="$branch"
@@ -353,6 +450,19 @@ cmd_spawn() {
   fi
   unlock_repo
 
+  # A context that holds the worktree (the home folder, say) would forbid the
+  # worker its own files, since the context is read-only to it.
+  if [[ -n "$context" ]] && within "$wt" "$context"; then
+    abandon_worktree "$ws" "--context $context holds the worker's own worktree ($wt); give the project folder"
+  fi
+
+  # Files git ignores, so the worktree lacks them, but the worker needs
+  # (a test account's .env, say): the repository lists them in
+  # .worktreeinclude, as Claude Code's own worktrees do, and they are copied
+  # from the main checkout.
+  local copied
+  copied="$(copy_includes "$root" "$wt")" || abandon_worktree "$ws" "$copied; the worktree was removed"
+
   # While Claude starts, which can take a minute, its pane is not in herdr's
   # agent list yet; the "starting" marker stops mcv-watch from reporting the
   # worker gone. It stays if Claude fails to start, until `remove`.
@@ -361,9 +471,11 @@ cmd_spawn() {
   local meta
   meta="$(jq -cn --arg task "$project/$id" --arg agent "$name" --arg ws "$ws" --arg pane "$pane" \
     --arg wt "$wt" --arg repo "$root" --arg branch "$branch" --arg base "${base:-HEAD}" \
+    --arg context "$context" --argjson copied "$copied" \
     --arg created "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     '{task: $task, agent: $agent, workspace_id: $ws, pane_id: $pane, worktree: $wt,
-      repo: $repo, branch: $branch, base: $base, created: $created}')"
+      repo: $repo, branch: $branch, base: $base, context: $context, copied: $copied,
+      created: $created}')"
   # Written whole, then renamed, so mcv-watch never reads half a file.
   printf '%s\n' "$meta" >"$dir/meta.tmp"
   mv "$dir/meta.tmp" "$dir/meta"
@@ -372,13 +484,27 @@ cmd_spawn() {
   # nothing is typed into the shell before Claude starts. MCV_HOME goes with
   # it: the worker's environment comes from herdr, not from this session, and
   # its status log must land where this session's watcher looks.
+  #
+  # With --context, the worker also sees that folder (the project root, when
+  # the repository is one of several in it): --add-dir opens it, and the env
+  # variable makes Claude load its CLAUDE.md and CLAUDE.local.md as well;
+  # its skills come with --add-dir alone. --add-dir takes several folders,
+  # so it goes before --settings, which ends its list. --add-dir also lets
+  # Claude edit there, so a deny rule keeps its file-editing tools out of
+  # the context ("//" starts an absolute path in a permission rule). Bash
+  # is not covered by it; the worker's rules say read-only as well.
   local settings
-  settings="$(jq -cn --arg t "$project/$id" --arg h "$MCV_HOME" '{env: {MCV_TASK: $t, MCV_HOME: $h}}')"
+  local -a ctx_args=()
+  settings="$(jq -cn --arg t "$project/$id" --arg h "$MCV_HOME" --arg c "$context" \
+    '{env: ({MCV_TASK: $t, MCV_HOME: $h}
+      + (if $c == "" then {} else {CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: "1"} end))}
+     + (if $c == "" then {} else {permissions: {deny: ["Edit(/" + $c + "/**)"]}} end)')"
+  [[ -z "$context" ]] || ctx_args=(--add-dir "$context")
   h agent start "$name" --kind claude --pane "$pane" --timeout 60000 \
-    -- --settings "$settings" ${1+"$@"} >/dev/null
+    -- ${ctx_args[@]+"${ctx_args[@]}"} --settings "$settings" ${1+"$@"} >/dev/null
   rm -f "$dir/starting"
 
-  jq -c '{task, agent, worktree, branch, base}' <<<"$meta"
+  jq -c '{task, agent, worktree, branch, base, context, copied}' <<<"$meta"
 }
 
 cmd_prompt() {

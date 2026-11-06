@@ -59,8 +59,15 @@ config, and writes `.claude/mcv.json` once you agree:
 ```
 
 `project` is a short name that prefixes every worker; `repos` are the repositories workers may be
-started in; `dispatch` is the text a new worker receives, with `{task}` replaced by its task. An
-optional `base` (for example `origin/develop`) sets where worker branches start.
+started in; `dispatch` is the text a new worker receives, with `{task}` replaced by its task.
+Optional fields:
+
+- `base`, for example `origin/develop`: where worker branches start. Without it they start from the
+  remote's default branch, which on many projects is `main` while work starts from `develop`; the
+  coordinator proposes it when it sees that.
+- `context`, for example `"."`: a folder workers may read, for a project folder that holds several
+  repositories. See [What a worker has](#what-a-worker-has).
+- `max_workers` (default 2): how many workers run at once; the coordinator queues the rest.
 
 Then ask for work in plain words ("fix the login redirect in admin, and add a CSV export"). Before
 starting anything, the coordinator shows each worker it plans, with its task id, repo and branch, and
@@ -99,7 +106,8 @@ Run `H` with no arguments for every command and option.
   (for example offline), `spawn` stops and asks for `--base` rather than branch from a stale HEAD. The
   new branch has no upstream, so a plain `git push` from the worker cannot reach the base branch; the
   worker sets one when it first pushes its own branch. Two spawns in the same repository run one
-  after the other. The worktree goes under `~/.herdr/worktrees/`. If no herdr workspace is open for
+  after the other. `--context <folder>` and `.worktreeinclude`: see
+  [What a worker has](#what-a-worker-has). The worktree goes under `~/.herdr/worktrees/`. If no herdr workspace is open for
   that repository yet, herdr also opens one for its main checkout.
 - If `spawn` fails while starting Claude, the task is left in place. The usual cause is Claude's
   folder trust dialog, shown the first time Claude opens a folder; its default answer is "No, exit",
@@ -127,6 +135,49 @@ Worker states, as herdr reports them:
 | `done` | stopped; its output not yet viewed | yes |
 | `idle` | stopped | yes |
 | `unknown` | herdr cannot tell | no |
+
+## What a worker has
+
+A worker's worktree is made from git, under `~/.herdr/worktrees/`, so it starts with what is
+committed on its base branch and nothing else.
+
+| | In the worker |
+|---|---|
+| The repo's committed files, including its `CLAUDE.md`, `.claude/skills`, `.claude/agents`, `.claude/settings.json` | yes, as they are on the base branch (a skill only on your local branch is missing) |
+| Your own `~/.claude/` (personal `CLAUDE.md`, plugins, user-level MCP servers) | yes |
+| The repo's Claude Code memory | yes, shared with the main checkout |
+| Files git ignores (`.env`, `qa/.env`, the repo's own `CLAUDE.local.md`) | only those listed in the repo's `.worktreeinclude` (below) |
+| `node_modules` and other installed dependencies | no: the worker installs them (`npm ci` and the like) |
+| The project folder around the repo: its `CLAUDE.md`, `CLAUDE.local.md`, skills, plans | only with `context` in the config (below) |
+| A path that leaves the repo, such as `../other-repo` | no: from a worktree it points elsewhere; the coordinator gives such paths in full in the task |
+| `.claude/settings.local.json` (permissions you allowed locally) | only if listed in `.worktreeinclude` |
+
+**`.worktreeinclude`.** A file at the repo's root, in `.gitignore` syntax, naming ignored files to
+copy into every new worktree from the main checkout, for example:
+
+```
+qa/.env
+.env.development.local
+```
+
+`spawn` copies a file only when it matches a line, is a regular file (not a symlink), and the
+worktree's own git ignores it and has no file there yet. The worktree is on the base branch, which
+may track or not ignore a file your checkout ignores; such a file is left alone, so a secret never
+overwrites committed content or turns up as a new file for `git add -A`. It is the same file Claude
+Code reads for its own worktrees, so one list serves both. It is for a few small files: more than
+100 matches and `spawn` stops; dependencies are installed, not copied.
+
+**`context`.** When `.claude/mcv.json` sits in a folder that holds several repositories, a worker
+in one of them loses that folder's `CLAUDE.md`, `CLAUDE.local.md` and skills, because its worktree
+lives elsewhere. With `"context": "."` the worker is started with that folder added (Claude's
+`--add-dir`, with `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`), so it reads them as a session
+opened in the repo's own folder would. `--add-dir` would also let it edit there, so the worker's
+settings deny Claude's file-editing tools anywhere in that folder (checked: an edit there is
+refused), and its rules tell it to treat the folder as read-only; a shell command could still write
+there, as in any session. `spawn` refuses a context inside the repository, `/`, and one that holds
+the worker's own worktree (your home folder, for instance). Leave it out
+when that folder's notes are too broad for a single task; the coordinator then puts what the worker
+needs into the task text.
 
 ## Permissions
 

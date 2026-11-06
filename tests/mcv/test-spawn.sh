@@ -35,6 +35,7 @@ repo="$root/repo"
 git -C "$repo" config push.default upstream
 
 spawn() { "$H" spawn acme "$@"; }
+lower_id() { printf '%s' "$1" | tr '[:upper:]/' '[:lower:]-'; }
 locks_empty() { [[ -z "$(ls -A "$MCV_HOME/.locks" 2>/dev/null)" ]]; }
 
 # The fake reproduces what makes the upstream fix necessary: a branch made
@@ -67,7 +68,7 @@ done
 # A branch that exists only on the remote is refused, and nothing is left.
 out="$(spawn t2 "$repo" feat/taken 2>&1)"; rc=$?
 expect "branch that exists only on origin refused" \
-  '[[ $rc -eq 1 && "$out" == *"already exists on origin"* ]]' "rc=$rc $out"
+  '[[ $rc -eq 1 && "$out" == *"already exists as remotes/origin/feat/taken"* ]]' "rc=$rc $out"
 expect "no local branch made for the refused remote branch" \
   '! git -C "$repo" show-ref --verify --quiet refs/heads/feat/taken'
 expect "no task left for the refused spawn" '[[ ! -e "$MCV_HOME/acme/tasks/t2" ]]'
@@ -82,6 +83,23 @@ expect "failed worktree create leaves no branch" \
 expect "lock released after a failed spawn" 'locks_empty'
 out="$(spawn t3 "$repo" fix/three 2>&1)"; rc=$?
 expect "the same spawn succeeds on retry" '[[ $rc -eq 0 ]]' "rc=$rc $out"
+
+# Names are compared ignoring case. On macOS, once refs are packed, a new
+# loose MAIN is the same file as main, and committing to it moves main.
+git -C "$repo" pack-refs --all
+for b in MAIN Main Develop MASTER FIX/ONE Feat/Taken; do
+  out="$(spawn "c-$(lower_id "$b")" "$repo" "$b" 2>&1)"; rc=$?
+  expect "branch '$b' refused (same as an existing or shared name, ignoring case)" \
+    '[[ $rc -eq 1 && ( "$out" == *"shared branch"* || "$out" == *"already exists as"* ) ]]' "rc=$rc $out"
+done
+expect "main did not move" '[[ "$(git -C "$repo" rev-parse main)" == "$(git -C "$repo" rev-parse origin/main)" ]]'
+for b in origin/fix-x ORIGIN/fix-x refs/heads/fix-x HEAD head/x; do
+  out="$(spawn c-ref "$repo" "$b" 2>&1)"; rc=$?
+  expect "branch '$b' refused as ambiguous" \
+    '[[ $rc -eq 1 && ( "$out" == *"plain name"* || "$out" == *"not a valid branch name"* ) ]]' "rc=$rc $out"
+done
+out="$(spawn c-new "$repo" Fix/New-Thing 2>&1)"; rc=$?
+expect "a new name with capitals is still taken" '[[ $rc -eq 0 ]]' "rc=$rc $out"
 
 # Claude failing to start keeps the task, its worktree and branch for remove.
 out="$(FAKE_FAIL=start spawn t4 "$repo" fix/four 2>&1)"; rc=$?
