@@ -6,7 +6,7 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
-### `mcv` 0.1.0 (new plugin, experimental, not usable yet)
+### `mcv` 0.1.0 (new plugin, experimental, not yet tried end to end)
 - New plugin: run several Claude Code sessions on one project while you talk to one. A coordinator
   session starts worker sessions, each in its own git worktree, through the herdr terminal manager.
   Decision and scope: CLAUDE.md D19, `plugins/mcv/README.md`.
@@ -19,13 +19,13 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   base branch. Spawns in one repository run one at a time. `prompt --no-wait` returns as
   soon as the worker starts, so a caller is never held past Claude Code's 2-minute Bash limit. Checked
   against herdr 0.9.5 on 2026-11-06.
-- Worker git rules, in the text the hooks will inject: a fixed floor (own branch only, no force-push,
+- Worker git rules, in the text the hooks inject: a fixed floor (own branch only, no force-push,
   no secrets), then the project's own rules, or common practice where a project has none (Conventional
   Commits, rebase onto the latest base, push and open a draft PR/MR).
 - `bin/mcv-status`: the worker's status log. A worker reports `needs-decision` (numbered question),
   `blocked`, `done`, `failed` or `note`, one line per event; the coordinator closes a question with
   `--task <project>/<id> answered`. It also prints the worker rules and the AskUserQuestion refusal
-  that the hooks will inject, and prints nothing when `MCV_TASK` is not set. Tests:
+  that the hooks inject, and prints nothing unless `MCV_TASK` names a task mcv started. Tests:
   `tests/mcv/test-status.sh`.
 - `bin/mcv-watch <project>`: one event stream for the coordinator, meant for Claude Code's Monitor
   tool. Prints only what is worth a coordinator turn: new status-log lines, a worker reaching
