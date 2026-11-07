@@ -6,76 +6,19 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
-### `mcv` 0.1.0 (new plugin, experimental, not yet tried end to end)
-- New plugin: run several Claude Code sessions on one project while you talk to one. A coordinator
-  session starts worker sessions, each in its own git worktree, through the herdr terminal manager.
-  Decision and scope: CLAUDE.md D19, `plugins/mcv/README.md`.
-- `bin/mcv-herdr.sh`: the helper that does every herdr call — `doctor`, `spawn`, `prompt`, `read`,
-  `agents`, `remove`. A worker gets `MCV_TASK=<project>/<id>` through Claude's own `--settings`, so
-  nothing is typed into its shell first. `spawn` refuses a branch that already exists, locally or on
-  a remote, and always `main`/`master`/`develop`, since herdr would check it out as is; it fetches and
-  branches from the remote's default branch (or `--base <ref>`), so a worker never starts from a stale
-  checkout, and clears the upstream git gives the new branch, so a plain `git push` cannot reach the
-  base branch. Spawns in one repository run one at a time. `prompt --no-wait` returns as
-  soon as the worker starts, so a caller is never held past Claude Code's 2-minute Bash limit. Checked
-  against herdr 0.9.5 on 2026-11-06.
-- Worker git rules, in the text the hooks inject: a fixed floor (own branch only, no force-push,
-  no secrets), then the project's own rules, or common practice where a project has none (Conventional
-  Commits, rebase onto the latest base, push and open a draft PR/MR).
-- `bin/mcv-status`: the worker's status log. A worker reports `needs-decision` (numbered question),
-  `blocked`, `done`, `failed` or `note`, one line per event; the coordinator closes a question with
-  `--task <project>/<id> answered`. It also prints the worker rules and the AskUserQuestion refusal
-  that the hooks inject, and prints nothing unless `MCV_TASK` names a task mcv started. Tests:
-  `tests/mcv/test-status.sh`.
-- `bin/mcv-watch <project>`: one event stream for the coordinator, meant for Claude Code's Monitor
-  tool. Prints only what is worth a coordinator turn: new status-log lines, a worker reaching
-  `blocked` or `done`, a vanished worker. Skips `working`/`idle`, the coordinator's own answers, and a
-  `done` that a question or report line already announced. Tests: `tests/mcv/test-watch.sh`.
-- `hooks/hooks.json`: two hooks, both silent unless `MCV_TASK` names a task mcv started. SessionStart gives a worker
-  its rules; PreToolUse refuses AskUserQuestion with directions to `mcv-status needs-decision`.
-  Checked in real sessions: a worker received the rules and its AskUserQuestion call was refused; a
-  normal session with the plugin loaded was untouched. Tests: `tests/mcv/test-hooks.sh`.
-- `skills/mcv/SKILL.md`: the `/mcv` skill the coordinator follows. Builds `.claude/mcv.json` with the
-  user on first use, starts one watcher, confirms every worker (task id, repo, branch) before starting
-  it, labels questions `<task id> #<n>`, checks the worker's screen before sending an answer, and
-  never answers questions or approves dialogs for the user.
-- Hardened after an adversarial QA pass (176 cases, then a regression test for each fix): `remove`
-  works after the user closed the worker's workspace; a task id cannot reach outside mcv's state
-  folder; the watcher no longer reports a worker gone while it starts, keeps following a task
-  removed and spawned again under the same id, survives damaged state, and passes log lines on while
-  herdr is down; status-log writes hold a lock, so question ids never repeat; `prompt` and `read`
-  handle a worker whose Claude has exited; `MCV_HOME` reaches the worker; every error is one line.
-  Tests: `tests/mcv/` (200 checks), on macOS bash 3.2 and Ubuntu 24.04.
-- What a worker gets beyond its worktree: `spawn --context <folder>` opens the project folder around
-  the repository to it (`--add-dir`, with that folder's CLAUDE.md, CLAUDE.local.md and skills
-  loaded), denies Claude's file edits there and tells the worker it is read-only; a repository's
-  `.worktreeinclude` names ignored files (a test account's `.env`) to copy in, decided by the
-  worktree's own git so nothing committed is overwritten. Config gains `context` and `max_workers`
-  (default 2); the coordinator proposes `base` when the remote's default branch is not where work
-  starts, and writes into each task the facts the worker cannot find itself. Branch names are
-  compared ignoring case, since on macOS a branch `MAIN` could move `main`. Checked with real
-  workers: workspace notes, skills and copied files arrive; an edit in the context is refused.
-  Tests: `tests/mcv/` (266 checks). README: "What a worker has".
-- A third QA pass, on interruptions, races between commands and old data: `spawn` claims the
-  worker name before checking anything, so two spawns of one task (or of two tasks whose names join
-  the same) can no longer both succeed; it writes the task as soon as the worktree exists, so an
-  interrupted spawn leaves something `remove` can clean up, and on INT/TERM/HUP it undoes its own
-  worktree, branch and task; a leftover task folder without meta is cleared; branch names must be
-  ASCII. `mcv-watch` shows questions still open when it starts (a coordinator started later sees
-  them), survives an unreadable log, ignores blank lines, stops at once on TERM, and polls 200 tasks
-  in under 3 seconds instead of 7. `mcv-status` mends a log that ends mid-line, strips control
-  characters, and refuses `--task` from a worker. README states minimum versions. Tests: 300 checks.
-- Status: every part is in place and checked on its own; a full run on a real project is still to do.
-
 ### Kit
+- `mcv` (coordinate several Claude Code sessions through herdr) was added (D19) and, before any
+  release, moved to its own private repository with its history (D20). Removed here: the plugin, its
+  tests, its marketplace entry, the Coordination tier and the Section 7 naming exception.
 - CLAUDE.md admits `hooks/` and `bin/` in a plugin (Section 2), with the rule that every plugin hook
-  does nothing unless the plugin's own environment variable is set; new Coordination tier (D19).
+  does nothing unless the plugin's own environment variable is set (D19; kept after D20).
 - `validate-contract.sh` rule 5: every `bin/` file is executable and every `hooks.json` parses. Rule 4
   no longer aborts silently when a plugin has no marketplace entry yet.
 - CI: new job runs each plugin's hook-guard test, `tests/<plugin>/test-hooks.sh`; a plugin's other
   tests run locally (CLAUDE.md Section 2), so the free runner does little. It first ran every
   `tests/*/test-*.sh`; one concurrency check of mcv failed once on GitHub's runner and could not be
-  reproduced in 90 local runs, and timing-sensitive checks do not belong on a shared runner.
+  reproduced in 90 local runs, and timing-sensitive checks do not belong on a shared runner. Since
+  D20 no plugin here has tests, and the job finds none.
 
 ### `work-core` 0.3.0
 - `sitrep` 0.3.0: the timesheet appendix can be copied into a timesheet as it

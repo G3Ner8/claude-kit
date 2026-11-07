@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "claude-kit",
-  "description": "Claude Code skills + agents, tiered. dev-core (stack-agnostic disciplines) · react-core (React 19 / Vite skills) · agent-profiles (templates + profile-generator) · work-core (cross-role work-awareness) · mcv (coordinate several Claude Code sessions; experimental).",
+  "description": "Claude Code skills + agents, tiered. dev-core (stack-agnostic disciplines) · react-core (React 19 / Vite skills) · agent-profiles (templates + profile-generator) · work-core (cross-role work-awareness).",
   "owner": {
     "name": "Chettawat Phosri"
   },
@@ -29,12 +29,6 @@
       "source": "./plugins/work-core",
       "description": "Cross-role personal work-awareness skills: sitrep (situation report — recap + effort + open loops from local ground truth: Claude Code session logs, git, MR/PR state). The role-neutral tier of claude-kit.",
       "version": "0.3.0"
-    },
-    {
-      "name": "mcv",
-      "source": "./plugins/mcv",
-      "description": "Experimental, not yet tried end to end. Run several Claude Code sessions on one project while you talk to one: a coordinator session starts worker sessions, each in its own git worktree, and passes their questions and results to you. Requires the herdr terminal manager.",
-      "version": "0.1.0"
     }
   ]
 }
