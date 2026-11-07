@@ -223,3 +223,15 @@ to push without being told, workers will not push.
 - A worker is marked by the environment variable `MCV_TASK=<project>/<id>`, set only in that worker's
   Claude process. mcv's hooks act only when `MCV_TASK` names a task mcv started, so installing mcv
   does not change your other Claude Code sessions.
+
+## Running the tests
+
+From a clone of this repository (no herdr needed; they use a fake one):
+
+```
+for t in tests/mcv/test-*.sh; do bash "$t" || echo "FAILED: $t"; done
+```
+
+Run them all before committing a change to mcv. CI runs only `tests/mcv/test-hooks.sh`, the check
+that the hooks stay silent outside a worker; the rest, some of which start many processes at once
+or measure time, run locally.
