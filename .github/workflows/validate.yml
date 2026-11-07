@@ -40,16 +40,20 @@ jobs:
         run: ./scripts/link-check.sh
 
   plugin-tests:
-    name: Plugin tests (tests/<plugin>/)
+    name: Plugin hook guards (tests/<plugin>/test-hooks.sh)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Ensure jq
         run: command -v jq || (sudo apt-get update -qq && sudo apt-get install -y -qq jq)
-      - name: Run every tests/*/test-*.sh
+      # Only the hook-guard tests run here: a plugin hook runs in every session
+      # where the plugin is installed, so its opt-in guard is worth checking on
+      # every push. A plugin's other tests run locally (CLAUDE.md Section 2),
+      # which keeps this free runner's work small.
+      - name: Run every tests/*/test-hooks.sh
         run: |
           status=0
-          for t in tests/*/test-*.sh; do
+          for t in tests/*/test-hooks.sh; do
             [ -e "$t" ] || continue
             echo "== $t"
             "$t" || status=1

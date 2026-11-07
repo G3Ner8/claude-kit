@@ -88,7 +88,9 @@ the plugin's own environment variable is set (mcv: `MCV_TASK`).
 `validate-contract.sh` rule 5 checks that every `bin/` file is executable and
 that `hooks.json` parses. It cannot check the opt-in guard, so each plugin with
 hooks ships a test that runs every hook with the variable unset and asserts
-there is no output.
+there is no output, named `tests/<plugin>/test-hooks.sh`. CI runs only that
+test of each plugin, to keep the free GitHub runner's work small; a plugin's
+other tests run locally before committing a change to it.
 
 A plugin's tests live in `tests/<plugin>/` at the repo root, outside the plugin
 folder, so they are not installed with it; stubs and sample data go in
@@ -381,7 +383,8 @@ up.
 4. **Version mirror** — every plugin's `marketplace.json` version equals its `plugin.json` version. The marketplace version is the consumers' cache key (Section 12 step 3); a missed mirror means installed consumers silently keep the old cached copy (always fails).
 5. **Plugin runtime files usable** — every `plugins/*/bin/*` file is executable and every `plugins/*/hooks/hooks.json` parses as JSON (always fails). Plugins without `bin/` or `hooks/` have nothing to check.
 
-CI integration (future): run both validators on PR — block merge on failure.
+CI (`.github/workflows/validate.yml`) runs the four validators and each
+plugin's hook-guard test (Section 2) on every push and pull request.
 
 ---
 

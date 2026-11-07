@@ -72,8 +72,10 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
   does nothing unless the plugin's own environment variable is set; new Coordination tier (D19).
 - `validate-contract.sh` rule 5: every `bin/` file is executable and every `hooks.json` parses. Rule 4
   no longer aborts silently when a plugin has no marketplace entry yet.
-- CI: new `plugin-tests` job runs every `tests/<plugin>/test-*.sh` (CLAUDE.md Section 2 puts plugin
-  tests there).
+- CI: new job runs each plugin's hook-guard test, `tests/<plugin>/test-hooks.sh`; a plugin's other
+  tests run locally (CLAUDE.md Section 2), so the free runner does little. It first ran every
+  `tests/*/test-*.sh`; one concurrency check of mcv failed once on GitHub's runner and could not be
+  reproduced in 90 local runs, and timing-sensitive checks do not belong on a shared runner.
 
 ### `work-core` 0.3.0
 - `sitrep` 0.3.0: the timesheet appendix can be copied into a timesheet as it
