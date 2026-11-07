@@ -71,8 +71,7 @@ marketplace scan both skip underscore-prefixed folders. Drafts move out of
 **`_deprecated/`** uses the same underscore rule for retired skills kept for
 archival.
 
-**`hooks/` and `bin/`** are optional runtime files (admitted for `mcv` in D19;
-no plugin here ships them since mcv moved out, D20). A plugin hook runs in
+**`hooks/` and `bin/`** are optional runtime files (D19, D20). A plugin hook runs in
 every session, in every project, where the plugin is installed, so every hook
 MUST be opt-in: it exits 0 with no output unless the plugin's own environment
 variable is set.
