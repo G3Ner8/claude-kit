@@ -1,0 +1,16 @@
+{
+  "name": "mcv",
+  "version": "0.1.0",
+  "description": "Experimental, not yet tried end to end. Run several Claude Code sessions on one project while you talk to one: a coordinator session starts worker sessions, each in its own git worktree, and passes their questions and results to you. Requires the herdr terminal manager.",
+  "author": {
+    "name": "Chettawat Phosri"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "multi-session",
+    "orchestration",
+    "worktree",
+    "herdr"
+  ]
+}
