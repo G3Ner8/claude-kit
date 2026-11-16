@@ -4,7 +4,7 @@ description: Personal situation report — recap what you worked on, what it cos
 license: MIT
 user-invocable: true
 metadata:
-  version: "0.3.0"
+  version: "0.3.1"
   type: action
   status: experimental
   stack: any (needs ~/.claude/projects session logs + git; gh/glab optional for PR/MR state)
@@ -113,10 +113,15 @@ briefing from memory of the conversation.
    - **Timesheet cells** — one per day × project. A project is the outermost
      repo a session's repo sits in (`Aware Payroll/pps-web` → `Aware Payroll`),
      renamed or folded by `~/.sitrep/projects.json` when the user keeps one.
+     A session in a git worktree bills to the repo the worktree belongs to.
      `no session time` means commits were made from another project's session:
      their hours are already inside that other cell, so fold the description
      there instead of inventing hours. `⚠ weekend` / `⚠ over 10h` flags carry
      into the timesheet unchanged.
+   - **`Removed worktrees:` line** — sessions whose worktree folder is gone
+     were counted under a repo matched by the folder's path, not confirmed by
+     git. Their hours are real; the attribution is a best guess. Name it in
+     the footer with the count.
    - **`[redacted]`** — the collector removed a credential-shaped string. Leave
      it redacted and never reconstruct it from conversation memory.
    - **Git header counts** — repos from session cwds vs from the cross-run cache
