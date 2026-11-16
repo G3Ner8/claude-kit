@@ -6,6 +6,27 @@ Plugins are versioned independently in their `plugin.json`. The headings below g
 
 ## [Unreleased]
 
+### `work-core` 0.3.1
+- `sitrep` 0.3.1: sessions that ran in a git worktree bill to the repo the
+  worktree belongs to. A session coordinator gives each worker its own linked
+  worktree outside the project folder, so every worker became a project of its
+  own, named after its worktree folder: on a measured week, 92 projects in the
+  digest where there were 11, and the timesheet split one project's day into
+  dozens of cells under 15 minutes, each dropped on its own. Three changes in
+  the collector:
+  - **A live worktree resolves to its main checkout** (the first entry of
+    `git worktree list`, turned back into the checkout for a submodule), so
+    the outermost-repo rule then applies as before.
+  - **A removed worktree is attributed by its path.** Once the folder is gone
+    git cannot say where it came from; a `…/worktrees/<repo>/<name>` path is
+    matched to a known repo of that name, only when exactly one matches. The
+    digest counts these sessions and says they were attributed by path.
+  - **Worktrees are no longer scanned as repos** or kept in
+    `~/.sitrep/repos.json`. Each one repeated its main checkout's commits as a
+    separate Git block and added "no session time" cells to every day.
+- Tests: `tests/work-core/test_sitrep_worktrees.py` (`python3 -m unittest
+  discover -s tests/work-core`).
+
 ### Kit
 - `mcv` (coordinate several Claude Code sessions through herdr) was added (D19) and, before any
   release, moved to its own private repository with its history (D20). Removed here: the plugin, its

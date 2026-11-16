@@ -171,6 +171,46 @@ def merged_in_window(json_str, ts_field, cutoff, until):
     return [it for _, it in hits]
 
 
+def cached_repos(path=REPO_CACHE):
+    """Repo paths recorded by earlier runs. A missing or corrupt cache is empty."""
+    try:
+        return {p for p in json.loads(path.read_text()) if isinstance(p, str)}
+    except Exception:
+        return set()
+
+
+def main_worktree(top):
+    """The main checkout a git toplevel belongs to. A linked worktree (`git
+    worktree add`, which session coordinators use to give each worker its own
+    checkout) shares history with its main checkout, and its time bills to the
+    same project; left alone it reads as a project of its own, named after the
+    worktree folder, and its repo is scanned again as a duplicate. The first
+    entry of `git worktree list` is always the main checkout, except that for a
+    submodule it names the git directory under the superproject's
+    `.git/modules`, which `--show-toplevel` turns back into the checkout."""
+    listing = run(["git", "-C", top, "worktree", "list", "--porcelain"])
+    first = listing.splitlines()[0] if listing else ""
+    if not first.startswith("worktree "):
+        return top
+    main = first[len("worktree "):]
+    return run(["git", "-C", main, "rev-parse", "--show-toplevel"]) or main
+
+
+def removed_worktree_repo(cwd, known):
+    """Best guess at the repo a removed worktree came from, or None. Once a
+    worktree folder is deleted git cannot say where it came from, and the only
+    trace left is the path. Coordinators lay worktrees out as
+    `<root>/worktrees/<repo>/<name>`, so the folder after `worktrees` is
+    matched against the basenames of known repos, and only a single match is
+    used. A guess, so the digest counts every session attributed this way."""
+    parts = Path(cwd).parts
+    if "worktrees" not in parts[:-1]:
+        return None
+    repo = parts[parts.index("worktrees") + 1]
+    hits = [p for p in known if Path(p).name == repo]
+    return hits[0] if len(hits) == 1 else None
+
+
 def repo_set(discovered, path=REPO_CACHE):
     """(repos to scan, n from cache, n cut by the cap) — this run's discoveries
     unioned with every repo seen on a previous run.
@@ -178,14 +218,13 @@ def repo_set(discovered, path=REPO_CACHE):
     Session cwds only reveal repos opened locally, so work that shipped in a repo
     untouched this window (a teammate's merge, an agent's MR) would be invisible.
     The cache is self-maintaining: entries whose path is gone are dropped, and it
-    is rewritten every run. A missing or corrupt cache is not an error.
+    is rewritten every run. A missing or corrupt cache is not an error. Linked
+    worktrees are dropped too: their history is their main checkout's, and they
+    come and go with each task.
     """
-    known = set()
-    try:
-        known = {p for p in json.loads(path.read_text()) if isinstance(p, str)}
-    except Exception:
-        pass
-    live = {p for p in known | discovered if Path(p, ".git").exists()}
+    known = cached_repos(path)
+    live = {p for p in known | discovered
+            if Path(p, ".git").exists() and main_worktree(p) == p}
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(sorted(live), indent=0))
@@ -455,7 +494,15 @@ def main():
     for cwd in all_cwds:
         top = run(["git", "-C", cwd, "rev-parse", "--show-toplevel"])
         if top:
-            repo_of[cwd] = top
+            repo_of[cwd] = main_worktree(top)
+    # a cwd with no git left is often a worktree removed after its task ended
+    known = {p for p in cached_repos()
+             if Path(p, ".git").exists() and main_worktree(p) == p} | set(repo_of.values())
+    guessed = {}
+    for cwd in all_cwds - set(repo_of):
+        repo = removed_worktree_repo(cwd, known)
+        if repo:
+            repo_of[cwd] = guessed[cwd] = repo
 
     repo_tops, n_cached, repo_cut = repo_set(set(repo_of.values()))
 
@@ -525,6 +572,12 @@ def main():
           f"session-busy, summed across parallel sessions), {tot_out:,} output tokens in main "
           f"sessions + {sub_tok:,} in {sub_files} subagent transcripts, "
           f"{sum(s['n_user'] for s in sessions)} prompts across {len(projects)} projects")
+    if guessed:
+        n_guessed = sum(1 for s in sessions if s["cwd"] in guessed)
+        repos_guessed = ", ".join(sorted({disp.get(r, Path(r).name) for r in guessed.values()}))
+        print(f"\n**Removed worktrees:** {n_guessed} sessions ran in worktree folders that no "
+              f"longer exist and are counted under the repo their path names ({repos_guessed}). "
+              f"Attributed by path, not confirmed by git.")
 
     # ---- per-project rollup (covers what the top-N gist cap cuts)
     print("\n## Projects\n")
